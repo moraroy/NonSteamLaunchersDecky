@@ -17,6 +17,7 @@ import os
 import logging
 import re
 import asyncio
+import aiofiles
 from aiohttp import web
 from decky_plugin import DECKY_PLUGIN_DIR
 from py_modules.lib.scanner import scan, addCustomSite
@@ -99,12 +100,21 @@ class Plugin:
                         # Send the game data to the client
                         await ws.send_json(game)
             return ws
+        
+        async def handleLogUpdates(request):
+            ws = web.WebSocketResponse()
+            await ws.prepare(request)
+            self.log_ws = ws
+            async for msg in ws:
+                pass
+            return ws
 
         # Create the server application
         app = web.Application()
         app.router.add_get('/autoscan', handleAutoScan)
         app.router.add_get('/scan', handleScan)
         app.router.add_get('/customSite', handleCustomSite)
+        app.router.add_get('/logUpdates', handleLogUpdates)
 
         # Run the server
         runner = web.AppRunner(app)
@@ -145,45 +155,34 @@ class Plugin:
             # Launcher option (excluding the Separate App IDs option)
             selected_option_nice = camel_to_title(selected_options).replace('Ea App', 'EA App').replace('Uplay', 'Ubisoft Connect').replace('Gog Galaxy', 'GOG Galaxy').replace('Battle Net', 'Battle.net').replace('Itch Io', 'itch.io').replace('Humble Games', 'Humble Games Collection').replace('Indie Gala', 'IndieGala').replace('Rockstar', 'Rockstar Games Launcher').replace('Glyph', 'Glyph Launcher').replace('Ps Plus', 'Playstation Plus').replace('DMM', 'DMM Games').replace('Remote Play Whatever', 'RemotePlayWhatever')
 
-        # Log the selected_options_list
         decky_plugin.logger.info(f"selected_option_nice: {selected_option_nice}")
 
-        # Make the script executable
         script_path = os.path.join(DECKY_PLUGIN_DIR, 'NonSteamLaunchers.sh')
-
         os.chmod(script_path, 0o755)
-
-        # Temporarily disable access control for the X server
         run(['xhost', '+'])
-
-        # Construct the command to run
         command_suffix = ' '.join(([f'"{operation if operation == "Uninstall" else ""} {selected_option_nice}"'] if selected_option_nice != '' else []) + ([f'"Chrome"'] if install_chrome else []) + ([f'"SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX"'] if separate_app_ids else []) + ([f'"Start Fresh"'] if start_fresh else []) + [f'"DeckyPlugin"'])
-
-        # Construct the command to run
         command = f"{script_path} {command_suffix}"
-
-        # Log the command for debugging
         decky_plugin.logger.info(f"Running command: {command}")
-
-        # Set up the environment for the new process
         env = os.environ.copy()
         env['DISPLAY'] = ':0'
         env['XAUTHORITY'] = os.path.join(os.environ['HOME'], '.Xauthority')
-
-        # Temporarily disable access control for the X server
         run(['xhost', '+'])
-
-        # Run the command in a new xterm window
         xterm_command = f"xterm -e {command}"
         process = Popen(xterm_command, shell=True, env=env)
 
-        # Wait for the script to complete and get the exit code
+        # Read the log file in real-time and send updates
+        log_file_path = '/home/deck/Downloads/NonSteamLaunchers-install.log'
+        async with aiofiles.open(log_file_path, 'r') as log_file:
+            while True:
+                line = await log_file.readline()
+                if not line:
+                    await asyncio.sleep(1)
+                    continue
+                if hasattr(self, 'log_ws'):
+                    await self.log_ws.send_str(line)
+
         exit_code = process.wait()
-
-        # Re-enable access control for the X server
         run(['xhost', '-'])
-
-        # Log the exit code for debugging
         decky_plugin.logger.info(f"Command exit code: {exit_code}")
 
         if exit_code == 0:
