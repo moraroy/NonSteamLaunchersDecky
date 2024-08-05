@@ -10,10 +10,11 @@ import {
     SteamSpinner,
     ProgressBarWithInfo
 } from "decky-frontend-lib";
-import { useState, useEffect, VFC } from "react";
+import { useState, VFC } from "react";
 import { notify } from "../../hooks/notify";
 import { useSettings } from "../../hooks/useSettings";
 import { scan, autoscan } from "../../hooks/scan";
+import { useLogMessages } from "../../hooks/useLogMessages"; // Import the hook
 
 type LauncherInstallModalProps = {
     closeModal?: () => void,
@@ -37,17 +38,7 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
     const [options, setOptions] = useState(launcherOptions);
     const [separateAppIds, setSeparateAppIds] = useState(false);
     const [operation, setOperation] = useState("");
-    const [logMessages, setLogMessages] = useState<string[]>([]);
-
-    useEffect(() => {
-        const ws = new WebSocket('ws://localhost:8675/logUpdates');
-        ws.onmessage = (event) => {
-            setLogMessages(prevMessages => [...prevMessages, event.data]);
-        };
-        return () => {
-            ws.close();
-        };
-    }, []);
+    const logMessages = useLogMessages(); // Use the hook
 
     const handleToggle = (changeName: string, changeValue: boolean) => {
         const newOptions = options.map(option => {
