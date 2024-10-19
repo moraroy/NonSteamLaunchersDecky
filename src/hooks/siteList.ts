@@ -184,6 +184,14 @@ export const sitesList = [
       enabled: false,
       urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/5e7cefa9b606dcd7b0faa082d82cdb1d.jpg'
     },
+    { 
+      name: 'plex',
+      label: 'Plex',
+      URL: 'https://www.plex.tv/',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://cdn2.steamgriddb.com/thumb/7c8db737a231930514b03b61dda48c60.jpg'
+    },
     {
       name: 'youtube',
       label: 'Youtube',
@@ -207,5 +215,13 @@ export const sitesList = [
       streaming: true,
       enabled: false,
       urlimage: 'https://cdn2.steamgriddb.com/thumb/305aefb84d348c156953f7a3d4aa3e04.jpg'
+    },
+    { 
+      name: 'twitch',
+      label: 'Twitch',
+      URL: 'https://www.twitch.tv/',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://cdn2.steamgriddb.com/thumb/72f0b767094fe8e24d620a2273bd0839.jpg'
     }
 ]
