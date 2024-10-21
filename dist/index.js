@@ -593,13 +593,13 @@
                       window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Separate Launcher Folders", checked: separateAppIds, onChange: handleSeparateAppIdsToggle })))));
   };
 
-  /**
-   * The modal for selecting launchers.
-   */
   const StreamingInstallModal = ({ closeModal, streamingOptions, serverAPI }) => {
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const [options, setOptions] = React.useState(streamingOptions);
       const [currentStreamingSite, setCurrentStreamingSite] = React.useState(null);
+      const [currentPage, setCurrentPage] = React.useState(0);
+      const itemsPerPage = 5;
+      const totalPages = Math.ceil(streamingOptions.length / itemsPerPage);
       const handleInstallClick = async () => {
           console.log('handleInstallClick called');
           const selectedStreamingSites = options
@@ -650,6 +650,13 @@
           pointerEvents: 'none',
           transition: 'opacity 1s ease-in-out'
       };
+      const handleNextPage = () => {
+          setCurrentPage((prevPage) => Math.min(prevPage + 1, totalPages - 1));
+      };
+      const handlePreviousPage = () => {
+          setCurrentPage((prevPage) => Math.max(prevPage - 1, 0));
+      };
+      const paginatedOptions = streamingOptions.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
       return ((progress.status != '' && progress.percent < 100) ?
           window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
               window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Streaming Sites"),
@@ -664,7 +671,11 @@
           window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
               window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection. Before installing, toggle Auto Scan \"on\" for these."),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, streamingOptions.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  paginatedOptions.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) }))),
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginTop: '10px' } },
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handlePreviousPage, disabled: currentPage === 0 }, "Previous"),
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleNextPage, disabled: currentPage === totalPages - 1 }, "Next"))),
               window.SP_REACT.createElement("p", null),
               window.SP_REACT.createElement(deckyFrontendLib.Focusable, { style: { display: "flex", alignItems: "center", gap: "10px" } },
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) }, "Install"),
