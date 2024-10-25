@@ -21,10 +21,8 @@ def get_ea_app_game_info(installed_games, game_directory_path):
         ea_ids = None
         game_name = None
         for content_id in xml_root.iter('contentID'):
-            if ea_ids is None:
-                ea_ids = content_id.text
-            else:
-                ea_ids = ea_ids + ',' + content_id.text
+            ea_ids = content_id.text
+            break  # Exit the loop after the first ID is found
         for game_title in xml_root.iter('gameTitle'):
             if game_name is None:
                 game_name = game_title.text
@@ -38,6 +36,7 @@ def get_ea_app_game_info(installed_games, game_directory_path):
         if ea_ids:  # Add the game's info to the dictionary if its ID was found in the folder
             game_dict[game_name] = ea_ids
     return game_dict
+
 
 def ea_scanner(logged_in_home, ea_app_launcher, create_new_entry):
     if platform.system() == "Windows":
