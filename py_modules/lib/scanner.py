@@ -120,7 +120,7 @@ def addCustomSite(customSiteJSON):
         customSiteName = site['siteName']
         customSiteURL = site['siteURL'].strip()
         cleanSiteURL = customSiteURL.replace('http://', '').replace('https://', '').replace('www.', '')
-        chromelaunch_options = f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome --file-forwarding com.google.Chrome @@u @@ --window-size=1280,800 --force-device-scale-factor=1.00 --device-scale-factor=1.00 --kiosk https://{cleanSiteURL}/ --chrome-kiosk-type=fullscreen --no-first-run --enable-features=OverlayScrollbar'
+        chromelaunch_options = f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome --file-forwarding com.google.Chrome @@u @@ --window-size=1280,800 --force-device-scale-factor=1.00 --device-scale-factor=1.00 --start-fullscreen https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
         create_new_entry(env_vars.get('chromedirectory'), customSiteName, chromelaunch_options, env_vars.get('chrome_startdir'), None)
     return decky_shortcuts
 
