@@ -171,6 +171,7 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
                 sOperationText={progress.status}
                 description={progress.description}
                 nProgress={progress.percent}
+                indeterminate={true}
             />
         </div>
         {currentLauncher && (
