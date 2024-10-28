@@ -62,6 +62,7 @@ export const StartFreshModal: VFC<startFreshModalProps> = ({ closeModal, serverA
                     sOperationText={progress.status}
                     description={progress.description}
                     nProgress={progress.percent}
+                    indeterminate={true}
                 />
             </DialogBody>
         </ModalRoot> :

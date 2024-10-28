@@ -58,6 +58,7 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
           sOperationText={progress.status}
           description={progress.description}
           nProgress={progress.percent}
+          indeterminate={true}
         />
         <DialogButton onClick={closeModal} style={{ width: '25px' }}>
           Cancel

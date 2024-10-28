@@ -102,6 +102,7 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({closeMod
             sOperationText={progress.status}
             description={progress.description}
             nProgress={progress.percent}
+            indeterminate={true}
         />
         {currentStreamingSite && (
             <img src={currentStreamingSite.urlimage} alt="Overlay" style={{ ...fadeStyle, opacity: 0.5 }} />
