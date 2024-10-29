@@ -715,6 +715,61 @@
               window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Are You Sure?", strDescription: "Starting fresh will wipe all installed launchers and their games along with your game saves and NSL files. This is irreversible! You'll need to manually remove any shortcuts created.", strOKButtonText: "Yes, wipe!", strCancelButtonText: "No, go back!", onOK: () => setFirstConfirm(true), onCancel: closeModal }));
   };
 
+  const UpdateRestartModal = ({ closeModal, serverAPI }) => {
+      const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
+      const [showRestartModal, setShowRestartModal] = React.useState(false);
+      const handleUpdateProtonGEClick = async () => {
+          console.log('handleUpdateProtonGEClick called');
+          setProgress({ percent: 0, status: 'updating...', description: '' });
+          try {
+              const result = await serverAPI.callPluginMethod("install", {
+                  selected_options: '',
+                  install_chrome: false,
+                  separate_app_ids: false,
+                  start_fresh: false,
+                  update_proton_ge: true
+              });
+              if (result) {
+                  setProgress({ percent: 100, status: 'Proton GE updated successfully.', description: '' });
+                  notify.toast("Proton GE Updated", "Proton GE has been updated successfully.");
+                  setShowRestartModal(true);
+              }
+              else {
+                  setProgress({ percent: 100, status: 'Update failed.', description: '' });
+                  notify.toast("Update Failed", "Proton GE update failed. Check your logs.");
+              }
+          }
+          catch (error) {
+              setProgress({ percent: 100, status: 'Update failed.', description: '' });
+              notify.toast("Update Failed", "Proton GE update failed. Check your logs.");
+              console.error('Error calling update_proton_ge method on server-side plugin:', error);
+          }
+      };
+      const handleRestartSteam = () => {
+          SteamClient.User.StartRestart(false);
+          setShowRestartModal(false);
+          closeModal();
+      };
+      return (window.SP_REACT.createElement(window.SP_REACT.Fragment, null, progress.status !== '' && progress.percent < 100 ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Updating Proton GE"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Updating Proton GE to the latest version. Please wait..."),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restart Steam"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Updating Proton GE requires a restart of Steam for the changes to take effect. Would you like to restart Steam now?"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: () => setShowRestartModal(false) }, "Back"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestartSteam }, "Restart"))))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Update Proton GE"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Would you like to update Proton GE to the latest version?"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleUpdateProtonGEClick }, "Update")))))));
+  };
+
   const sitesList = [
       {
           name: 'epicGames',
@@ -975,7 +1030,8 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(CustomSiteModal, { serverAPI: serverAPI })) }, "Custom Website Shortcut"),
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StartFreshModal, { serverAPI: serverAPI })) }, "Start Fresh")),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StartFreshModal, { serverAPI: serverAPI })) }, "Start Fresh"),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateRestartModal, { serverAPI: serverAPI })) }, "Update Proton-GE")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {

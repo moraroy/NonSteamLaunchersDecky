@@ -284,7 +284,7 @@ class Plugin:
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
         
-    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, operation="Install"):
+    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, update_proton_ge, operation="Install"):
         decky_plugin.logger.info('install was called')
 
         # Log the arguments for debugging
@@ -292,6 +292,8 @@ class Plugin:
         decky_plugin.logger.info(f"separate_app_ids: {separate_app_ids}")
         decky_plugin.logger.info(f"start_fresh: {start_fresh}")
         decky_plugin.logger.info(f"install_chrome: {install_chrome}")
+        decky_plugin.logger.info(f"update_proton_ge: {update_proton_ge}")
+
 
         # Convert the selected options mapping to a list of strings
         selected_option_nice = ""
@@ -329,8 +331,16 @@ class Plugin:
         run(['xhost', '+'])
 
         # Construct the command to run
-        command_suffix = ' '.join(([f'"{operation if operation == "Uninstall" else ""} {selected_option_nice}"'] if selected_option_nice != '' else []) + ([f'"Chrome"'] if install_chrome else []) + ([f'"SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX"'] if separate_app_ids else []) + ([f'"Start Fresh"'] if start_fresh else []) + [f'"DeckyPlugin"'])
+        command_suffix = ' '.join(
+            ([f'"{operation if operation == "Uninstall" else ""} {selected_option_nice}"'] if selected_option_nice != '' else []) +
+            ([f'"Chrome"'] if install_chrome else []) +
+            ([f'"SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX"'] if separate_app_ids else []) +
+            ([f'"Start Fresh"'] if start_fresh else []) +
+            ([f'"Update Proton-GE"'] if update_proton_ge else []) +
+            [f'"DeckyPlugin"']
+        )
         command = f"{script_path} {command_suffix}"
+
 
         # Log the command for debugging
         decky_plugin.logger.info(f"Running command: {command}")

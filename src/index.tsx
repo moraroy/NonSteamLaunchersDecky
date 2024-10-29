@@ -17,6 +17,7 @@ import { useSettings } from './hooks/useSettings'
 import { LauncherInstallModal } from "./components/modals/launcherInstallModal";
 import { StreamingInstallModal } from "./components/modals/streamingInstallModal";
 import { StartFreshModal } from "./components/modals/startFreshModal";
+import { UpdateRestartModal } from './components/modals/updateRestartModal';
 import { RestoreGameSavesModal } from "./components/modals/restoreGameSavesModal";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
@@ -75,6 +76,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<StartFreshModal serverAPI={serverAPI} />)}>
           Start Fresh
+        </ButtonItem>
+        <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
+          Update Proton-GE
         </ButtonItem>
         {/* <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
           Restore Game Saves
