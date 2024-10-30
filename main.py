@@ -260,7 +260,7 @@ class Plugin:
 
 
         if shutil.which("flatpak"):
-            decky_plugin.logger.info("Running Auto Scan Game Save backup...")
+            decky_plugin.logger.info("Running migration Game Save backup...")
             process = await asyncio.create_subprocess_exec(
                 "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config", f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/", "backup", "--force",
                 stdout=asyncio.subprocess.DEVNULL,
@@ -268,7 +268,7 @@ class Plugin:
             )
 
             await process.wait()
-            decky_plugin.logger.info("Backup Auto Scan Game Save completed")
+            decky_plugin.logger.info("Migration Game Save backup completed")
         else:
             decky_plugin.logger.warning("Flatpak not found, skipping backup process")
 
