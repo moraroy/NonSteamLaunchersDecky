@@ -28,7 +28,8 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
         operation: "Install",
         install_chrome: false,
         separate_app_ids: false,
-        start_fresh: false
+        start_fresh: false,
+        update_proton_ge: false
       });
 
       if (result) {

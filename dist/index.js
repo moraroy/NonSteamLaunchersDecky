@@ -533,7 +533,8 @@
                   operation: operation,
                   install_chrome: false,
                   separate_app_ids: separateAppIds,
-                  start_fresh: false
+                  start_fresh: false,
+                  update_proton_ge: false
               });
               if (result) {
                   setProgress({ percent: endPercent, status: `${operation} Selection ${index + 1} of ${total}`, description: `${launcher}` });
@@ -685,7 +686,8 @@
                   selected_options: '',
                   install_chrome: false,
                   separate_app_ids: false,
-                  start_fresh: true
+                  start_fresh: true,
+                  update_proton_ge: false
               });
               if (result) {
                   setProgress({ percent: 100, status: 'NSL has been wiped. Remember to delete your shortcuts!', description: '' });
