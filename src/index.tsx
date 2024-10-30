@@ -138,8 +138,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 
 
-
-
   
       <PanelSection title="Support and Donations vvv">
         <div
