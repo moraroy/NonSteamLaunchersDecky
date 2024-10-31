@@ -19,7 +19,8 @@ export const installSite = async (sites: Sites, serverAPI: ServerAPI, { setProgr
             selected_options: '',
             install_chrome: true,
             separate_app_ids: false,
-            start_fresh: false // Pass true for the start_fresh parameter
+            start_fresh: false,
+            update_proton_ge: false
         });
 
         if (result) {
