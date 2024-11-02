@@ -119,7 +119,8 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
                 install_chrome: false,
                 separate_app_ids: separateAppIds,
                 start_fresh: false,
-                update_proton_ge: false
+                update_proton_ge: false,
+                nslgamesaves: false
             });
 
             if (result) {

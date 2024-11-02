@@ -1102,16 +1102,66 @@ export STEAM_COMPAT_CLIENT_INSTALL_PATH="${logged_in_home}/.local/share/Steam"
 export STEAM_COMPAT_DATA_PATH="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${appid}"
 
 
-
-
 if [[ $options == *"NSLGameSaves"* ]]; then
+    compatdata_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
+    custom_app_id=4206469918
+
+    echo "App ID for the custom shortcut: $custom_app_id"
+    non_steam_launchers_path="${compatdata_dir}/NonSteamLaunchers"
+
+    if [[ -e "$non_steam_launchers_path" ]]; then
+        echo "NonSteamLaunchers already exists at the expected path."
+
+        current_path="${compatdata_dir}/NonSteamLaunchers"
+        echo "Current path for NonSteamLaunchers: $current_path"
+
+        if [[ -L "$current_path" ]]; then
+            echo 'NonSteamLaunchers is already a symbolic link'
+            if [[ "$(readlink "$current_path")" != "${compatdata_dir}/${custom_app_id}" ]]; then
+                echo 'NonSteamLaunchers is symlinked to a different folder'
+                unlink "$current_path"
+                echo "Removed existing symlink at $current_path"
+                ln -s "${compatdata_dir}/${custom_app_id}" "$current_path"
+                echo "Created new symlink at $current_path to ${compatdata_dir}/${custom_app_id}"
+            else
+                echo 'NonSteamLaunchers is already correctly symlinked'
+            fi
+        else
+            echo "NonSteamLaunchers is not a symbolic link."
+            if [[ -e "$current_path" ]]; then
+                echo "NonSteamLaunchers exists at the current path."
+                new_path="${compatdata_dir}/${custom_app_id}"
+                echo "New path for NonSteamLaunchers: $new_path"
+
+                if [[ -e "$new_path" ]]; then
+                    echo "$new_path already exists. Skipping renaming and symlinking."
+                else
+                    mv "$current_path" "$new_path"
+                    echo "Moved NonSteamLaunchers folder to $new_path"
+                    symlink_path="${compatdata_dir}/NonSteamLaunchers"
+                    ln -s "$new_path" "$symlink_path"
+                    echo "Created symlink at $symlink_path to $new_path"
+                fi
+            else
+                echo "The directory $current_path does not exist. Skipping."
+            fi
+        fi
+    else
+        echo "NonSteamLaunchers does not exist at the expected path."
+    fi
+
     echo "Running restore..."
     nohup flatpak run com.github.mtkennerly.ludusavi --config "${logged_in_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/" restore --force > /dev/null 2>&1 &
     wait $!
     echo "Restore completed"
     zenity --info --text="Restore was successful" --timeout=5
+
     exit 0
 fi
+
+
+
+
 
 
 ###Launcher Installations

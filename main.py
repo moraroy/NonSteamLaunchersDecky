@@ -284,7 +284,7 @@ class Plugin:
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
         
-    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, update_proton_ge, operation="Install"):
+    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, operation="Install"):
         decky_plugin.logger.info('install was called')
 
         # Log the arguments for debugging
@@ -293,6 +293,8 @@ class Plugin:
         decky_plugin.logger.info(f"start_fresh: {start_fresh}")
         decky_plugin.logger.info(f"install_chrome: {install_chrome}")
         decky_plugin.logger.info(f"update_proton_ge: {update_proton_ge}")
+        decky_plugin.logger.info(f"nslgamesaves: {nslgamesaves}")
+
 
 
         # Convert the selected options mapping to a list of strings
@@ -307,21 +309,6 @@ class Plugin:
         # Log the selected_options_list
         decky_plugin.logger.info(f"selected_option_nice: {selected_option_nice}")
 
-        if selected_options == "NSLGameSaves":
-            if shutil.which("flatpak"):
-                decky_plugin.logger.info("Running restore...")
-                config_path = os.path.expanduser("~/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/")
-                process = await asyncio.create_subprocess_exec(
-                    "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config", config_path, "restore", "--force",
-                    stdout=asyncio.subprocess.DEVNULL,
-                    stderr=asyncio.subprocess.STDOUT
-                )
-
-                await process.wait()
-                decky_plugin.logger.info("Restore completed")
-            else:
-                decky_plugin.logger.warning("Flatpak not found, skipping restore process")
-            return True
 
         # Make the script executable
         script_path = os.path.join(DECKY_PLUGIN_DIR, 'NonSteamLaunchers.sh')
@@ -336,6 +323,7 @@ class Plugin:
             ([f'"Chrome"'] if install_chrome else []) +
             ([f'"SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX"'] if separate_app_ids else []) +
             ([f'"Start Fresh"'] if start_fresh else []) +
+            ([f'"NSLGameSaves"'] if nslgamesaves else []) +
             ([f'"Update Proton-GE"'] if update_proton_ge else []) +
             [f'"DeckyPlugin"']
         )

@@ -24,12 +24,12 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
     setProgress({ percent: 0, status: 'Restoring game saves...', description: '' });
     try {
       const result = await serverAPI.callPluginMethod("install", {
-        selected_options: "NSLGameSaves",
-        operation: "Install",
+        selected_options: '',
         install_chrome: false,
         separate_app_ids: false,
         start_fresh: false,
-        update_proton_ge: false
+        update_proton_ge: false,
+        nslgamesaves: true
       });
 
       if (result) {
@@ -69,7 +69,7 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
     <ModalRoot style={{ width: '600px' }}>
       <DialogHeader>Restore Game Save Backups</DialogHeader>
       <DialogBody>
-        <DialogBodyText style={{ fontSize: '14px' }}>This feature will restore all your game save backups at once.</DialogBodyText>
+        <DialogBodyText style={{ fontSize: '14px' }}>This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix.</DialogBodyText>
         <DialogBodyText style={{ fontSize: '14px' }}>
           <strong>Ensure all necessary launchers are installed, but do not download the games.</strong> This will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and backed up your game saves at /home/deck/NSLGameSaves.
         </DialogBodyText>

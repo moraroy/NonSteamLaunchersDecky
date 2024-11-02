@@ -33,7 +33,8 @@ export const StartFreshModal: VFC<startFreshModalProps> = ({ closeModal, serverA
                 install_chrome: false,
                 separate_app_ids: false,
                 start_fresh: true,
-                update_proton_ge: false
+                update_proton_ge: false,
+                nslgamesaves: false
             });
 
             if (result) {

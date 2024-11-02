@@ -184,7 +184,8 @@
               install_chrome: true,
               separate_app_ids: false,
               start_fresh: false,
-              update_proton_ge: false
+              update_proton_ge: false,
+              nslgamesaves: false
           });
           if (result) {
               console.log('Installation successful!');
@@ -535,7 +536,8 @@
                   install_chrome: false,
                   separate_app_ids: separateAppIds,
                   start_fresh: false,
-                  update_proton_ge: false
+                  update_proton_ge: false,
+                  nslgamesaves: false
               });
               if (result) {
                   setProgress({ percent: endPercent, status: `${operation} Selection ${index + 1} of ${total}`, description: `${launcher}` });
@@ -688,7 +690,8 @@
                   install_chrome: false,
                   separate_app_ids: false,
                   start_fresh: true,
-                  update_proton_ge: false
+                  update_proton_ge: false,
+                  nslgamesaves: false
               });
               if (result) {
                   setProgress({ percent: 100, status: 'NSL has been wiped. Remember to delete your shortcuts!', description: '' });
@@ -730,7 +733,8 @@
                   install_chrome: false,
                   separate_app_ids: false,
                   start_fresh: false,
-                  update_proton_ge: true
+                  update_proton_ge: true,
+                  nslgamesaves: false
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Proton GE updated successfully.', description: '' });
@@ -771,6 +775,63 @@
               window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleUpdateProtonGEClick }, "Update")))))));
+  };
+
+  const RestoreGameSavesModal = ({ closeModal, serverAPI }) => {
+      const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
+      const handleRestoreClick = async () => {
+          console.log('handleRestoreClick called');
+          setProgress({ percent: 0, status: 'Restoring game saves...', description: '' });
+          try {
+              const result = await serverAPI.callPluginMethod("install", {
+                  selected_options: '',
+                  install_chrome: false,
+                  separate_app_ids: false,
+                  start_fresh: false,
+                  update_proton_ge: false,
+                  nslgamesaves: true
+              });
+              if (result) {
+                  setProgress({ percent: 100, status: 'Game saves restored successfully!', description: '' });
+                  notify.toast("Game saves restored successfully!", "Your game saves have been restored.");
+              }
+              else {
+                  setProgress({ percent: 100, status: 'Restore failed.', description: '' });
+                  notify.toast("Restore failed", "Failed to restore game saves. Check your logs.");
+              }
+          }
+          catch (error) {
+              setProgress({ percent: 100, status: 'Restore failed.', description: '' });
+              notify.toast("Restore Failed", "Failed to restore game saves. Check your logs.");
+              console.error('Error calling restore method on server-side plugin:', error);
+          }
+          closeModal();
+      };
+      return ((progress.status !== '' && progress.percent < 100) ?
+          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restoring Game Saves"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Restoring your game save backups..."),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+                  window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal, style: { width: '25px' } }, "Cancel"))) :
+          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { style: { width: '600px' } },
+              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restore Game Save Backups"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix."),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } },
+                      window.SP_REACT.createElement("strong", null, "Ensure all necessary launchers are installed, but do not download the games."),
+                      " This will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and backed up your game saves at /home/deck/NSLGameSaves."),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "Some games don't have local save backups:"),
+                  window.SP_REACT.createElement("ul", null,
+                      window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "NSL uses Ludusavi to backup and restore your local game saves."),
+                      window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "Some launchers handle local and cloud saves themselves so this will vary on a game to game basis."),
+                      window.SP_REACT.createElement("li", { style: { fontSize: '12px', wordWrap: 'break-word' } }, "Ludusavi may need manual configuration here if more paths are needed: /home/deck/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/config.yaml")),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "Press restore when ready.")),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestoreClick }, "Restore Game Saves"),
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel")))));
   };
 
   const sitesList = [
@@ -1034,7 +1095,8 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(CustomSiteModal, { serverAPI: serverAPI })) }, "Custom Website Shortcut"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StartFreshModal, { serverAPI: serverAPI })) }, "Start Fresh"),
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateRestartModal, { serverAPI: serverAPI })) }, "Update Proton-GE")),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateRestartModal, { serverAPI: serverAPI })) }, "Update Proton-GE"),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(RestoreGameSavesModal, { serverAPI: serverAPI })) }, "Restore Game Saves")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {

@@ -80,9 +80,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
           Update Proton-GE
         </ButtonItem>
-        {/* <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
+        <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
           Restore Game Saves
-        </ButtonItem> */}
+        </ButtonItem>
       </PanelSection>
 
       
