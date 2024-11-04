@@ -34,9 +34,9 @@ export async function createShortcut(game: any) {
     SteamClient.Apps.SetShortcutStartDir(appId, formattedStartDir);
 
     // Explicitly set the icon for the shortcut
-    if (Icon) {
-      SteamClient.Apps.SetShortcutIcon(appId, `data:image/x-icon;base64,${Icon}`);
-    }
+    //if (Icon) {
+      //SteamClient.Apps.SetShortcutIcon(appId, `data:image/x-icon;base64,${Icon}`);
+    //}
 
     let AvailableCompatTools = await SteamClient.Apps.GetAvailableCompatTools(appId);
     let CompatToolExists: boolean = AvailableCompatTools.some((e: { strToolName: any; }) => e.strToolName === CompatTool);

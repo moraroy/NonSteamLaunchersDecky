@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-import os, json, decky_plugin, platform
+import os
+import json
+import decky_plugin
+import platform
 from base64 import b64encode
 import externals.requests as requests
 import externals.vdf as vdf
@@ -14,13 +17,15 @@ from scanners.itchio_scanner import itchio_games_scanner
 from scanners.legacy_scanner import legacy_games_scanner
 from scanners.rpw_scanner import rpw_scanner
 from get_env_vars import refresh_env_vars
+from umu_processor import modify_shortcut_for_umu
 
-env_vars_path = f"{os.environ['HOME']}/.config/systemd/user/env_vars"
-env_vars = {}
+
+# Refresh environment variables
+env_vars = refresh_env_vars()
 
 def initialiseVariables(env_vars):
     # Variables from NonSteamLaunchers.sh
-    global steamid3 
+    global steamid3
     steamid3 = env_vars.get('steamid3')
     global logged_in_home
     logged_in_home = env_vars.get('logged_in_home')
@@ -81,7 +86,7 @@ def initialiseVariables(env_vars):
     vkplayhortcutdirectory = env_vars.get('vkplayhortcutdirectory')
     global hoyoplayshortcutdirectory
     hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutfirectory')
-    global repaireaappshortcutdirectory 
+    global repaireaappshortcutdirectory
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     #Streaming
     global chromedirectory
@@ -95,8 +100,10 @@ def scan():
     global decky_shortcuts
     global env_vars
     decky_shortcuts = {}
-    if os.path.exists(env_vars_path):
-        env_vars = refresh_env_vars()
+
+    # Refresh env_vars using the refresh_env_vars function
+    env_vars = refresh_env_vars()
+    if env_vars:
         initialiseVariables(env_vars)
         add_launchers()
         epic_games_scanner(logged_in_home, epic_games_launcher, create_new_entry)
@@ -109,6 +116,7 @@ def scan():
         legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
     return decky_shortcuts
+
 
 def addCustomSite(customSiteJSON):
     global decky_shortcuts
@@ -125,17 +133,19 @@ def addCustomSite(customSiteJSON):
     return decky_shortcuts
 
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
+
     # Determine the path based on the operating system
     if platform.system() == "Windows":
         vdf_path = f"C:\\Program Files (x86)\\Steam\\userdata\\{steamid3}\\config\\shortcuts.vdf"
     else:
         vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
-    
 
     # Check if the shortcuts file exists
     if os.path.exists(vdf_path):
+
         # If the file is not executable, write the shortcuts dictionary and make it executable
         if not os.access(vdf_path, os.X_OK):
+            decky_plugin.logger.info(f"VDF file is not executable, initializing: {vdf_path}")
             with open(vdf_path, 'wb') as file:
                 vdf.binary_dumps({'shortcuts': {}}, file)
             os.chmod(vdf_path, 0o755)
@@ -148,6 +158,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                 for s in shortcuts['shortcuts'].values():
                     stripped_exe_path = exe_path.strip('\"') if exe_path else exe_path
                     stripped_start_dir = start_dir.strip('\"') if start_dir else start_dir
+
                     if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
                        (s.get('exe') and s.get('exe').strip('\"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('\"') == stripped_exe_path) and \
                        s.get('StartDir') and s.get('StartDir').strip('\"') == stripped_start_dir and \
@@ -155,10 +166,13 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                         decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
                         return True
             except Exception as e:
-                decky_plugin.logger.info(f"Error reading shortcuts file: {e}")
+                decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
     else:
         decky_plugin.logger.info(f"VDF file not found at: {vdf_path}")
+
     return False
+
+
 
 
 # Add or update the proton compatibility settings
@@ -176,8 +190,20 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
         return
 
+    if launchoptions is None:
+        launchoptions = ''
+
     if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
         return
+    # Modify the shortcut for UMU if on Linux
+    umu = False
+    if platform.system() != "Windows":
+        exe, startingdir, launchoptions = modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name)
+        # Check if the modified shortcut is a UMU shortcut
+        if '/bin/umu-run' in exe:
+            umu = True
+            if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
+                return
 
     # Format the executable path and start directory
     if platform.system() == "Windows":
@@ -204,7 +230,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
             decky_plugin.logger.info(f"No valid game ID found for {appname}. Skipping artwork download.")
 
     # Create a new entry for the Steam shortcut
-    compatTool = None if platform.system() == "Windows" else add_compat_tool(formatted_launch_options)
+    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
     decky_entry = {
         'appname': appname,
         'exe': formatted_exe,
@@ -257,7 +283,7 @@ def get_sgdb_art(game_id, launcher):
     gridp64 = download_artwork(game_id, "grids", "600x900")
     decky_plugin.logger.info("Downloading grids artwork of size 920x430...")
     grid64 = download_artwork(game_id, "grids", "920x430")
-    
+
     # Fetch launcher icon based on the launcher type
     launcher_icons = {
         "Epic Games": "5255885",
@@ -269,13 +295,13 @@ def get_sgdb_art(game_id, launcher):
         "Legacy Games": "5438208",
         "Ubisoft Connect": "5270094"
     }
-    
+
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
-    
+
     # Use the game icon if available, otherwise use the launcher icon
     if not icon:
         icon = launcher_icon
-    
+
     return icon, logo64, hero64, gridp64, grid64, launcher_icon
 
 
