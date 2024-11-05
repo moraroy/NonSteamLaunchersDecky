@@ -56,32 +56,79 @@ def getGogGameInfo(filePath):
     return game_dict
 
 def getGogGameInfoWindows():
-    import winreg  # Import winreg only if this function is called
-    game_dict = {}
-    try:
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\GOG.com\Games")
-        i = 0
-        while True:
-            try:
-                subkey_name = winreg.EnumKey(key, i)
-                subkey = winreg.OpenKey(key, subkey_name)
-                game_id = subkey_name
-                game_name, _ = winreg.QueryValueEx(subkey, "gameName")
-                exe_path, _ = winreg.QueryValueEx(subkey, "exe")
-                game_dict[game_name] = {'id': game_id, 'exe': exe_path}
-                i += 1
-            except OSError:
-                break
-    except OSError:
-        decky_plugin.logger.info("No GOG entries found in the Windows registry. Skipping GOG Galaxy Games Scanner.")
-    return game_dict
+    if platform.system() == "Windows":
+        import winreg
+
+        game_dict = {}
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\GOG.com\Games")
+            i = 0
+            while True:
+                try:
+                    subkey_name = winreg.EnumKey(key, i)
+                    subkey = winreg.OpenKey(key, subkey_name)
+                    game_id = subkey_name
+                    game_name, _ = winreg.QueryValueEx(subkey, "gameName")
+                    exe_path, _ = winreg.QueryValueEx(subkey, "exe")
+
+                    try:
+                        launch_params, _ = winreg.QueryValueEx(subkey, "launchParam")  # Changed to launchParam
+                    except FileNotFoundError:
+                        launch_params = None  # If not found, set as None
+
+                    game_dict[game_name] = {'id': game_id, 'exe': exe_path, 'launchParams': launch_params}
+                    i += 1
+                except OSError:
+                    break
+        except OSError:
+            decky_plugin.logger.info("No GOG entries found in the Windows registry. Skipping GOG Galaxy Games Scanner.")
+
+        return game_dict
+    else:
+
+        return {}
+
+def adjust_dosbox_launch_options(launch_command, game_id, logged_in_home, gog_galaxy_launcher, is_windows, launch_params=None):
+    print(f"Adjusting launch options for command: {launch_command}")
+
+    if "dosbox.exe" in launch_command.lower():
+        try:
+            # Find the part of the command with DOSBox.exe and its arguments
+            exe_part, args_part = launch_command.split("DOSBox.exe", 1)
+            exe_path = exe_part.strip() + "DOSBox.exe"
+            args = args_part.strip()
+
+            # If there are launch parameters from the registry, append them to args
+            if launch_params:
+                # Ensure launchParams is not empty before appending
+                launch_params = launch_params.strip()
+                if launch_params:
+                    args = f"{args} {launch_params}".strip()
+
+            # Form the launch options string
+            if is_windows:
+                launch_options = f'/command=runGame /gameId={game_id} /path="{exe_path}" "{args}"'
+            else:
+                launch_options = f'STEAM_COMPAT_DATA_PATH="{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/" %command% /command=runGame /gameId={game_id} /path="{exe_path}" "{args}"'
+
+            return launch_options
+        except ValueError as e:
+            print(f"Error adjusting launch options: {e}")
+            return launch_command
+    else:
+        # For non-DOSBox games, return the original launch command without trailing spaces
+        launch_command = launch_command.strip()
+        if is_windows:
+            return f'/command=runGame /gameId={game_id} /path="{launch_command}"'
+        else:
+            return f'STEAM_COMPAT_DATA_PATH="{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/" %command% /command=runGame /gameId={game_id} /path="{launch_command}"'
 
 def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
     if platform.system() == "Windows":
         game_dict = getGogGameInfoWindows()
         exe_template = r"C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe"
         start_dir_template = r"C:\Program Files (x86)\GOG Galaxy"
-        launch_options_template = "/command=runGame /gameId={game_id} /path=\"{exe_path}\""
+        is_windows = True
     else:
         registry_file_path = f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/pfx/system.reg"
         if not os.path.exists(registry_file_path):
@@ -91,12 +138,15 @@ def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
         game_dict = getGogGameInfo(registry_file_path)
         exe_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/pfx/drive_c/Program Files (x86)/GOG Galaxy/GalaxyClient.exe\""
         start_dir_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/pfx/drive_c/Program Files (x86)/GOG Galaxy/\""
-        launch_options_template = f"STEAM_COMPAT_DATA_PATH=\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gog_galaxy_launcher}/\" %command% /command=runGame /gameId={{game_id}} /path=\"{{exe_path}}\""
+        is_windows = False
 
     for game, game_info in game_dict.items():
         if game_info['id']:
             exe_path = game_info['exe'].strip()
-            launch_options = launch_options_template.format(game_id=game_info['id'], exe_path=exe_path)
+            # Fetch the launch parameters from the registry (if they exist)
+            launch_params = game_info.get('launchParams', None)
+            # Adjust the launch options based on DOSBox and launchParams
+            launch_options = adjust_dosbox_launch_options(game_info['exe'], game_info['id'], logged_in_home, gog_galaxy_launcher, is_windows, launch_params)
             exe_path = exe_template
             start_dir = start_dir_template
             create_new_entry(exe_path, game, launch_options, start_dir, "GOG Galaxy")
