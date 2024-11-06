@@ -101,15 +101,16 @@ class Plugin:
                             await ws.send_json(game)
 
                     if shutil.which("flatpak"):
-                        decky_plugin.logger.info("Running Manual Scan Game Save backup...")
+                        decky_plugin.logger.info("Running Manual Game Save backup...")
                         process = await asyncio.create_subprocess_exec(
                             "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config", f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/", "backup", "--force",
                             stdout=asyncio.subprocess.DEVNULL,
-                            stderr=asyncio.subprocess.STDOUT
+                            stderr=asyncio.subprocess.STDOUT,
+                            env={**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
                         )
 
                         await process.wait()
-                        decky_plugin.logger.info("Backup Manual Scan Game Save completed")
+                        decky_plugin.logger.info("Manual Game Save Backup completed")
                     else:
                         decky_plugin.logger.warning("Flatpak not found, skipping backup process")
 
@@ -260,18 +261,27 @@ class Plugin:
 
 
         if shutil.which("flatpak"):
-            decky_plugin.logger.info("Running migration Game Save backup...")
-            process = await asyncio.create_subprocess_exec(
-                "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config", f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/", "backup", "--force",
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.STDOUT
-            )
+            decky_plugin.logger.info("Flatpak found, starting migration Game Save backup...")
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config",
+                    f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/",
+                    "backup", "--force",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    env={**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
+                )
 
-            await process.wait()
-            decky_plugin.logger.info("Migration Game Save backup completed")
+                stdout, stderr = await process.communicate()
+
+                await process.wait()
+                decky_plugin.logger.info("Migration Game Save backup completed successfully")
+
+            except Exception as e:
+                decky_plugin.logger.error(f"Error during Flatpak migration backup: {e}")
+
         else:
             decky_plugin.logger.warning("Flatpak not found, skipping backup process")
-
 
         
     async def _unload(self):
