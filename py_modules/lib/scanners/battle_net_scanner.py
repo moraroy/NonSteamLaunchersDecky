@@ -33,9 +33,9 @@ flavor_mapping = {
     # Add more games here...
 }
 
-def parse_battlenet_config(file_path):
-    decky_plugin.logger.info(f"Opening Battle.net config file at: {file_path}")
-    with open(file_path, 'r') as file:
+def parse_battlenet_config(config_file_path):
+    decky_plugin.logger.info(f"Opening Battle.net config file at: {config_file_path}")
+    with open(config_file_path, 'r') as file:
         config_data = json.load(file)
 
     games_info = config_data.get("Games", {})
@@ -120,9 +120,11 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
                 start_dir = 'C:\\Program Files (x86)\\Battle.net\\'
                 launch_options = '--exec="launch {}" battlenet://{}'.format(matched_key, matched_key)
             else:
-                exe_path = '"{}/.local/share/Steam/steamapps/compatdata/{}/pfx/drive_c/Program Files (x86)/Battle.net/Battle.net.exe"'.format(logged_in_home, bnet_launcher)
-                start_dir = '"{}/.local/share/Steam/steamapps/compatdata/{}/pfx/drive_c/Program Files (x86)/Battle.net/"'.format(logged_in_home, bnet_launcher)
-                launch_options = 'STEAM_COMPAT_DATA_PATH="{}/.local/share/Steam/steamapps/compatdata/{}" %command% --exec="launch {}" battlenet://{}'.format(logged_in_home, bnet_launcher, matched_key, matched_key)
+                exe_path = f'"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{bnet_launcher}/pfx/drive_c/Program Files (x86)/Battle.net/Battle.net.exe"'.format(logged_in_home, bnet_launcher)
+                start_dir = f'"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{bnet_launcher}/pfx/drive_c/Program Files (x86)/Battle.net/"'.format(logged_in_home, bnet_launcher)
+                launch_options = f'STEAM_COMPAT_DATA_PATH="{logged_in_home}/.local/share/Steam/steamapps/compatdata/{bnet_launcher}" %command% --exec="launch {matched_key}" battlenet://{matched_key}'
+
+
 
             decky_plugin.logger.info(f"Creating new entry for {game_name} with exe_path: {exe_path}")
             create_new_entry(exe_path, game_name, launch_options, start_dir, "Battle.net")
