@@ -34,6 +34,7 @@ flavor_mapping = {
 }
 
 def parse_battlenet_config(file_path):
+    decky_plugin.logger.info(f"Opening Battle.net config file at: {file_path}")
     with open(file_path, 'r') as file:
         config_data = json.load(file)
 
@@ -41,21 +42,28 @@ def parse_battlenet_config(file_path):
     game_dict = {}
 
     for game_key, game_data in games_info.items():
+        decky_plugin.logger.info(f"Processing game: {game_key}")
         if game_key == "battle_net":
+            decky_plugin.logger.info("Skipping 'battle_net' entry")
             continue
         if "Resumable" not in game_data:
+            decky_plugin.logger.info(f"Skipping {game_key}, no 'Resumable' key found")
             continue
         if game_data["Resumable"] == "false":
+            decky_plugin.logger.info(f"Game {game_key} is not resumable, adding to game_dict")
             game_dict[game_key] = {
                 "ServerUid": game_data.get("ServerUid", ""),
                 "LastActioned": game_data.get("LastActioned", "")
             }
 
+    decky_plugin.logger.info(f"Parsed config data: {game_dict}")
     return game_dict
 
 def fix_windows_path(path):
+    decky_plugin.logger.info(f"Fixing Windows path: {path}")
     if path.startswith('/c/'):
         fixed_path = 'C:\\' + path[3:].replace('/', '\\')
+        decky_plugin.logger.info(f"Fixed Windows path: {fixed_path}")
         return fixed_path
     return path
 
@@ -63,20 +71,26 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
     game_dict = {}
 
     if platform.system() == "Windows":
+        decky_plugin.logger.info("Detected platform: Windows")
         config_file_path = fix_windows_path(logged_in_home) + '\\AppData\\Roaming\\Battle.net\\Battle.net.config'
     else:
+        decky_plugin.logger.info("Detected platform: Non-Windows")
         config_file_path = f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{bnet_launcher}/pfx/drive_c/users/steamuser/AppData/Roaming/Battle.net/Battle.net.config"
 
+    decky_plugin.logger.info(f"Config file path: {config_file_path}")
 
     if os.path.exists(config_file_path):
+        decky_plugin.logger.info("Battle.net config file found, parsing...")
         game_dict = parse_battlenet_config(config_file_path)
     else:
         decky_plugin.logger.info("Battle.net config file not found. Skipping Battle.net Games Scanner.")
 
     if game_dict:
         for game_key, game_info in game_dict.items():
-            # Handle the "prometheus" situation
+            decky_plugin.logger.info(f"Processing game: {game_key}")
+
             if game_key == "prometheus":
+                decky_plugin.logger.info("Handling 'prometheus' as 'Pro'")
                 game_key = "Pro"
 
             game_name = flavor_mapping.get(game_key, "unknown")
@@ -84,14 +98,18 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             if game_name == "unknown":
                 # Try to match with uppercase version of the key
                 game_name = flavor_mapping.get(game_key.upper(), "unknown")
+                decky_plugin.logger.info(f"Trying uppercase for {game_key}: {game_name}")
                 if game_name == "unknown":
+                    decky_plugin.logger.info(f"Game {game_key} remains unknown, skipping...")
                     continue
 
             # Update game_key to its matched form
             matched_key = next((k for k, v in flavor_mapping.items() if v == game_name), game_key)
+            decky_plugin.logger.info(f"Matched key for {game_key}: {matched_key}")
 
             if game_name == "Overwatch":
                 game_name = "Overwatch 2"
+                decky_plugin.logger.info(f"Renaming 'Overwatch' to 'Overwatch 2'")
 
             if game_info['ServerUid'] == "unknown":
                 decky_plugin.logger.info(f"Skipping game {game_key} due to unknown ServerUid")
@@ -106,8 +124,9 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
                 start_dir = '"{}/.local/share/Steam/steamapps/compatdata/{}/pfx/drive_c/Program Files (x86)/Battle.net/"'.format(logged_in_home, bnet_launcher)
                 launch_options = 'STEAM_COMPAT_DATA_PATH="{}/.local/share/Steam/steamapps/compatdata/{}" %command% --exec="launch {}" battlenet://{}'.format(logged_in_home, bnet_launcher, matched_key, matched_key)
 
-            
+            decky_plugin.logger.info(f"Creating new entry for {game_name} with exe_path: {exe_path}")
             create_new_entry(exe_path, game_name, launch_options, start_dir, "Battle.net")
 
+    decky_plugin.logger.info("Battle.net Games Scanner completed.")
 
 # End of Battle.net Scanner
