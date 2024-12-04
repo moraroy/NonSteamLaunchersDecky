@@ -67,6 +67,8 @@ def fix_windows_path(path):
         return fixed_path
     return path
 
+
+
 def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
     game_dict = {}
 
@@ -92,6 +94,9 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             if game_key == "prometheus":
                 decky_plugin.logger.info("Handling 'prometheus' as 'Pro'")
                 game_key = "Pro"
+            elif game_key == "fenris":
+                decky_plugin.logger.info("Handling 'fenris' as 'Fen'")
+                game_key = "Fen"
 
             game_name = flavor_mapping.get(game_key, "unknown")
 
@@ -130,5 +135,6 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             create_new_entry(exe_path, game_name, launch_options, start_dir, "Battle.net")
 
     decky_plugin.logger.info("Battle.net Games Scanner completed.")
+
 
 # End of Battle.net Scanner
