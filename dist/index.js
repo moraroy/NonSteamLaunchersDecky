@@ -1089,7 +1089,17 @@
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
-          window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } }, randomGreeting),
+          window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+              window.SP_REACT.createElement("div", { style: {
+                      display: "inline-block",
+                      padding: "1em",
+                      borderRadius: "8px",
+                      border: "2px solid rgba(255, 255, 255, 0.3)",
+                      backgroundColor: "white",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                      maxWidth: "80%",
+                      margin: "auto", // Centers the card horizontally
+                  } }, randomGreeting)),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),

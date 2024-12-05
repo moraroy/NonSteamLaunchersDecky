@@ -43,7 +43,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const [isManualScanComplete, setIsManualScanComplete] = useState(false);
   const [isAutoScanDisabled, setIsAutoScanDisabled] = useState(false);
 
-
   const handleScanClick = async () => {
     setIsLoading(true); // Set loading state to true
     setIsAutoScanDisabled(true); // Disable the auto-scan toggle
@@ -62,28 +61,42 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   return (
     <div className="decky-plugin">
       <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
-        {randomGreeting}
+        <div
+          style={{
+            display: "inline-block", // Keeps the card format
+            padding: "1em", // Adds padding inside the card
+            borderRadius: "8px", // Gives rounded corners
+            border: "2px solid rgba(255, 255, 255, 0.3)", // Adds a faint border
+            backgroundColor: "white", // White background for testing
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adds subtle shadow to the card
+            maxWidth: "80%", // Keeps the card size responsive
+            margin: "auto", // Centers the card horizontally
+          }}
+        >
+          {randomGreeting}
+        </div>
       </PanelSectionRow>
       <PanelSection title="Install">
         <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions}  />)}>
           Game Launchers
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions}/>)}>
+        <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions}/>)} >
           Streaming Sites
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<CustomSiteModal serverAPI={serverAPI}/>)}>
+        <ButtonItem layout="below" onClick={() => showModal(<CustomSiteModal serverAPI={serverAPI}/>)} >
           Custom Website Shortcut
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<StartFreshModal serverAPI={serverAPI} />)}>
           Start Fresh
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
+        <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)} >
           Update Proton-GE
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
+        <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)} >
           Restore Game Saves
         </ButtonItem>
       </PanelSection>
+      
 
       
       <PanelSection title="Game Scanner">
