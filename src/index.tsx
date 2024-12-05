@@ -19,6 +19,7 @@ import { StreamingInstallModal } from "./components/modals/streamingInstallModal
 import { StartFreshModal } from "./components/modals/startFreshModal";
 import { UpdateRestartModal } from './components/modals/updateRestartModal';
 import { RestoreGameSavesModal } from "./components/modals/restoreGameSavesModal";
+//import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 
