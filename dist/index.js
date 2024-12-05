@@ -834,55 +834,6 @@
                       window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel")))));
   };
 
-  const useUpdateInfo = () => {
-      const [updateInfo, setUpdateInfo] = React.useState(null);
-      const [error, setError] = React.useState(null);
-      const [loading, setLoading] = React.useState(true);
-      // WebSocket connection to check for updates
-      const fetchUpdateInfo = () => {
-          setLoading(true);
-          console.log("Connecting to WebSocket to check for updates...");
-          const socket = new WebSocket("ws://localhost:8777/check_update");
-          socket.onopen = () => {
-              console.log("WebSocket connected to check update");
-          };
-          socket.onmessage = (event) => {
-              const data = JSON.parse(event.data);
-              console.log("Received update information:", data);
-              if (data.error) {
-                  setError(data.error);
-              }
-              else {
-                  const { status, local_version, github_version } = data;
-                  setUpdateInfo({
-                      status,
-                      local_version,
-                      github_version
-                  });
-              }
-              setLoading(false);
-          };
-          socket.onerror = (error) => {
-              console.error("WebSocket error:", error);
-              setError("WebSocket error occurred while checking for updates.");
-              setLoading(false);
-          };
-          socket.onclose = () => {
-              console.log("WebSocket connection closed");
-          };
-          return () => {
-              socket.close();
-          };
-      };
-      React.useEffect(() => {
-          const socketCleanup = fetchUpdateInfo();
-          return () => {
-              socketCleanup();
-          };
-      }, []);
-      return { updateInfo, error, loading };
-  };
-
   const sitesList = [
       {
           name: 'epicGames',
@@ -1114,10 +1065,6 @@
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
-      // Fetch update info from the custom hook
-      const { updateInfo } = useUpdateInfo();
-      // Determine if an update is available
-      const updateAvailable = updateInfo?.status === "Update available";
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
       const { settings, setAutoScan } = useSettings(serverAPI);
@@ -1151,23 +1098,8 @@
                       backgroundColor: "white",
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
-                      margin: "auto",
-                      position: "relative", // To allow for positioning the notification
-                  } },
-                  updateAvailable && (window.SP_REACT.createElement("div", { style: {
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          backgroundColor: 'red',
-                          color: 'white',
-                          padding: '10px 20px',
-                          borderRadius: '5px',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          zIndex: 10,
-                      }, onClick: () => alert('Update Available!') }, "New Update Available!")),
-                  randomGreeting)),
+                      margin: "auto", // Centers the card horizontally
+                  } }, randomGreeting)),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),
