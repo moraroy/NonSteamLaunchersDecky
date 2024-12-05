@@ -19,6 +19,7 @@ import { StreamingInstallModal } from "./components/modals/streamingInstallModal
 import { StartFreshModal } from "./components/modals/startFreshModal";
 import { UpdateRestartModal } from './components/modals/updateRestartModal';
 import { RestoreGameSavesModal } from "./components/modals/restoreGameSavesModal";
+import { useUpdateInfo } from './hooks/getUpdate';
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 
@@ -26,10 +27,16 @@ const initialOptions = sitesList;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   console.log('Content rendered');
-   
+
+  // Fetch update info from the custom hook
+  const { updateInfo } = useUpdateInfo();
+
+  // Determine if an update is available
+  const updateAvailable = updateInfo?.status === "Update available";
+
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-   
+  
   const { settings, setAutoScan } = useSettings(serverAPI);
 
   // Random Greetings
@@ -50,7 +57,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
     setIsLoading(false); // Set loading state to false
     setIsAutoScanDisabled(false); // Re-enable the auto-scan toggle
   };
-  
 
   useEffect(() => {
     if (isManualScanComplete) {
@@ -60,6 +66,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   return (
     <div className="decky-plugin">
+      {/* Greetings Card */}
       <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
         <div
           style={{
@@ -71,13 +78,37 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adds subtle shadow to the card
             maxWidth: "80%", // Keeps the card size responsive
             margin: "auto", // Centers the card horizontally
+            position: "relative", // To allow for positioning the notification
           }}
         >
+          {/* Red Notification (if update available) */}
+          {updateAvailable && (
+            <div 
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px', 
+                backgroundColor: 'red', 
+                color: 'white', 
+                padding: '10px 20px',
+                borderRadius: '5px',
+                fontSize: '14px', 
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                zIndex: 10,
+              }}
+              onClick={() => alert('Update Available!')}
+            >
+              New Update Available!
+            </div>
+          )}
           {randomGreeting}
         </div>
       </PanelSectionRow>
+
+      {/* Install Section */}
       <PanelSection title="Install">
-        <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions}  />)}>
+        <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions} />)}>
           Game Launchers
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions}/>)} >
@@ -96,7 +127,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           Restore Game Saves
         </ButtonItem>
       </PanelSection>
-      
+
 
       
       <PanelSection title="Game Scanner">
