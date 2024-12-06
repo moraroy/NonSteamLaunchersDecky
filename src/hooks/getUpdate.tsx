@@ -16,7 +16,7 @@ export const useUpdateInfo = () => {
     setLoading(true);
     console.log("Connecting to WebSocket to check for updates...");
 
-    const socket = new WebSocket("ws://localhost:8777/check_update");
+    const socket = new WebSocket("ws://localhost:8675/check_update");
 
     socket.onopen = () => {
       console.log("WebSocket connected to check update");

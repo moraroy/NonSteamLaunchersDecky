@@ -19,7 +19,7 @@ import { StreamingInstallModal } from "./components/modals/streamingInstallModal
 import { StartFreshModal } from "./components/modals/startFreshModal";
 import { UpdateRestartModal } from './components/modals/updateRestartModal';
 import { RestoreGameSavesModal } from "./components/modals/restoreGameSavesModal";
-//import { useUpdateInfo } from "./hooks/getUpdate";
+import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 
@@ -38,6 +38,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
   // End of Random Greetings
+
+  const { updateInfo } = useUpdateInfo(); // Hook to get update information
 
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,22 +63,42 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   return (
     <div className="decky-plugin">
-      <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
-        <div
-          style={{
-            display: "inline-block", // Keeps the card format
-            padding: "1em", // Adds padding inside the card
-            borderRadius: "8px", // Gives rounded corners
-            border: "2px solid rgba(255, 255, 255, 0.3)", // Adds a faint border
-            backgroundColor: "white", // White background for testing
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adds subtle shadow to the card
-            maxWidth: "80%", // Keeps the card size responsive
-            margin: "auto", // Centers the card horizontally
-          }}
-        >
-          {randomGreeting}
-        </div>
-      </PanelSectionRow>
+      {/* Conditionally render the red card for update info */}
+      {updateInfo && updateInfo.status === "Update available" ? (
+        <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
+          <div
+            style={{
+              backgroundColor: "red", // Red background for update card
+              color: "white", // White text color
+              padding: "1em",
+              borderRadius: "8px", // Rounded corners
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Shadow effect
+              maxWidth: "80%",
+              margin: "auto",
+            }}
+          >
+            A new update is available!
+          </div>
+        </PanelSectionRow>
+      ) : (
+        <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
+          <div
+            style={{
+              display: "inline-block", // Keeps the card format
+              padding: "1em", // Adds padding inside the card
+              borderRadius: "8px", // Gives rounded corners
+              border: "2px solid rgba(255, 255, 255, 0.3)", // Adds a faint border
+              backgroundColor: "white", // White background for testing
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adds subtle shadow to the card
+              maxWidth: "80%", // Keeps the card size responsive
+              margin: "auto", // Centers the card horizontally
+            }}
+          >
+            {randomGreeting}
+          </div>
+        </PanelSectionRow>
+      )}
+
       <PanelSection title="Install">
         <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions}  />)}>
           Game Launchers
@@ -99,7 +121,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       </PanelSection>
       
 
-      
       <PanelSection title="Game Scanner">
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
@@ -122,8 +143,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       </PanelSection>
 
 
-  
- 
       <div
         style={{
           backgroundColor: "transparent",
@@ -149,10 +168,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </span>
       </div>
 
-
-
-
-  
       <PanelSection title="Support and Donations vvv">
         <div
           style={{
@@ -185,7 +200,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       </PanelSection>
     </div>
   );
-}  
+}
 
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
@@ -194,7 +209,7 @@ export default definePlugin((serverApi: ServerAPI) => {
     title: <div className={staticClasses.Title}>NonSteamLaunchers</div>,
     alwaysRender: true,
     content: (
-        <Content serverAPI={serverApi} />
+      <Content serverAPI={serverApi} />
     ),
     icon: <RxRocket />,
   };

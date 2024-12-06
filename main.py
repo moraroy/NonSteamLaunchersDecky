@@ -19,6 +19,8 @@ import re
 import asyncio
 import subprocess
 import shutil
+import json
+import requests
 from aiohttp import web
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 from py_modules.lib.scanner import scan, addCustomSite
@@ -36,12 +38,87 @@ def camel_to_title(s):
 
 class Plugin:
     scan_lock = asyncio.Lock()
+    update_cache = {}
 
     async def _main(self):
         decky_plugin.logger.info("This is _main being called")
         self.settings = SettingsManager(name="config", settings_directory=decky_plugin.DECKY_PLUGIN_SETTINGS_DIR)
         decky_user_home = decky_plugin.DECKY_USER_HOME
         defaultSettings = {"autoscan": False, "customSites": ""}
+
+
+        # Function to fetch GitHub package.json
+        async def fetch_github_version():
+            github_url = "https://github.com/moraroy/NonSteamLaunchersDecky/blob/main/package.json"
+            decky_plugin.logger.info(f"Fetching GitHub version from {github_url}")
+            loop = asyncio.get_event_loop()
+            try:
+                response = await loop.run_in_executor(None, requests.get, github_url)
+                response.raise_for_status()
+                decky_plugin.logger.info("Successfully fetched GitHub version")
+                return response.json()  # This will return the parsed JSON directly
+            except requests.exceptions.RequestException as e:
+                decky_plugin.logger.error(f"Error fetching GitHub version: {e}")
+                return None
+
+        # Function to read the local package.json
+        async def fetch_local_version():
+            local_package_path = os.path.join(DECKY_PLUGIN_DIR, 'package.json')
+            try:
+                with open(local_package_path, "r") as file:
+                    data = json.load(file)
+                    decky_plugin.logger.info("Successfully read local package.json")
+                    return data["version"]
+            except FileNotFoundError:
+                decky_plugin.logger.error(f"Local {local_package_path} not found!")
+                return None
+            except json.JSONDecodeError:
+                decky_plugin.logger.error(f"Failed to parse {local_package_path}")
+                return None
+
+        # Compare versions
+        async def compare_versions():
+            if Plugin.update_cache:  # Check if we have cached update info
+                decky_plugin.logger.info("Returning cached update information.")
+                return Plugin.update_cache
+
+            local_version = await fetch_local_version()
+            github_data = await fetch_github_version()
+
+            if not local_version or not github_data:
+                return {"error": "Could not fetch version information"}
+
+            github_version = github_data.get("version")
+            if not github_version:
+                return {"error": "GitHub version not found"}
+
+            decky_plugin.logger.info(f"Local Version: {local_version}, GitHub Version: {github_version}")
+
+            if local_version == github_version:
+                update_info = {"status": "Up-to-date", "local_version": local_version, "github_version": github_version}
+            else:
+                update_info = {"status": "Update available", "local_version": local_version, "github_version": github_version}
+
+            Plugin.update_cache = update_info  # Cache the update info
+            return update_info
+
+        # WebSocket handler to check for updates
+        async def handle_check_update(request):
+            ws = web.WebSocketResponse()
+            await ws.prepare(request)
+
+            try:
+                # Fetch and compare the versions
+                version_info = await compare_versions()
+                await ws.send_json(version_info)
+            except Exception as e:
+                decky_plugin.logger.error(f"Error handling update check: {e}")
+                await ws.send_json({"error": "Internal error"})
+            finally:
+                await ws.close()
+
+
+
 
         async def handleAutoScan(request):
             await asyncio.sleep(5)
@@ -201,6 +278,7 @@ class Plugin:
         app.router.add_get('/scan', handleScan)
         app.router.add_get('/customSite', handleCustomSite)
         app.router.add_get('/logUpdates', handleLogUpdates)
+        app.router.add_get('/check_update', handle_check_update)
 
         runner = web.AppRunner(app)
         await runner.setup()

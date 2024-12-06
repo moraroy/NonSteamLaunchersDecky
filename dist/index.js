@@ -834,6 +834,55 @@
                       window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel")))));
   };
 
+  const useUpdateInfo = () => {
+      const [updateInfo, setUpdateInfo] = React.useState(null);
+      const [error, setError] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      // WebSocket connection to check for updates
+      const fetchUpdateInfo = () => {
+          setLoading(true);
+          console.log("Connecting to WebSocket to check for updates...");
+          const socket = new WebSocket("ws://localhost:8675/check_update");
+          socket.onopen = () => {
+              console.log("WebSocket connected to check update");
+          };
+          socket.onmessage = (event) => {
+              const data = JSON.parse(event.data);
+              console.log("Received update information:", data);
+              if (data.error) {
+                  setError(data.error);
+              }
+              else {
+                  const { status, local_version, github_version } = data;
+                  setUpdateInfo({
+                      status,
+                      local_version,
+                      github_version
+                  });
+              }
+              setLoading(false);
+          };
+          socket.onerror = (error) => {
+              console.error("WebSocket error:", error);
+              setError("WebSocket error occurred while checking for updates.");
+              setLoading(false);
+          };
+          socket.onclose = () => {
+              console.log("WebSocket connection closed");
+          };
+          return () => {
+              socket.close();
+          };
+      };
+      React.useEffect(() => {
+          const socketCleanup = fetchUpdateInfo();
+          return () => {
+              socketCleanup();
+          };
+      }, []);
+      return { updateInfo, error, loading };
+  };
+
   const sitesList = [
       {
           name: 'epicGames',
@@ -1072,6 +1121,7 @@
       const greetings = ["Is it just me? Or does the Rog Ally kinda s... actually, nevermind.", "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!", "Wow! You look amazing today...is that a new haircut?", "Hey! Thinkin' of changing the name of NSL to 'Nasty Lawn Chairs'. What do you think?", "'A'... that other handheld is a little 'Sus' if you ask me. I don't trust him.", "What the heck is a Lenovo anyway? It needs to 'Go' and get outta here.", "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.", "Some said it couldnt be done, making a plugin like this... haters gonna hate, haters gonna marinate.", "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?", "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.", "NSL has updated succesfully. It now has more launchers than Elon Musk.", "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
+      const { updateInfo } = useUpdateInfo(); // Hook to get update information
       const [isFocused, setIsFocused] = React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
@@ -1089,7 +1139,16 @@
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
-          window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+          updateInfo && updateInfo.status === "Update available" ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+              window.SP_REACT.createElement("div", { style: {
+                      backgroundColor: "red",
+                      color: "white",
+                      padding: "1em",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                      maxWidth: "80%",
+                      margin: "auto",
+                  } }, "A new update is available!"))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",
@@ -1099,7 +1158,7 @@
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
                       margin: "auto", // Centers the card horizontally
-                  } }, randomGreeting)),
+                  } }, randomGreeting))),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),
