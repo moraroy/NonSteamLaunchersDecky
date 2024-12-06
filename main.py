@@ -49,7 +49,7 @@ class Plugin:
 
         # Function to fetch GitHub package.json
         async def fetch_github_version():
-            github_url = "https://github.com/moraroy/NonSteamLaunchersDecky/blob/main/package.json"
+            github_url = "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/refs/heads/main/package.json"
             decky_plugin.logger.info(f"Fetching GitHub version from {github_url}")
             loop = asyncio.get_event_loop()
             try:

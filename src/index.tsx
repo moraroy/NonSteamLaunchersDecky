@@ -77,7 +77,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               margin: "auto",
             }}
           >
-            A new update is available!
+            A new update is available! Please update your plugin :)
           </div>
         </PanelSectionRow>
       ) : (
