@@ -1,6 +1,6 @@
 {
   "name": "nonsteamlaunchers",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A template to quickly create decky plugins from scratch, based on TypeScript and webpack",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
@@ -45,7 +45,7 @@
     "jsesc": "^3.0.2",
     "pnpm": "^8.6.7",
     "react-icons": "^4.4.0",
-    "run": "^1.4.0"
+    "run": "^1.5.0"
   },
   "pnpm": {
     "peerDependencyRules": {
