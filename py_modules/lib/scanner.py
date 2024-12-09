@@ -93,7 +93,7 @@ def initialiseVariables(env_vars):
     chromedirectory = env_vars.get('chromedirectory')
 
 #Vars
-proxy_url = 'https://myproxycache-203e9b0bbe5b.herokuapp.com/api'
+proxy_url = 'https://proxycache.onrender.com/api'
 decky_shortcuts = {}
 
 def scan():
