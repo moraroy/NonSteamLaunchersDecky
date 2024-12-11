@@ -93,7 +93,7 @@ def initialiseVariables(env_vars):
     chromedirectory = env_vars.get('chromedirectory')
 
 #Vars
-proxy_url = 'https://nonsteamlaunchers-on-steam-deck.onrender.com/api'
+proxy_url = 'https://nonsteamlaunchers.onrender.com/api'
 decky_shortcuts = {}
 
 def scan():
