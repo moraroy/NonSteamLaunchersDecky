@@ -111,9 +111,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             A new update is available! Please update your plugin :)
           </div>
           {/* Add the update button below the red card */}
-          <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+          {/* <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
             {isUpdating ? "Updating..." : "Update!"}
-          </ButtonItem>
+          </ButtonItem> */}
         </PanelSectionRow>
       ) : (
         <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
