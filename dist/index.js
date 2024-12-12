@@ -1118,7 +1118,18 @@
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
       const { settings, setAutoScan } = useSettings(serverAPI);
       // Random Greetings
-      const greetings = ["Is it just me? Or does the Rog Ally kinda s... actually, nevermind.", "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!", "Wow! You look amazing today...is that a new haircut?", "Hey! Thinkin' of changing the name of NSL to 'Nasty Lawn Chairs'. What do you think?", "'A'... that other handheld is a little 'Sus' if you ask me. I don't trust him.", "What the heck is a Lenovo anyway? It needs to 'Go' and get outta here.", "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.", "Some said it couldnt be done, making a plugin like this... haters gonna hate, haters gonna marinate.", "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?", "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.", "NSL has updated succesfully. It now has more launchers than Elon Musk.", "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"];
+      const greetings = [
+          "Is it just me? Or does the Rog Ally kinda s... actually, nevermind.",
+          "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
+          "Wow! You look amazing today...is that a new haircut?", "Hey! Thinkin' of changing the name of NSL to 'Nasty Lawn Chairs'. What do you think?",
+          "'A'... that other handheld is a little 'Sus' if you ask me. I don't trust him.",
+          "What the heck is a Lenovo anyway? It needs to 'Go' and get outta here.",
+          "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.", "Some said it couldnt be done, making a plugin like this... haters gonna hate, haters gonna marinate.",
+          "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
+          "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
+          "NSL has updated succesfully. It now has more launchers than Elon Musk.",
+          "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"
+      ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
       const { updateInfo } = useUpdateInfo(); // Hook to get update information
@@ -1126,12 +1137,33 @@
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
       const [isAutoScanDisabled, setIsAutoScanDisabled] = React.useState(false);
+      const [isUpdating, setIsUpdating] = React.useState(false); // Track if an update is in progress
       const handleScanClick = async () => {
           setIsLoading(true); // Set loading state to true
           setIsAutoScanDisabled(true); // Disable the auto-scan toggle
           await scan(() => setIsManualScanComplete(true)); // Perform the scan action and set completion state
           setIsLoading(false); // Set loading state to false
           setIsAutoScanDisabled(false); // Re-enable the auto-scan toggle
+      };
+      // Handle update button click
+      const handleUpdateClick = async () => {
+          setIsUpdating(true); // Set updating state
+          try {
+              // Notify the user that the update has started
+              notify.toast("Updating plugin", "Please wait while the plugin updates.");
+              const result = await serverAPI.callPluginMethod("Update", {}); // Call the "Update" method from main.py
+              if (result) {
+                  notify.toast("Update complete", "The plugin has been updated successfully.");
+              }
+              else {
+                  notify.toast("Update failed", "There was an issue with the update.");
+              }
+          }
+          catch (error) {
+              console.error('Error calling Update method on server-side plugin:', error);
+              notify.toast("Update failed", "An error occurred during the update.");
+          }
+          setIsUpdating(false); // Reset updating state
       };
       React.useEffect(() => {
           if (isManualScanComplete) {
@@ -1148,7 +1180,9 @@
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
                       margin: "auto",
-                  } }, "A new update is available! Please update your plugin :)"))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                  } },
+                  "A new update is available! Please update your plugin :)",
+                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? "Updating..." : "Update!")))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",
