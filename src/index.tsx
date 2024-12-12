@@ -13,7 +13,7 @@ import { useState, useEffect, VFC } from "react";
 import { RxRocket } from "react-icons/rx";
 import { notify } from "./hooks/notify";
 import { CustomSiteModal } from "./components/modals/customSiteModal";
-import { useSettings } from './hooks/useSettings'
+import { useSettings } from './hooks/useSettings';
 import { LauncherInstallModal } from "./components/modals/launcherInstallModal";
 import { StreamingInstallModal } from "./components/modals/streamingInstallModal";
 import { StartFreshModal } from "./components/modals/startFreshModal";
@@ -27,10 +27,10 @@ const initialOptions = sitesList;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   console.log('Content rendered');
-   
+
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-   
+
   const { settings, setAutoScan } = useSettings(serverAPI);
 
   // Random Greetings
@@ -72,7 +72,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
     try {
       // Notify the user that the update has started
       notify.toast("Updating plugin", "Please wait while the plugin updates.");
-      
+
       const result = await serverAPI.callPluginMethod("Update", {}); // Call the "Update" method from main.py
       if (result) {
         notify.toast("Update complete", "The plugin has been updated successfully.");
@@ -109,11 +109,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             }}
           >
             A new update is available! Please update your plugin :)
-            {/* Add the update button here */}
-            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-              {isUpdating ? "Updating..." : "Update!"}
-            </ButtonItem>
           </div>
+          {/* Add the update button below the red card */}
+          <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+            {isUpdating ? "Updating..." : "Update!"}
+          </ButtonItem>
         </PanelSectionRow>
       ) : (
         <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
@@ -135,22 +135,22 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       )}
 
       <PanelSection title="Install">
-        <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions}  />)}>
+        <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions} />)}>
           Game Launchers
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions}/>)} >
+        <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions} />)}>
           Streaming Sites
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<CustomSiteModal serverAPI={serverAPI}/>)} >
+        <ButtonItem layout="below" onClick={() => showModal(<CustomSiteModal serverAPI={serverAPI} />)}>
           Custom Website Shortcut
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<StartFreshModal serverAPI={serverAPI} />)}>
           Start Fresh
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)} >
+        <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
           Update Proton-GE
         </ButtonItem>
-        <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)} >
+        <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
           Restore Game Saves
         </ButtonItem>
       </PanelSection>
