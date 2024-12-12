@@ -1151,7 +1151,7 @@
           try {
               // Notify the user that the update has started
               notify.toast("Updating plugin", "Please wait while the plugin updates.");
-              const result = await serverAPI.callPluginMethod("Update", {}); // Call the "Update" method from main.py
+              const result = await serverAPI.callPluginMethod("update", {});
               if (result) {
                   notify.toast("Update complete", "The plugin has been updated successfully.");
               }
