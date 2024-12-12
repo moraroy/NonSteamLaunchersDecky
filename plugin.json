@@ -1,7 +1,7 @@
 {
   "name": "NonSteamLaunchers",
   "author": "moraroy, sysmoon14",
-  "flags": ["debug"],
+  "flags": ["root"],
   "publish": {
     "tags": ["NonSteamLaunchers", "NSL", "steamdeck", "launchers", "non-steam"],
     "description": "NonSteamLaunchers - The easiest way to add your favorite Non-Steam Launchers. Installs the latest Proton-GE and automatically adds your game and launcher shorcuts in correct format, in real time.",
