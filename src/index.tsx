@@ -148,7 +148,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           Start Fresh
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
-          Update Proton-GE
+          Update UMU/Proton-GE
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
           Restore Game Saves
