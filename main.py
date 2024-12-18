@@ -25,10 +25,14 @@ from aiohttp import web
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 from py_modules.lib.scanner import scan, addCustomSite
 from settings import SettingsManager
-from subprocess import Popen, run 
+from subprocess import Popen, run
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
+
+def camel_to_snake(s):
+    """Convert camelCase to snake_case."""
+    return re.sub(r'([a-z])([A-Z])', r'\1_\2', s).lower()
 
 def camel_to_title(s):
     # Split the string into words using a regular expression
@@ -50,7 +54,6 @@ class Plugin:
         # Function to fetch GitHub package.json
         async def fetch_github_version():
             github_url = "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/refs/heads/main/package.json"
-            decky_plugin.logger.info(f"Fetching GitHub version from {github_url}")
             loop = asyncio.get_event_loop()
             try:
                 response = await loop.run_in_executor(None, requests.get, github_url)
@@ -67,7 +70,6 @@ class Plugin:
             try:
                 with open(local_package_path, "r") as file:
                     data = json.load(file)
-                    decky_plugin.logger.info("Successfully read local package.json")
                     return data["version"]
             except FileNotFoundError:
                 decky_plugin.logger.error(f"Local {local_package_path} not found!")
@@ -273,12 +275,79 @@ class Plugin:
 
             return ws
 
+
+       # WebSocket handler to check launcher status
+        async def handle_launcher_status(request):
+            ws = web.WebSocketResponse()
+            await ws.prepare(request)
+
+            launchers = [
+                {"name": 'epicGames', "env_var": 'epic_games_launcher', "label": 'Epic Games'},
+                {"name": 'gogGalaxy', "env_var": 'gog_galaxy_launcher', "label": 'Gog Galaxy'},
+                {"name": 'uplay', "env_var": 'ubisoft_connect_launcher', "label": 'Ubisoft Connect'},
+                {"name": 'battleNet', "env_var": 'bnet_launcher', "label": 'Battle.net'},
+                {"name": 'amazonGames', "env_var": 'amazon_launcher', "label": 'Amazon Games'},
+                {"name": 'eaApp', "env_var": 'ea_app_launcher', "label": 'EA App'},
+                {"name": 'legacyGames', "env_var": 'legacy_launcher', "label": 'Legacy Games'},
+                {"name": 'itchIo', "env_var": 'itchio_launcher', "label": 'Itch.io'},
+                {"name": 'humbleGames', "env_var": 'humble_launcher', "label": 'Humble Games'},
+                {"name": 'indieGala', "env_var": 'indie_launcher', "label": 'IndieGala Client'},
+                {"name": 'rockstarGamesLauncher', "env_var": 'rockstar_launcher', "label": 'Rockstar Games Launcher'},
+                {"name": 'psPlus', "env_var": 'psplus_launcher', "label": 'Playstation Plus'},
+                {"name": 'hoyoPlay', "env_var": 'hoyoplay_launcher', "label": 'HoYoPlay'}
+            ]
+
+            installed_launchers = []
+
+            # Path to the env_vars file for Linux
+            env_vars_path = f"{decky_user_home}/.config/systemd/user/env_vars"
+            env_vars = {}
+
+            try:
+                # Check if the env_vars file exists
+                if not os.path.exists(env_vars_path):
+                    decky_plugin.logger.erroror(f"Error: {env_vars_path} does not exist.")
+                    await ws.send_json({"error": f"Error: {env_vars_path} does not exist."})
+                    return
+
+                # Read the env_vars file
+                with open(env_vars_path, 'r') as f:
+                    lines = f.readlines()
+
+                # Parse the lines and extract launcher-related environment variables
+                for line in lines:
+                    if line.startswith('export '):
+                        line = line[7:].strip()  # Remove 'export '
+                        if '=' in line:
+                            name, value = line.split('=', 1)
+                            if '_launcher' in name:
+                                env_vars[name] = value
+
+                # Iterate over the launchers list to check installed launchers
+                for launcher in launchers:
+                    launcher_name = launcher["name"]
+                    launcher_env_var = launcher["env_var"]
+                    if launcher_env_var in env_vars:
+                        installed_launchers.append(launcher_name)
+
+                # Send the installed launchers' names as a JSON response
+                await ws.send_json({"installedLaunchers": installed_launchers})
+                decky_plugin.logger.info(f"Installed Launchers: {installed_launchers}")
+
+            except Exception as e:
+                decky_plugin.logger.erroror(f"Error during launcher check: {e}")
+                await ws.send_json({"error": "Internal error during launcher check"})
+
+            finally:
+                await ws.close()
+
         app = web.Application()
         app.router.add_get('/autoscan', handleAutoScan)
         app.router.add_get('/scan', handleScan)
         app.router.add_get('/customSite', handleCustomSite)
         app.router.add_get('/logUpdates', handleLogUpdates)
         app.router.add_get('/check_update', handle_check_update)
+        app.router.add_get('/launcher_status', handle_launcher_status)
 
         runner = web.AppRunner(app)
         await runner.setup()
@@ -286,6 +355,7 @@ class Plugin:
         site = web.TCPSite(runner, 'localhost', 8675)
         await site.start()
         decky_plugin.logger.info("Server started at http://localhost:8675")
+
 
 
 
@@ -361,7 +431,7 @@ class Plugin:
         else:
             decky_plugin.logger.warning("Flatpak not found, skipping backup process")
 
-        
+
     async def _unload(self):
         decky_plugin.logger.info("Plugin Unloaded!")
         pass
@@ -371,7 +441,7 @@ class Plugin:
 
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
-        
+
     async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, operation="Install"):
         decky_plugin.logger.info('install was called')
 

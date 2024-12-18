@@ -227,6 +227,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 <img src="https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png" alt="GitHub" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 GitHub
               </ButtonItem>
+              <p style={{ fontStyle: 'italic', textAlign: 'center' }}>
+                “For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16
+              </p>
             </div>
           </div>
         </div>
@@ -247,4 +250,3 @@ export default definePlugin((serverApi: ServerAPI) => {
     icon: <RxRocket />,
   };
 });
-
