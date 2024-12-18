@@ -453,7 +453,55 @@
       return log;
   };
 
+  const useLauncherStatus = () => {
+      const [launcherStatus, setLauncherStatus] = React.useState(null);
+      const [error, setError] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      // WebSocket connection to check for launcher status
+      const fetchLauncherStatus = () => {
+          setLoading(true);
+          console.log("Connecting to WebSocket to check launcher status...");
+          const socket = new WebSocket("ws://localhost:8675/launcher_status");
+          socket.onopen = () => {
+              console.log("WebSocket connected to check launcher status");
+          };
+          socket.onmessage = (event) => {
+              const data = JSON.parse(event.data);
+              console.log("Received launcher status:", data);
+              if (data.error) {
+                  setError(data.error);
+              }
+              else {
+                  const { installedLaunchers } = data;
+                  setLauncherStatus({
+                      installedLaunchers
+                  });
+              }
+              setLoading(false);
+          };
+          socket.onerror = (error) => {
+              console.error("WebSocket error:", error);
+              setError("WebSocket error occurred while checking for launcher status.");
+              setLoading(false);
+          };
+          socket.onclose = () => {
+              console.log("WebSocket connection closed");
+          };
+          return () => {
+              socket.close();
+          };
+      };
+      React.useEffect(() => {
+          const socketCleanup = fetchLauncherStatus();
+          return () => {
+              socketCleanup();
+          };
+      }, []);
+      return { launcherStatus, error, loading };
+  };
+
   const LauncherInstallModal = ({ closeModal, launcherOptions, serverAPI }) => {
+      const { launcherStatus, error, loading } = useLauncherStatus(); // Use the hook to get launcher status
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const { settings, setAutoScan } = useSettings(serverAPI);
       const [options, setOptions] = React.useState(launcherOptions);
@@ -464,17 +512,12 @@
       const log = useLogUpdates(triggerLogUpdates);
       const [currentLauncher, setCurrentLauncher] = React.useState(null);
       const logContainerRef = React.useRef(null);
-      React.useEffect(() => {
-          const selectedLaunchers = options.filter(option => option.enabled && !option.streaming);
-          if (selectedLaunchers.length > 0) {
-              setCurrentLauncher(selectedLaunchers[0]);
-          }
-      }, [options]);
-      React.useEffect(() => {
-          if (logContainerRef.current) {
-              logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-          }
-      }, [log]);
+      // Pagination state
+      const [currentPage, setCurrentPage] = React.useState(1);
+      const itemsPerPage = 7;
+      const indexOfLastLauncher = currentPage * itemsPerPage;
+      const indexOfFirstLauncher = indexOfLastLauncher - itemsPerPage;
+      const currentLaunchers = launcherOptions.slice(indexOfFirstLauncher, indexOfLastLauncher);
       const handleToggle = (changeName, changeValue) => {
           const newOptions = options.map(option => {
               if (option.name === changeName) {
@@ -560,41 +603,85 @@
           setTriggerLogUpdates(false);
           setCurrentLauncher(null);
       };
-      const fadeStyle = {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          opacity: 1,
-          pointerEvents: 'none',
-          transition: 'opacity 1s ease-in-out'
+      // Pulsating animation style for lights
+      const pulseStyle = (offset) => ({
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          marginRight: '10px',
+          backgroundColor: 'gray',
+          opacity: 0.5 + Math.sin((Date.now() + offset) / 300) * 0.5,
+          transition: 'opacity 0.3s ease', // Smooth transition for opacity change
+      });
+      const nextPage = () => {
+          if (currentPage * itemsPerPage < launcherOptions.length) {
+              setCurrentPage(prevPage => prevPage + 1);
+          }
       };
-      return ((progress.status != '' && progress.percent < 100) ?
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: cancelOperation },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, `${operation}ing Game Launchers`),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
-                  "Selected options: ",
-                  options.filter(option => option.enabled).map(option => option.label).join(', ')),
+      const prevPage = () => {
+          if (currentPage > 1) {
+              setCurrentPage(prevPage => prevPage - 1);
+          }
+      };
+      // **Only remove the spinner here when loading status is true**
+      if (loading) {
+          return (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
+              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Loading Launcher Status..."),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Checking installed launchers..."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
                   window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
-                      window.SP_REACT.createElement("div", { ref: logContainerRef, style: { flex: 1, marginRight: '10px', fontSize: 'small', whiteSpace: 'pre-wrap', overflowY: 'auto', maxHeight: '50px', height: '100px' } }, showLog && log),
-                      window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })),
-                  currentLauncher && (window.SP_REACT.createElement("img", { src: currentLauncher.urlimage, alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } })),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px', margin: 0, padding: '10px' } }, "Back"))) :
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Select Game Launchers"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Here you choose your launchers you want to install and let NSL do the rest. Once installed, they will be added your library!"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, launcherOptions.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { key: name, label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
-              window.SP_REACT.createElement("p", { style: { fontSize: 'small', marginTop: '16px' } }, "Note: When installing a launcher, the latest Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked, shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
-              window.SP_REACT.createElement("p", { style: { fontSize: 'small', marginTop: '16px' } }, "Note\u00B2: Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665"),
-              window.SP_REACT.createElement(deckyFrontendLib.Focusable, null,
-                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-                      window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
-                          window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: () => handleInstallClick("Install"), disabled: options.every(option => option.enabled === false) }, "Install"),
-                          window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content", marginLeft: "10px", marginRight: "10px" }, onClick: () => handleInstallClick("Uninstall"), disabled: options.every(option => option.enabled === false) }, "Uninstall")),
-                      window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Separate Launcher Folders", checked: separateAppIds, onChange: handleSeparateAppIdsToggle })))));
+                      window.SP_REACT.createElement("span", { style: pulseStyle(0) }),
+                      window.SP_REACT.createElement("span", { style: pulseStyle(100) }),
+                      window.SP_REACT.createElement("span", { style: pulseStyle(200) })))));
+      }
+      if (error) {
+          return (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
+              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Error"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, error),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Close"))));
+      }
+      return ((progress.status !== '' && progress.percent < 100) ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: cancelOperation },
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, `${operation}ing Game Launchers`),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
+              "Selected options: ",
+              options.filter(option => option.enabled).map(option => option.label).join(', ')),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+              window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
+                  window.SP_REACT.createElement("div", { ref: logContainerRef, style: { flex: 1, marginRight: '10px', fontSize: 'small', whiteSpace: 'pre-wrap', overflowY: 'auto', maxHeight: '50px', height: '100px' } }, showLog && log),
+                  window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })),
+              currentLauncher && (window.SP_REACT.createElement("img", { src: currentLauncher.urlimage, alt: "Overlay", style: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0.5 } })),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px', margin: 0, padding: '10px' } }, "Back")))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Select Game Launchers"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Here you choose your launchers you want to install and let NSL do the rest. Once installed, they will be added to your library!"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              currentLaunchers.map(({ name, label }) => (window.SP_REACT.createElement("div", { key: name, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
+                      window.SP_REACT.createElement("span", null, label),
+                      window.SP_REACT.createElement("span", { style: {
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              marginLeft: '10px',
+                              backgroundColor: launcherStatus?.installedLaunchers.includes(name) ? 'green' : 'red',
+                          } })),
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
+                  window.SP_REACT.createElement("b", null, "Note:"),
+                  " When installing a launcher, the latest Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked, shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
+                  window.SP_REACT.createElement("b", null, "Note\u00B2:"),
+                  " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665")),
+          window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginTop: '10px' } },
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= launcherOptions.length }, "Next")),
+          window.SP_REACT.createElement(deckyFrontendLib.Focusable, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: () => handleInstallClick("Install"), disabled: options.every(option => option.enabled === false) }, "Install"),
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content", marginLeft: "10px", marginRight: "10px" }, onClick: () => handleInstallClick("Uninstall"), disabled: options.every(option => option.enabled === false) }, "Uninstall")),
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Separate Launcher Folders", checked: separateAppIds, onChange: handleSeparateAppIdsToggle }))))));
   };
 
   /**
@@ -1220,7 +1307,8 @@
                               "Ko-fi"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/sponsors/moraroy', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png", alt: "GitHub", style: { width: '20px', height: '20px', marginRight: '10px' } }),
-                              "GitHub")))))));
+                              "GitHub"),
+                          window.SP_REACT.createElement("p", { style: { fontStyle: 'italic', textAlign: 'center' } }, "\u201CFor God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.\u201D - John 3:16")))))));
   };
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
