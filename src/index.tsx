@@ -156,16 +156,12 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         {/* Moved description of supported launchers */}
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
-          <Focusable
-            focusWithinClassName="gpfocuswithin"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onActivate={() => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); }}
+          <ButtonItem
+            layout="below"
+            onClick={() => window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank')}
           >
-            <a style={{ textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' }}>
-              click here for more info!
-            </a>
-          </Focusable>
+            click here for more info!
+          </ButtonItem>
         </PanelSectionRow>
 
         <ToggleField
@@ -185,7 +181,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </ButtonItem>
       </PanelSection>
 
-      <PanelSection title="   Support and Donations">
+      <PanelSection title="Support and Donations">
         <div
           style={{
             backgroundColor: "transparent",
