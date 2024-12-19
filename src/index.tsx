@@ -185,7 +185,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </ButtonItem>
       </PanelSection>
 
-      <PanelSection title="Support and Donations">
+      <PanelSection title="   Support and Donations">
         <div
           style={{
             backgroundColor: "transparent",

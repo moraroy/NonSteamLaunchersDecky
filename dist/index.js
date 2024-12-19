@@ -1297,7 +1297,7 @@
                       }
                   }, disabled: isAutoScanDisabled }),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
-          window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Support and Donations" },
+          window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "   Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
                       display: "flex",
