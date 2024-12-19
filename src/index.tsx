@@ -35,16 +35,13 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   // Random Greetings
   const greetings = [
-    "Is it just me? Or does the Rog Ally kinda s... actually, nevermind.",
     "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
-    "Wow! You look amazing today...is that a new haircut?", "Hey! Thinkin' of changing the name of NSL to 'Nasty Lawn Chairs'. What do you think?",
-    "'A'... that other handheld is a little 'Sus' if you ask me. I don't trust him.",
-    "What the heck is a Lenovo anyway? It needs to 'Go' and get outta here.",
-    "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.", "Some said it couldnt be done, making a plugin like this... haters gonna hate, haters gonna marinate.",
+    "Wow! You look amazing today...is that a new haircut?",
+    "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.",
     "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
     "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
-    "NSL has updated succesfully. It now has more launchers than Elon Musk.",
-    "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"
+    "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
+    "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
   ];
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
@@ -110,10 +107,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           >
             A new update is available! Please update your plugin :)
           </div>
-          {/* Add the update button below the red card */}
-          {/* <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-            {isUpdating ? "Updating..." : "Update!"}
-          </ButtonItem> */}
         </PanelSectionRow>
       ) : (
         <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
@@ -159,6 +152,12 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
+        
+        {/* Moved description of supported launchers */}
+        <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
+          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
+        </PanelSectionRow>
+
         <ToggleField
           label="Auto Scan Games"
           checked={settings.autoscan}
@@ -176,32 +175,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </ButtonItem>
       </PanelSection>
 
-      <div
-        style={{
-          backgroundColor: "transparent",
-          display: "flex",
-          flexDirection: "column",
-          padding: "0.5em",
-          width: "95%",
-          margin: 0,
-        }}
-      >
-        <span style={{ fontSize: "12px", marginBottom: "10px", textAlign: "center" }}>
-          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
-          <Focusable
-            focusWithinClassName="gpfocuswithin"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onActivate={() => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); }}
-          >
-            <a style={{ textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' }}>
-              click here for more info!
-            </a>
-          </Focusable>
-        </span>
-      </div>
-
-      <PanelSection title="Support and Donations vvv">
+      <PanelSection title="For Support and Donations">
         <div
           style={{
             backgroundColor: "transparent",
@@ -227,9 +201,12 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 <img src="https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png" alt="GitHub" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 GitHub
               </ButtonItem>
-              <p style={{ fontStyle: 'italic', textAlign: 'center' }}>
-                “For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16
-              </p>
+              <ButtonItem
+                layout="below"
+                onClick={() => window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank')}
+              >
+                click here for more info!
+              </ButtonItem>
             </div>
           </div>
         </div>

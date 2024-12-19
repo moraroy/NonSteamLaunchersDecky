@@ -226,6 +226,13 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
         <DialogHeader>Select Game Launchers</DialogHeader>
         <DialogBodyText>Here you choose your launchers you want to install and let NSL do the rest. Once installed, they will be added to your library!</DialogBodyText>
         <DialogBody>
+
+          {/* Pagination controls moved above the selection list */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
+            <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= launcherOptions.length}>Next</DialogButton>
+          </div>
+
           {currentLaunchers.map(({ name, label }) => (
             <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -248,20 +255,14 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
             </div>
           ))}
           
-          {/* Helpful Notes moved above the pagination controls */}
+          {/* Helpful Notes */}
           <DialogBodyText style={{ fontSize: 'small', marginTop: '16px' }}>
-            <b>Note:</b> When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked, shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually.
+            <b>Note:</b> When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked (except for umu), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually.
           </DialogBodyText>
           <DialogBodyText style={{ fontSize: 'small', marginTop: '16px' }}>
             <b>Note²:</b> Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!♥
           </DialogBodyText>
         </DialogBody>
-
-        {/* Pagination controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-          <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
-          <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= launcherOptions.length}>Next</DialogButton>
-        </div>
 
         <Focusable>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

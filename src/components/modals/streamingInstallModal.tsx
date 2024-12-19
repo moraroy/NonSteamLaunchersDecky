@@ -27,13 +27,21 @@ type StreamingInstallModalProps = {
 };
 
 /**
- * The modal for selecting launchers.
+ * The modal for selecting streaming sites.
  */
 export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({closeModal, streamingOptions, serverAPI}) => {
 
   const [progress, setProgress] = useState({ percent:0, status:'', description: '' });
   const [options, setOptions ] = useState(streamingOptions);
   const [currentStreamingSite, setCurrentStreamingSite] = useState<typeof streamingOptions[0] | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
+
+  const indexOfLastSite = currentPage * itemsPerPage;
+  const indexOfFirstSite = indexOfLastSite - itemsPerPage;
+  const currentSites = streamingOptions.slice(indexOfFirstSite, indexOfLastSite);
 
   const handleInstallClick = async () => {
     console.log('handleInstallClick called');
@@ -77,6 +85,19 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({closeMod
     setCurrentStreamingSite(null);
   };
 
+  // Pagination functions
+  const nextPage = () => {
+    if (currentPage * itemsPerPage < streamingOptions.length) {
+      setCurrentPage(prevPage => prevPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prevPage => prevPage - 1);
+    }
+  };
+
   const fadeStyle = {
     position: 'absolute',
     top: 0,
@@ -118,7 +139,14 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({closeMod
       </DialogHeader>
       <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection. Before installing, toggle Auto Scan "on" for these.</DialogBodyText>
       <DialogBody>
-        {streamingOptions.map(({ name, label }) => (
+
+        {/* Pagination controls moved above the selection list */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
+          <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= streamingOptions.length}>Next</DialogButton>
+        </div>
+
+        {currentSites.map(({ name, label }) => (
             <ToggleField
             label={label}
             checked={options.find(option => option.name === name)?.enabled ? true : false}
