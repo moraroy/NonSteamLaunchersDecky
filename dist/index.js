@@ -656,6 +656,9 @@
           window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Select Game Launchers"),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Here you choose your launchers you want to install and let NSL do the rest. Once installed, they will be added to your library!"),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= launcherOptions.length }, "Next")),
               currentLaunchers.map(({ name, label }) => (window.SP_REACT.createElement("div", { key: name, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
                   window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
                       window.SP_REACT.createElement("span", null, label),
@@ -673,9 +676,6 @@
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note\u00B2:"),
                   " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665")),
-          window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginTop: '10px' } },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= launcherOptions.length }, "Next")),
           window.SP_REACT.createElement(deckyFrontendLib.Focusable, null,
               window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
                   window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },
@@ -1267,6 +1267,10 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(RestoreGameSavesModal, { serverAPI: serverAPI })) }, "Restore Game Saves")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
+              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } },
+                  "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.",
+                  window.SP_REACT.createElement(deckyFrontendLib.Focusable, { focusWithinClassName: "gpfocuswithin", onFocus: () => setIsFocused(true), onBlur: () => setIsFocused(false), onActivate: () => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); } },
+                      window.SP_REACT.createElement("a", { style: { textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' } }, "click here for more info!"))),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {
                       setAutoScan(value);
                       if (value === true) {
@@ -1275,18 +1279,6 @@
                       }
                   }, disabled: isAutoScanDisabled }),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
-          window.SP_REACT.createElement("div", { style: {
-                  backgroundColor: "transparent",
-                  display: "flex",
-                  flexDirection: "column",
-                  padding: "0.5em",
-                  width: "95%",
-                  margin: 0,
-              } },
-              window.SP_REACT.createElement("span", { style: { fontSize: "12px", marginBottom: "10px", textAlign: "center" } },
-                  "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.",
-                  window.SP_REACT.createElement(deckyFrontendLib.Focusable, { focusWithinClassName: "gpfocuswithin", onFocus: () => setIsFocused(true), onBlur: () => setIsFocused(false), onActivate: () => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); } },
-                      window.SP_REACT.createElement("a", { style: { textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' } }, "click here for more info!")))),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Support and Donations vvv" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
@@ -1296,6 +1288,7 @@
                       width: "95%",
                       margin: 0,
                   } },
+                  window.SP_REACT.createElement("p", { style: { fontStyle: 'italic', textAlign: 'center' } }, "\u201CFor God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.\u201D - John 3:16"),
                   window.SP_REACT.createElement("div", { style: { marginTop: '5px', textAlign: 'center', fontSize: "12px" } },
                       window.SP_REACT.createElement("p", null, "NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!"),
                       window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' } },
@@ -1307,8 +1300,7 @@
                               "Ko-fi"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/sponsors/moraroy', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png", alt: "GitHub", style: { width: '20px', height: '20px', marginRight: '10px' } }),
-                              "GitHub"),
-                          window.SP_REACT.createElement("p", { style: { fontStyle: 'italic', textAlign: 'center' } }, "\u201CFor God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.\u201D - John 3:16")))))));
+                              "GitHub")))))));
   };
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();

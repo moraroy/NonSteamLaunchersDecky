@@ -110,10 +110,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           >
             A new update is available! Please update your plugin :)
           </div>
-          {/* Add the update button below the red card */}
-          {/* <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-            {isUpdating ? "Updating..." : "Update!"}
-          </ButtonItem> */}
         </PanelSectionRow>
       ) : (
         <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
@@ -159,6 +155,22 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
+        
+        {/* Moved description of supported launchers */}
+        <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
+          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
+          <Focusable
+            focusWithinClassName="gpfocuswithin"
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onActivate={() => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); }}
+          >
+            <a style={{ textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' }}>
+              click here for more info!
+            </a>
+          </Focusable>
+        </PanelSectionRow>
+
         <ToggleField
           label="Auto Scan Games"
           checked={settings.autoscan}
@@ -176,31 +188,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         </ButtonItem>
       </PanelSection>
 
-      <div
-        style={{
-          backgroundColor: "transparent",
-          display: "flex",
-          flexDirection: "column",
-          padding: "0.5em",
-          width: "95%",
-          margin: 0,
-        }}
-      >
-        <span style={{ fontSize: "12px", marginBottom: "10px", textAlign: "center" }}>
-          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
-          <Focusable
-            focusWithinClassName="gpfocuswithin"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onActivate={() => { window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank'); }}
-          >
-            <a style={{ textDecoration: 'underline', color: 'inherit', outline: isFocused ? '2px solid rgba(255, 255, 255, 0.5)' : 'none' }}>
-              click here for more info!
-            </a>
-          </Focusable>
-        </span>
-      </div>
-
       <PanelSection title="Support and Donations vvv">
         <div
           style={{
@@ -212,6 +199,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             margin: 0,
           }}
         >
+          {/* Moved verse above the donation content */}
+          <p style={{ fontStyle: 'italic', textAlign: 'center' }}>
+            “For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16
+          </p>
           <div style={{ marginTop: '5px', textAlign: 'center', fontSize: "12px" }}>
             <p>NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!</p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -227,9 +218,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 <img src="https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png" alt="GitHub" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 GitHub
               </ButtonItem>
-              <p style={{ fontStyle: 'italic', textAlign: 'center' }}>
-                “For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16
-              </p>
             </div>
           </div>
         </div>
