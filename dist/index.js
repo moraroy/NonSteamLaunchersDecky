@@ -672,7 +672,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note:"),
-                  " When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked, shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
+                  " When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked(except for umu shortcuts), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note\u00B2:"),
                   " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665")),
@@ -685,12 +685,18 @@
   };
 
   /**
-   * The modal for selecting launchers.
+   * The modal for selecting streaming sites.
    */
   const StreamingInstallModal = ({ closeModal, streamingOptions, serverAPI }) => {
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const [options, setOptions] = React.useState(streamingOptions);
       const [currentStreamingSite, setCurrentStreamingSite] = React.useState(null);
+      // Pagination state
+      const [currentPage, setCurrentPage] = React.useState(1);
+      const itemsPerPage = 7;
+      const indexOfLastSite = currentPage * itemsPerPage;
+      const indexOfFirstSite = indexOfLastSite - itemsPerPage;
+      const currentSites = streamingOptions.slice(indexOfFirstSite, indexOfLastSite);
       const handleInstallClick = async () => {
           console.log('handleInstallClick called');
           const selectedStreamingSites = options
@@ -731,6 +737,17 @@
           setProgress({ percent: 0, status: '', description: '' });
           setCurrentStreamingSite(null);
       };
+      // Pagination functions
+      const nextPage = () => {
+          if (currentPage * itemsPerPage < streamingOptions.length) {
+              setCurrentPage(prevPage => prevPage + 1);
+          }
+      };
+      const prevPage = () => {
+          if (currentPage > 1) {
+              setCurrentPage(prevPage => prevPage - 1);
+          }
+      };
       const fadeStyle = {
           position: 'absolute',
           top: 0,
@@ -755,7 +772,11 @@
           window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
               window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection. Before installing, toggle Auto Scan \"on\" for these."),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, streamingOptions.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
+                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= streamingOptions.length }, "Next")),
+                  currentSites.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
               window.SP_REACT.createElement("p", null),
               window.SP_REACT.createElement(deckyFrontendLib.Focusable, { style: { display: "flex", alignItems: "center", gap: "10px" } },
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) }, "Install"),
@@ -907,8 +928,8 @@
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix."),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } },
-                      window.SP_REACT.createElement("strong", null, "Ensure all necessary launchers are installed, but do not download the games."),
-                      " This will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and backed up your game saves at /home/deck/NSLGameSaves."),
+                      window.SP_REACT.createElement("strong", null, "Ensure all necessary launchers are installed, but do not download the games,"),
+                      " as this will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and you know for a fact that your game saves are backed up at /home/deck/NSLGameSaves."),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "Some games don't have local save backups:"),
                   window.SP_REACT.createElement("ul", null,
                       window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "NSL uses Ludusavi to backup and restore your local game saves."),
@@ -1215,7 +1236,9 @@
           "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
           "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
           "NSL has updated succesfully. It now has more launchers than Elon Musk.",
-          "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"
+          "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
+          // Moved the verse here
+          "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
@@ -1288,7 +1311,6 @@
                       width: "95%",
                       margin: 0,
                   } },
-                  window.SP_REACT.createElement("p", { style: { fontStyle: 'italic', textAlign: 'center' } }, "\u201CFor God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.\u201D - John 3:16"),
                   window.SP_REACT.createElement("div", { style: { marginTop: '5px', textAlign: 'center', fontSize: "12px" } },
                       window.SP_REACT.createElement("p", null, "NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!"),
                       window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' } },

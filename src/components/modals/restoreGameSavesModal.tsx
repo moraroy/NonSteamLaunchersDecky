@@ -71,7 +71,7 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
       <DialogBody>
         <DialogBodyText style={{ fontSize: '14px' }}>This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix.</DialogBodyText>
         <DialogBodyText style={{ fontSize: '14px' }}>
-          <strong>Ensure all necessary launchers are installed, but do not download the games.</strong> This will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and backed up your game saves at /home/deck/NSLGameSaves.
+          <strong>Ensure all necessary launchers are installed, but do not download the games,</strong> as this will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and you know for a fact that your game saves are backed up at /home/deck/NSLGameSaves.
         </DialogBodyText>
         <DialogBodyText style={{ fontSize: '14px' }}>Some games don't have local save backups:</DialogBodyText>
         <ul>

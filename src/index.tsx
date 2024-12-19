@@ -44,7 +44,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
     "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
     "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
     "NSL has updated succesfully. It now has more launchers than Elon Musk.",
-    "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?"
+    "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
+    // Moved the verse here
+    "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
   ];
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
@@ -199,10 +201,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             margin: 0,
           }}
         >
-          {/* Moved verse above the donation content */}
-          <p style={{ fontStyle: 'italic', textAlign: 'center' }}>
-            “For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16
-          </p>
           <div style={{ marginTop: '5px', textAlign: 'center', fontSize: "12px" }}>
             <p>NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!</p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
