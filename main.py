@@ -304,11 +304,12 @@ class Plugin:
             env_vars = {}
 
             try:
-                # Check if the env_vars file exists
+                # Check if the env_vars file exists    
                 if not os.path.exists(env_vars_path):
-                    decky_plugin.logger.erroror(f"Error: {env_vars_path} does not exist.")
-                    await ws.send_json({"error": f"Error: {env_vars_path} does not exist."})
+                    await ws.send_json({"installedLaunchers": []})
+                    await ws.close()
                     return
+
 
                 # Read the env_vars file
                 with open(env_vars_path, 'r') as f:
