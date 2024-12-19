@@ -336,7 +336,7 @@ class Plugin:
                 decky_plugin.logger.info(f"Installed Launchers: {installed_launchers}")
 
             except Exception as e:
-                decky_plugin.logger.erroror(f"Error during launcher check: {e}")
+                decky_plugin.logger.error(f"Error during launcher check: {e}")
                 await ws.send_json({"error": "Internal error during launcher check"})
 
             finally:
