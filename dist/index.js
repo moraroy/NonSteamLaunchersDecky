@@ -672,7 +672,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note:"),
-                  " When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked(except for umu shortcuts), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
+                  " When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked (except for umu), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note\u00B2:"),
                   " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665")),
@@ -1227,17 +1227,12 @@
       const { settings, setAutoScan } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
-          "Is it just me? Or does the Rog Ally kinda s... actually, nevermind.",
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
-          "Wow! You look amazing today...is that a new haircut?", "Hey! Thinkin' of changing the name of NSL to 'Nasty Lawn Chairs'. What do you think?",
-          "'A'... that other handheld is a little 'Sus' if you ask me. I don't trust him.",
-          "What the heck is a Lenovo anyway? It needs to 'Go' and get outta here.",
-          "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.", "Some said it couldnt be done, making a plugin like this... haters gonna hate, haters gonna marinate.",
+          "Wow! You look amazing today...is that a new haircut?",
+          "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.",
           "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
           "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
-          "NSL has updated succesfully. It now has more launchers than Elon Musk.",
           "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
-          // Moved the verse here
           "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
@@ -1302,7 +1297,7 @@
                       }
                   }, disabled: isAutoScanDisabled }),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
-          window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Support and Donations vvv" },
+          window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
                       display: "flex",
