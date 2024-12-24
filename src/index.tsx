@@ -177,7 +177,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
         {/* New toggle for monitor */}
         <ToggleField
-          label="Monitor Games"
+          label="Auto Kill Launcher"
           checked={settings.monitor}
           onChange={(value) => {
             setMonitor(value); // Update the monitor setting in useSettings

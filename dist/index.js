@@ -1365,7 +1365,7 @@
                       }
                   }, disabled: isAutoScanDisabled }),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan'),
-              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Monitor Games", checked: settings.monitor, onChange: (value) => {
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Kill Launcher", checked: settings.monitor, onChange: (value) => {
                       setMonitor(value); // Update the monitor setting in useSettings
                       if (value) {
                           startMonitoring(); // Start monitoring when the toggle is ON
