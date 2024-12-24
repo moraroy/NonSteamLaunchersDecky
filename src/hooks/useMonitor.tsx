@@ -1,54 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-export function useMonitorConnection() {
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [monitorStatus, setMonitorStatus] = useState<string>('Not Started');
+// Define types for the hook state if needed
+interface MonitorState {
+  isMonitoring: boolean;
+  error?: string;
+}
+
+const useMonitor = () => {
+  // State to manage whether the monitoring is active
+  const [monitorState, setMonitorState] = useState<MonitorState>({ isMonitoring: false });
 
   useEffect(() => {
-    // Create a new WebSocket connection when the component mounts
-    const socket = new WebSocket('ws://localhost:8675/monitor_process');
+    // Logic to start monitoring can go here
+    // For now, we just log something to indicate that the hook is set up
+    console.log("useMonitor hook initialized");
 
-    socket.onopen = () => {
-      setIsConnected(true);
-      console.log('WebSocket connected!');
-    };
-
-    socket.onmessage = (event) => {
-      // Handle incoming messages
-      setMonitorStatus(event.data);
-      console.log('Received:', event.data);
-    };
-
-    socket.onclose = () => {
-      setIsConnected(false);
-      console.log('WebSocket connection closed.');
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    // Save WebSocket instance to state
-    setWs(socket);
-
-    // Cleanup on component unmount
     return () => {
-      socket.close();
+      // Clean up logic if necessary (for example, stopping a process or cleanup)
+      console.log("useMonitor hook cleaned up");
     };
   }, []);
 
-  const sendMessage = (message: string) => {
-    if (ws && isConnected) {
-      ws.send(message);
-    } else {
-      console.error('WebSocket is not connected');
-    }
+  // Example function to start monitoring (placeholder for future logic)
+  const startMonitoring = () => {
+    setMonitorState({ isMonitoring: true });
+    console.log("Monitoring started...");
+  };
+
+  // Example function to stop monitoring (placeholder for future logic)
+  const stopMonitoring = () => {
+    setMonitorState({ isMonitoring: false });
+    console.log("Monitoring stopped...");
   };
 
   return {
-    isConnected,
-    monitorStatus,
-    sendMessage,
+    monitorState,
+    startMonitoring,
+    stopMonitoring,
   };
-}
+};
+
+export default useMonitor;

@@ -373,51 +373,6 @@
       return { settings, setAutoScan, setCustomSites, setMonitor }; // Return setMonitor as part of the hook
   };
 
-  function useMonitorConnection() {
-      const [ws, setWs] = React.useState(null);
-      const [isConnected, setIsConnected] = React.useState(false);
-      const [monitorStatus, setMonitorStatus] = React.useState('Not Started');
-      React.useEffect(() => {
-          // Create a new WebSocket connection when the component mounts
-          const socket = new WebSocket('ws://localhost:8675/monitor_process');
-          socket.onopen = () => {
-              setIsConnected(true);
-              console.log('WebSocket connected!');
-          };
-          socket.onmessage = (event) => {
-              // Handle incoming messages
-              setMonitorStatus(event.data);
-              console.log('Received:', event.data);
-          };
-          socket.onclose = () => {
-              setIsConnected(false);
-              console.log('WebSocket connection closed.');
-          };
-          socket.onerror = (error) => {
-              console.error('WebSocket error:', error);
-          };
-          // Save WebSocket instance to state
-          setWs(socket);
-          // Cleanup on component unmount
-          return () => {
-              socket.close();
-          };
-      }, []);
-      const sendMessage = (message) => {
-          if (ws && isConnected) {
-              ws.send(message);
-          }
-          else {
-              console.error('WebSocket is not connected');
-          }
-      };
-      return {
-          isConnected,
-          monitorStatus,
-          sendMessage,
-      };
-  }
-
   async function setupWebSocket(url, onMessage, onComplete) {
       const ws = new WebSocket(url);
       ws.onopen = () => {
@@ -1271,24 +1226,54 @@
       }
   ];
 
+  const useMonitor = () => {
+      // State to manage whether the monitoring is active
+      const [monitorState, setMonitorState] = React.useState({ isMonitoring: false });
+      React.useEffect(() => {
+          // Logic to start monitoring can go here
+          // For now, we just log something to indicate that the hook is set up
+          console.log("useMonitor hook initialized");
+          return () => {
+              // Clean up logic if necessary (for example, stopping a process or cleanup)
+              console.log("useMonitor hook cleaned up");
+          };
+      }, []);
+      // Example function to start monitoring (placeholder for future logic)
+      const startMonitoring = () => {
+          setMonitorState({ isMonitoring: true });
+          console.log("Monitoring started...");
+      };
+      // Example function to stop monitoring (placeholder for future logic)
+      const stopMonitoring = () => {
+          setMonitorState({ isMonitoring: false });
+          console.log("Monitoring stopped...");
+      };
+      return {
+          monitorState,
+          startMonitoring,
+          stopMonitoring,
+      };
+  };
+
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-      const { settings, setAutoScan } = useSettings(serverAPI);
-      const { sendMessage } = useMonitorConnection(); // Using the new hook for monitor
+      const { settings, setAutoScan, setMonitor } = useSettings(serverAPI); // Destructure setMonitor
+      const { startMonitoring, stopMonitoring } = useMonitor(); // Use the useMonitor hook
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
           "Wow! You look amazing today...is that a new haircut?",
           "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.",
-          "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.",
-          "Whats further? Half Life 3 or Gog Galaxy?", "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
-          "You installed another launcher? ...pff, when are you going to learn bro?",
-          "So how are we wasting our time today?", "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
+          "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
+          "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
+          "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
+          "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+      // End of Random Greetings
       const { updateInfo } = useUpdateInfo(); // Hook to get update information
       React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
@@ -1345,16 +1330,16 @@
                           autoscan();
                       }
                   }, disabled: isAutoScanDisabled }),
-              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Kill Launcher", checked: settings.monitor, onChange: (value) => {
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan'),
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Monitor Games", checked: settings.monitor, onChange: (value) => {
+                      setMonitor(value); // Update the monitor setting in useSettings
                       if (value) {
-                          sendMessage('start_monitor'); // Send message to start the monitor process
+                          startMonitoring(); // Start monitoring when the toggle is ON
                       }
                       else {
-                          sendMessage('stop_monitor'); // Send message to stop the monitor process
+                          stopMonitoring(); // Stop monitoring when the toggle is OFF
                       }
-                      setAutoScan(value); // Update the settings (for persistence)
-                  } }),
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
+                  } })),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "For Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
@@ -1372,14 +1357,19 @@
                               "Patreon"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://ko-fi.com/moraroy#checkoutModal', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef_ko-fi_logo_02-p-500.png", alt: "Ko-fi", style: { width: '20px', height: '20px', marginRight: '10px' } }),
-                              "Ko-fi")))))));
+                              "Ko-fi"),
+                          window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/sponsors/moraroy', '_blank') },
+                              window.SP_REACT.createElement("img", { src: "https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png", alt: "GitHub", style: { width: '20px', height: '20px', marginRight: '10px' } }),
+                              "GitHub"),
+                          window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank') }, "click here for more info!")))))));
   };
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
       notify.setServer(serverApi);
       return {
           title: window.SP_REACT.createElement("div", { className: deckyFrontendLib.staticClasses.Title }, "NonSteamLaunchers"),
-          content: window.SP_REACT.createElement(Content, { serverAPI: serverApi }),
+          alwaysRender: true,
+          content: (window.SP_REACT.createElement(Content, { serverAPI: serverApi })),
           icon: window.SP_REACT.createElement(RxRocket, null),
       };
   });

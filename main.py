@@ -21,6 +21,8 @@ import subprocess
 import shutil
 import json
 import requests
+import psutil
+import time
 from aiohttp import web
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 from py_modules.lib.scanner import scan, addCustomSite
@@ -52,36 +54,21 @@ class Plugin:
 
 
 
-
-
         async def handleMonitor(request):
             ws = web.WebSocketResponse()
             await ws.prepare(request)
-            self.decky_plugin.logger.info(f"Monitor WebSocket connection established.")
+            decky_plugin.logger.info(f"Monitor WebSocket connection established.")
 
-            # Start the monitor process as a background task, independent of WebSocket
-            monitor_task = asyncio.create_task(self.monitor_process(ws))
-
-            # Wait for WebSocket to close before stopping the monitor task
-            await ws.wait_closed()
-
-            # If WebSocket closes, stop the monitoring task if necessary (clean up if needed)
-            monitor_task.cancel()
-            self.decky_plugin.logger.info("WebSocket connection closed. Monitor task canceled.")
-            return ws
-
-        async def monitor_process(ws):
-            """Monitors launcher and game processes based on the monitor setting."""
-            settings = await self.settings.getSetting('settings', defaultSettings)
-
+            # Directly run monitor logic instead of using create_task
+            settings = self.settings.getSetting('settings', defaultSettings)
             while True:
                 if not settings.get('monitor', False):
-                    self.decky_plugin.logger.info("Monitor is disabled.")
+                    decky_plugin.logger.info("Monitor is disabled.")
                     await ws.send_str("Monitor is disabled.")
                     break  # Exit the loop if monitor is turned off
 
                 # Monitoring logic here (same as before)
-                self.decky_plugin.logger.info("Starting monitor process...")
+                decky_plugin.logger.info("Starting monitor process...")
 
                 LAUNCHERS = [
                     "EpicGamesLauncher.exe",
@@ -100,10 +87,10 @@ class Plugin:
                         try:
                             cmdline = proc.info.get('cmdline', [])
                             if isinstance(cmdline, list) and any(launcher.lower() in " ".join(cmdline).lower() for launcher in LAUNCHERS):
-                                self.decky_plugin.logger.info(f"Killing process {proc.info['name']} (PID: {proc.info['pid']})")
+                                decky_plugin.logger.info(f"Killing process {proc.info['name']} (PID: {proc.info['pid']})")
                                 proc.kill()
                         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
-                            self.decky_plugin.logger.warning(f"Error with process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
+                            decky_plugin.logger.warning(f"Error with process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
 
                 async def is_process_running(process_names):
                     """Checks if any process in the list is running by its name in the command line."""
@@ -117,19 +104,19 @@ class Plugin:
                                     if process_name.lower() in cmdline_str.lower():
                                         running_procs[process_name] = proc.info['pid']
                         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
-                            self.decky_plugin.logger.warning(f"Error accessing process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
+                            decky_plugin.logger.warning(f"Error accessing process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
                     return running_procs
 
                 async def monitor_launcher_games(launcher, pid):
                     """Monitors game processes launched by a specific launcher."""
-                    self.decky_plugin.logger.info(f"{launcher} (PID: {pid}) is running. Monitoring for game processes...")
+                    decky_plugin.logger.info(f"{launcher} (PID: {pid}) is running. Monitoring for game processes...")
                     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                         try:
                             cmdline = proc.info.get('cmdline', [])
                             if isinstance(cmdline, list):
                                 cmdline_str = " ".join(cmdline)
                                 if launcher in cmdline_str:
-                                    self.decky_plugin.logger.info(f"Found {launcher} with PID {proc.info['pid']}")
+                                    decky_plugin.logger.info(f"Found {launcher} with PID {proc.info['pid']}")
                                     # Look for the actual game process launched by the launcher
                                     for game_proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                                         game_cmdline = game_proc.info.get('cmdline', [])
@@ -138,18 +125,18 @@ class Plugin:
                                             if game_proc.info['pid'] != proc.info['pid'] and (
                                                     'C:/Program Files/Epic Games/' in game_cmdline_str or
                                                     'GOG Galaxy/Games/' in game_cmdline_str):
-                                                self.decky_plugin.logger.info(f"Game found: {game_proc.info['name']} (PID: {game_proc.info['pid']})")
+                                                decky_plugin.logger.info(f"Game found: {game_proc.info['name']} (PID: {game_proc.info['pid']})")
                                                 # Kill the launcher after game is found
                                                 await kill_launcher_processes()
 
                                                 # Now wait until the game process exits
                                                 while await is_process_running([game_proc.info['name']]):
-                                                    self.decky_plugin.logger.info(f"Waiting for game {game_proc.info['name']} (PID: {game_proc.info['pid']}) to exit...")
+                                                    decky_plugin.logger.info(f"Waiting for game {game_proc.info['name']} (PID: {game_proc.info['pid']}) to exit...")
                                                     await asyncio.sleep(2)  # Check every 2 seconds if the game is still running
-                                                self.decky_plugin.logger.info(f"Game {game_proc.info['name']} has exited. Resuming monitoring.")
+                                                decky_plugin.logger.info(f"Game {game_proc.info['name']} has exited. Resuming monitoring.")
                                                 break
                         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
-                            self.decky_plugin.logger.warning(f"Error with process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
+                            decky_plugin.logger.warning(f"Error with process {proc.info['name']} (PID: {proc.info['pid']}): {str(e)}")
 
                 start_time = time.time()
 
@@ -157,7 +144,7 @@ class Plugin:
                     while settings.get('monitor', False):
                         running_launchers = await is_process_running(["EpicGamesLauncher.exe", "GalaxyClient.exe"])
                         if not running_launchers:
-                            self.decky_plugin.logger.info("Neither Epic Games Launcher nor GOG Galaxy client is running.")
+                            decky_plugin.logger.info("Neither Epic Games Launcher nor GOG Galaxy client is running.")
                             await asyncio.sleep(5)  # Wait before re-checking the processes
                             continue
 
@@ -170,7 +157,9 @@ class Plugin:
                         await asyncio.sleep(10)
 
                 except Exception as e:
-                    self.decky_plugin.logger.error(f"Error during monitor process: {e}")
+                    decky_plugin.logger.error(f"Error during monitor process: {e}")
+
+            return ws
 
 
 
