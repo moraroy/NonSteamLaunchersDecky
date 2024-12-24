@@ -33,8 +33,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
   const { settings, setAutoScan, setMonitor } = useSettings(serverAPI); // Destructure setMonitor
-  const { startMonitoring, stopMonitoring } = useMonitor(); // Use the useMonitor hook
-
+  const { startMonitoring, stopMonitoring, isMonitoring } = useMonitor(); // Use the useMonitor hook
+  
   // Random Greetings
   const greetings = [
     "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -47,7 +47,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   ];
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-  // End of Random Greetings
 
   const { updateInfo } = useUpdateInfo(); // Hook to get update information
 
@@ -154,7 +153,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
-        
+
         {/* Moved description of supported launchers */}
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io and Legacy Games.
@@ -243,4 +242,3 @@ export default definePlugin((serverApi: ServerAPI) => {
     icon: <RxRocket />,
   };
 });
-

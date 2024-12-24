@@ -1227,26 +1227,61 @@
   ];
 
   const useMonitor = () => {
-      // State to manage whether the monitoring is active
-      const [monitorState, setMonitorState] = React.useState({ isMonitoring: false });
+      const [monitorState, setMonitorState] = React.useState({
+          isMonitoring: false,
+          message: "Monitor is disabled.",
+      });
+      const [ws, setWs] = React.useState(null); // WebSocket state to hold the connection
       React.useEffect(() => {
-          // Logic to start monitoring can go here
-          // For now, we just log something to indicate that the hook is set up
-          console.log("useMonitor hook initialized");
+          if (monitorState.isMonitoring) {
+              // If monitor is turned on, establish the WebSocket connection
+              const websocket = new WebSocket("ws://localhost:8675/monitor_process"); // Adjust URL if needed
+              websocket.onopen = () => {
+                  console.log("WebSocket connection established.");
+              };
+              websocket.onmessage = (event) => {
+                  console.log("Message from server:", event.data);
+                  // Update the monitorState with the message from the server
+                  setMonitorState((prevState) => ({
+                      ...prevState,
+                      message: event.data, // Set the message from the server
+                  }));
+              };
+              websocket.onerror = (error) => {
+                  console.error("WebSocket Error:", error);
+                  setMonitorState({
+                      isMonitoring: false,
+                      message: "WebSocket error",
+                      error: error.message,
+                  });
+              };
+              websocket.onclose = () => {
+                  console.log("WebSocket connection closed.");
+                  setMonitorState({ isMonitoring: false, message: "Monitor is disabled." });
+              };
+              // Save the WebSocket instance to state
+              setWs(websocket);
+          }
+          else {
+              // If monitor is turned off, close the WebSocket connection
+              if (ws) {
+                  ws.close();
+              }
+          }
+          // Cleanup WebSocket on component unmount or if monitor is turned off
           return () => {
-              // Clean up logic if necessary (for example, stopping a process or cleanup)
-              console.log("useMonitor hook cleaned up");
+              if (ws) {
+                  ws.close();
+              }
           };
-      }, []);
-      // Example function to start monitoring (placeholder for future logic)
+      }, [monitorState.isMonitoring]); // Effect runs when monitor state changes
+      // Function to start monitoring
       const startMonitoring = () => {
-          setMonitorState({ isMonitoring: true });
-          console.log("Monitoring started...");
+          setMonitorState({ isMonitoring: true, message: "Starting monitor..." });
       };
-      // Example function to stop monitoring (placeholder for future logic)
+      // Function to stop monitoring
       const stopMonitoring = () => {
-          setMonitorState({ isMonitoring: false });
-          console.log("Monitoring stopped...");
+          setMonitorState({ isMonitoring: false, message: "Stopping monitor..." });
       };
       return {
           monitorState,
@@ -1261,7 +1296,7 @@
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
       const { settings, setAutoScan, setMonitor } = useSettings(serverAPI); // Destructure setMonitor
-      const { startMonitoring, stopMonitoring } = useMonitor(); // Use the useMonitor hook
+      const { startMonitoring, stopMonitoring, isMonitoring } = useMonitor(); // Use the useMonitor hook
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -1273,7 +1308,6 @@
           "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-      // End of Random Greetings
       const { updateInfo } = useUpdateInfo(); // Hook to get update information
       React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
