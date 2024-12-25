@@ -42,12 +42,17 @@ def itchio_games_scanner(logged_in_home, itchio_launcher, create_new_entry):
             game_info = games_dict[game_id]
             base_path = json.loads(cave[11])['basePath']
             candidates = json.loads(cave[11])['candidates']
-            executable_path = candidates[0]['path']
-            if executable_path.endswith('.html'):
-                decky_plugin.logger.info(f"Skipping browser game: {game_info[2]}")
-                continue
-            game_title = game_info[2]
-            itchgames.append((base_path, executable_path, game_title))
+
+            # Check if 'candidates' is not None and has at least one element
+            if candidates and isinstance(candidates, list) and len(candidates) > 0:
+                executable_path = candidates[0].get('path')  # Use `.get()` to avoid KeyError
+                if executable_path and executable_path.endswith('.html'):
+                    decky_plugin.logger.info(f"Skipping browser game: {game_info[2]}")
+                    continue
+                game_title = game_info[2]
+                itchgames.append((base_path, executable_path, game_title))
+            else:
+                decky_plugin.logger.warning(f"No candidates found for game: {game_info[2]}")
 
     for game in itchgames:
         base_path, executable, game_title = game
