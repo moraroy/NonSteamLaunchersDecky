@@ -8,21 +8,14 @@ import vdf
 env_vars_path = f"{os.environ['HOME']}/.config/systemd/user/env_vars"
 env_vars = {}
 
-# Ensure the env_vars file exists (if not, create it)
-def ensure_env_vars_file_exists():
-    if not os.path.exists(env_vars_path):
-        try:
-            os.makedirs(os.path.dirname(env_vars_path), exist_ok=True)
-            with open(env_vars_path, 'w') as f:
-                pass
-            decky_plugin.logger.info(f"File {env_vars_path} created as it did not exist.")
-        except Exception as e:
-            decky_plugin.logger.error(f"Error creating env_vars file: {e}")
-
-# Function to check and set a path in env_vars
 def check_and_set_path(env_vars, key, path):
     if os.path.exists(path):
         env_vars[key] = path
+
+def refresh_env_vars():
+    global env_vars
+    env_vars = {}
+    decky_plugin.logger.info("Refreshing environment variables...")
 
     if platform.system() == "Windows":  # Check if the system is Windows
         decky_plugin.logger.info("Running on Windows")
