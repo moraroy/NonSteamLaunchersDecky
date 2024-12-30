@@ -5,6 +5,7 @@
   "publish": {
     "tags": ["NonSteamLaunchers", "NSL", "steamdeck", "launchers", "non-steam"],
     "description": "NonSteamLaunchers - The easiest way to add your favorite Non-Steam Launchers. Installs the latest Proton-GE and automatically adds your game and launcher shorcuts in correct format, in real time.",
+    "patchNotes": "Initial release with Proton-GE integration and launcher shortcut setup. Fixed compatibility issues with certain non-Steam launchers.",
     "image": "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/main/assets/logo.png"
   }
 }

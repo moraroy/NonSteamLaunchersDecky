@@ -1308,7 +1308,7 @@
           "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-      const { updateInfo } = useUpdateInfo(); // Hook to get update information
+      const { updateInfo, patchNotes } = useUpdateInfo(); // Assuming you fetch patchNotes in useUpdateInfo hook
       React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
@@ -1336,7 +1336,11 @@
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
                       margin: "auto",
-                  } }, "A new update is available! Please update your plugin :)"))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                  } },
+                  window.SP_REACT.createElement("div", null, "A new update is available! Please update your plugin :)"),
+                  patchNotes && (window.SP_REACT.createElement("div", { style: { marginTop: "10px", fontSize: "14px", fontStyle: "italic" } },
+                      window.SP_REACT.createElement("strong", null, "Patch Notes:"),
+                      window.SP_REACT.createElement("p", null, patchNotes)))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",

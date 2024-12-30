@@ -197,6 +197,20 @@ class Plugin:
                 decky_plugin.logger.error(f"Failed to parse {local_package_path}")
                 return None
 
+        # Function to read the local plugin.json and fetch patchNotes
+        async def fetch_patch_notes():
+            local_plugin_path = os.path.join(DECKY_PLUGIN_DIR, 'plugin.json')
+            try:
+                with open(local_plugin_path, "r") as file:
+                    data = json.load(file)
+                    return data.get("patchNotes", "No patch notes available.")
+            except FileNotFoundError:
+                decky_plugin.logger.error(f"Local {local_plugin_path} not found!")
+                return "No patch notes available."
+            except json.JSONDecodeError:
+                decky_plugin.logger.error(f"Failed to parse {local_plugin_path}")
+                return "No patch notes available."
+
         # Compare versions
         async def compare_versions():
             if Plugin.update_cache:  # Check if we have cached update info
@@ -231,7 +245,13 @@ class Plugin:
             try:
                 # Fetch and compare the versions
                 version_info = await compare_versions()
-                await ws.send_json(version_info)
+
+                # Fetch patch notes
+                patch_notes = await fetch_patch_notes()
+
+                # Send version info and patch notes to the frontend
+                response = {"version_info": version_info, "patchNotes": patch_notes}
+                await ws.send_json(response)
             except Exception as e:
                 decky_plugin.logger.error(f"Error handling update check: {e}")
                 await ws.send_json({"error": "Internal error"})

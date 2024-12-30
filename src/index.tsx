@@ -48,7 +48,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
 
-  const { updateInfo } = useUpdateInfo(); // Hook to get update information
+  const { updateInfo, patchNotes } = useUpdateInfo(); // Assuming you fetch patchNotes in useUpdateInfo hook
 
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,7 +106,13 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               margin: "auto",
             }}
           >
-            A new update is available! Please update your plugin :)
+            <div>A new update is available! Please update your plugin :)</div>
+            {patchNotes && (
+              <div style={{ marginTop: "10px", fontSize: "14px", fontStyle: "italic" }}>
+                <strong>Patch Notes:</strong>
+                <p>{patchNotes}</p>
+              </div>
+            )}
           </div>
         </PanelSectionRow>
       ) : (
