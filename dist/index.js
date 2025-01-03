@@ -675,7 +675,7 @@
                   " When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked (except for umu), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: 'small', marginTop: '16px' } },
                   window.SP_REACT.createElement("b", null, "Note\u00B2:"),
-                  " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!\u2665")),
+                  " Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working or even sign in through desktop. NSL is simply another way to play! Happy Gaming!\u2665")),
           window.SP_REACT.createElement(deckyFrontendLib.Focusable, null,
               window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
                   window.SP_REACT.createElement("div", { style: { display: 'flex', alignItems: 'center' } },

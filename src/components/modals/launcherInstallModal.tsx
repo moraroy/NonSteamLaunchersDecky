@@ -260,7 +260,7 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
             <b>Note:</b> When installing a launcher, the latest UMU/Proton-GE will attempt to be installed. If your launchers don't start, make sure force compatibility is checked (except for umu), shortcut properties are right, and your steam files are updated. Remember to also edit your controller layout configurations if necessary! If all else fails, restart your steam deck manually.
           </DialogBodyText>
           <DialogBodyText style={{ fontSize: 'small', marginTop: '16px' }}>
-            <b>Note²:</b> Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working. NSL is simply another way to play! Happy Gaming!♥
+            <b>Note²:</b> Some games won't run right away using NSL. Due to easy anti-cheat or quirks, you may need to manually tinker to get some games working or even sign in through desktop. NSL is simply another way to play! Happy Gaming!♥
           </DialogBodyText>
         </DialogBody>
 
