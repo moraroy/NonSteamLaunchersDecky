@@ -71,6 +71,7 @@ Finds Games Automatically
 - Battle.net 🎮
 - Amazon games 🎮       💾 Full SD Card Support
 - Itch.io 🎮
+- VK Play 🎮            💾 Full SD Card Support
 
 
 <h1 align="center">

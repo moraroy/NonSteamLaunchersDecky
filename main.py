@@ -294,7 +294,8 @@ class Plugin:
                 {"name": 'indieGala', "env_var": 'indie_launcher', "label": 'IndieGala Client'},
                 {"name": 'rockstarGamesLauncher', "env_var": 'rockstar_launcher', "label": 'Rockstar Games Launcher'},
                 {"name": 'psPlus', "env_var": 'psplus_launcher', "label": 'Playstation Plus'},
-                {"name": 'hoyoPlay', "env_var": 'hoyoplay_launcher', "label": 'HoYoPlay'}
+                {"name": 'hoyoPlay', "env_var": 'hoyoplay_launcher', "label": 'HoYoPlay'},
+                {"name": 'vkPlay', "env_var": 'vkplay_launcher', "label": 'VK Play'}
             ]
 
             installed_launchers = []
