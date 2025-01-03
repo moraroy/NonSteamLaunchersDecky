@@ -15,6 +15,7 @@ from scanners.battle_net_scanner import battle_net_scanner
 from scanners.amazon_scanner import amazon_scanner
 from scanners.itchio_scanner import itchio_games_scanner
 from scanners.legacy_scanner import legacy_games_scanner
+from scanners.vkplay_scanner import vkplay_scanner
 from scanners.rpw_scanner import rpw_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
@@ -51,6 +52,8 @@ def initialiseVariables(env_vars):
     itchio_launcher = env_vars.get('itchio_launcher', '')
     global legacy_launcher
     legacy_launcher = env_vars.get('legacy_launcher', '')
+    global vkplay_launcher
+    vkplay_launcher = env_vars.get('vkplay_launcher', '')
 
     #Variables of the Launchers
     # Define the path of the Launchers
@@ -82,8 +85,8 @@ def initialiseVariables(env_vars):
     minecraftshortcutdirectory = env_vars.get('minecraftshortcutdirectory')
     global psplusshortcutdirectory
     psplusshortcutdirectory = env_vars.get('psplusshortcutdirectory')
-    global vkplayhortcutdirectory
-    vkplayhortcutdirectory = env_vars.get('vkplayhortcutdirectory')
+    global vkplayshortcutdirectory
+    vkplayshortcutdirectory = env_vars.get('vkplayshortcutdirectory')
     global hoyoplayshortcutdirectory
     hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutfirectory')
     global repaireaappshortcutdirectory
@@ -114,6 +117,7 @@ def scan():
         amazon_scanner(logged_in_home, amazon_launcher, create_new_entry)
         itchio_games_scanner(logged_in_home, itchio_launcher, create_new_entry)
         legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry)
+        vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
     return decky_shortcuts
 
@@ -266,7 +270,7 @@ def add_launchers():
     create_new_entry(env_vars.get('glyphshortcutdirectory'), 'Glyph', env_vars.get('glyphlaunchoptions'), env_vars.get('glyphstartingdir'), "Glyph")
     create_new_entry(env_vars.get('minecraftshortcutdirectory'), 'Minecraft: Java Edition', env_vars.get('minecraftlaunchoptions'), env_vars.get('minecraftstartingdir'), None)
     create_new_entry(env_vars.get('psplusshortcutdirectory'), 'Playstation Plus', env_vars.get('pspluslaunchoptions'), env_vars.get('psplusstartingdir'), None)
-    create_new_entry(env_vars.get('vkplayhortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'), None)
+    create_new_entry(env_vars.get('vkplayshortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'), None)
     create_new_entry(env_vars.get('hoyoplayshortcutdirectory'), 'HoYoPlay', env_vars.get('hoyoplaylaunchoptions'), env_vars.get('hoyoplaystartingdir'), None)
     create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
 

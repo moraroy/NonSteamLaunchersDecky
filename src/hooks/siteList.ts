@@ -103,6 +103,15 @@ export const sitesList = [
       enabled: false,
       urlimage: 'https://cdn2.steamgriddb.com/thumb/3a4cffbfa1ae7220344b83ea754c46c4.jpg'
     },
+    {
+      name: 'vkPlay',
+      label: 'VK Play',
+      URL: '',
+      streaming: false,
+      enabled: false,
+      urlimage: 'https://cdn2.steamgriddb.com/thumb/b14d72b2a45fcf11d85120375d542982.jpg'
+    },
+  
     //these are streaming sites vvv
     {
       name: 'xboxGamePass',
