@@ -343,6 +343,7 @@ class Plugin:
 
             finally:
                 await ws.close()
+                return ws
 
         app = web.Application()
         app.router.add_get('/autoscan', handleAutoScan)
