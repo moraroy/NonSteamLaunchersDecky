@@ -91,7 +91,7 @@ def initialiseVariables(env_vars):
     global vkplayshortcutdirectory
     vkplayshortcutdirectory = env_vars.get('vkplayshortcutdirectory')
     global hoyoplayshortcutdirectory
-    hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutfirectory')
+    hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutdirectory')
     global repaireaappshortcutdirectory
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     #Streaming
@@ -121,6 +121,7 @@ def scan():
         itchio_games_scanner(logged_in_home, itchio_launcher, create_new_entry)
         legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry)
         vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry)
+        hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
     return decky_shortcuts
 

@@ -1,6 +1,5 @@
 import decky_plugin
 import os
-import re
 import json
 
 def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
@@ -13,8 +12,12 @@ def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
         return
 
     # Read the file with ISO-8859-1 encoding
-    with open(file_path, 'r', encoding='ISO-8859-1') as file:
-        file_content = file.read()
+    try:
+        with open(file_path, 'r', encoding='ISO-8859-1') as file:
+            file_content = file.read()
+    except Exception as e:
+        decky_plugin.logger.error(f"Error reading file {file_path}: {e}")
+        return
 
     # Function to manually extract JSON-like objects by finding balanced braces
     def extract_json_objects(content):
@@ -95,11 +98,16 @@ def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
                 exe_path = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{hoyoplay_launcher}/pfx/drive_c/Program Files/HoYoPlay/launcher.exe\""
                 start_dir = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{hoyoplay_launcher}/pfx/drive_c/Program Files/HoYoPlay\""
 
+                # Ensure that create_new_entry does not throw errors on missing fields
+                if any(v is None for v in [exe_path, display_name, launch_options, start_dir]):
+                    decky_plugin.logger.warning(f"Missing fields for gameBiz: {game_biz}, skipping entry creation.")
+                    continue  # Skip this entry if essential fields are missing
+
                 # Create the new entry (this is where you can use your custom function for Steam shortcuts)
                 create_new_entry(exe_path, display_name, launch_options, start_dir, "HoYoPlay")
 
             except json.JSONDecodeError as e:
                 decky_plugin.logger.info(f"Error decoding JSON: {e}")
                 decky_plugin.logger.info(f"Problematic JSON content (first 200 chars): {json_object[:200]}")
-
-# End of HoYoPlay Scanner
+            except Exception as e:
+                decky_plugin.logger.error(f"Unexpected error while processing JSON: {e}")
