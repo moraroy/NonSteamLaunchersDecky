@@ -301,7 +301,9 @@ def get_sgdb_art(game_id, launcher):
         "EA App": "5306742",
         "itch.io": "5259585",
         "Legacy Games": "5438208",
-        "Ubisoft Connect": "5270094"
+        "Ubisoft Connect": "5270094",
+        "VK Play": "5418177",
+        "HoYoPlay": "5454020"
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
