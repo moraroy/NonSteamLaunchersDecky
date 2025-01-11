@@ -65,16 +65,19 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
 
     codename = extract_umu_id_from_launch_options(launchoptions)
     if not codename:
-        decky_plugin.logger.info(f"No codename found in launch options for {appname}. Trying to match appname.")
+        print(f"No codename found in launch options for {appname}. Trying to match appname.")
+
     entries = list_all_entries()
     if not entries:
-        decky_plugin.logger.info(f"No entries found in UMU database. Skipping modification for {appname}.")
+        print(f"No entries found in UMU database. Skipping modification for {appname}.")
         return exe, startingdir, launchoptions
+
     if not codename:
         for entry in entries:
             if entry.get('TITLE') and entry['TITLE'].lower() == appname.lower():
                 codename = entry['CODENAME']
                 break
+
     if codename:
         for entry in entries:
             if entry['CODENAME'] == codename:
@@ -82,11 +85,9 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                 base_path = extract_base_path(launchoptions)
                 new_exe = f'"{logged_in_home}/bin/umu-run" {exe}'
                 new_start_dir = f'"{logged_in_home}/bin/"'
+
                 # Update only the launchoptions part for different game types
-
-
-
-
+                updated_launch = launchoptions
 
                 # Hoyoplay - Extract the game identifier
                 match = re.search(r'--game=(\w+)', launchoptions)
@@ -94,24 +95,17 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                     codename = match.group(1)  # Capture the identifier
                     updated_launch = f"'--game={codename}'"
 
-
-                # EA
                 if "origin2://game/launch?offerIds=" in launchoptions:
                     updated_launch = f'"origin2://game/launch?offerIds={codename}"'
-                # Amazon
                 elif "amazon-games://play/amzn1.adg.product." in launchoptions:
                     updated_launch = f"-'amazon-games://play/{codename}'"
-                # Epic
                 elif "com.epicgames.launcher://apps/" in launchoptions:
                     updated_launch = f"-'com.epicgames.launcher://apps/{codename}?action=launch&silent=true'"
-                # Ubisoft
                 elif "uplay://launch/" in launchoptions:
                     updated_launch = f'"uplay://launch/{codename}/0"'
-                # GOG
                 elif "/command=runGame /gameId=" in launchoptions:
                     updated_launch = f'/command=runGame /gameId={codename} /path={launchoptions.split("/path=")[1]}'
-                else:
-                    updated_launch = launchoptions  # Default to original if no match
+
                 new_launch_options = (
                     f'STEAM_COMPAT_DATA_PATH="{base_path}" '
                     f'WINEPREFIX="{base_path}pfx" '

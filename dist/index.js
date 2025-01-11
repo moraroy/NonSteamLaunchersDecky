@@ -1293,7 +1293,7 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(RestoreGameSavesModal, { serverAPI: serverAPI })) }, "Restore Game Saves")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
-              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games and VK Play."),
+              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play and HoYoPlay."),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {
                       setAutoScan(value);
                       if (value === true) {

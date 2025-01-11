@@ -118,6 +118,7 @@ class Plugin:
                 await ws.send_json({"error": "Internal error"})
             finally:
                 await ws.close()
+                return ws
 
 
 
