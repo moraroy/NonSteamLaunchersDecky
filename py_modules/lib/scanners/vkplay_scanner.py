@@ -32,19 +32,55 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
             decky_plugin.logger.info(f"Error reading the GameCenter.ini file: {e}")
             return
 
-        downloaded_games = dict(config.items('StartDownloadingGames')) if 'StartDownloadingGames' in config else {}
-        installed_games = dict(config.items('DownloadFormSettings')) if 'DownloadFormSettings' in config else {}
+        # Collect game IDs from different sections
+        game_ids = set()
 
-        all_game_ids = set(downloaded_games.keys()).union(installed_games.keys())
+        # Parse game IDs from the 'StartDownloadingGames' section
+        if 'StartDownloadingGames' in config:
+            downloaded_games = dict(config.items('StartDownloadingGames'))
+            game_ids.update(downloaded_games.keys())
 
+        # Parse game IDs from the 'FirstOpeningGameIds' section
+        if 'FirstOpeningGameIds' in config:
+            first_opening_game_ids = config['FirstOpeningGameIds'].get('FirstOpeningGameIds', '').split(';')
+            game_ids.update(first_opening_game_ids)
+
+        # Parse game IDs from the 'GamePersIds' section
+        if 'GamePersIds' in config:
+            for key in config['GamePersIds']:
+                game_id = key.split('_')[0]
+                game_ids.add(game_id)
+
+        # Parse game IDs from the 'RunningGameClients' section
+        if 'RunningGameClients' in config:
+            running_game_clients = config['RunningGameClients'].get('RunningGameClients', '').split(';')
+            game_ids.update(running_game_clients)
+
+        # Parse game IDs from the 'LastAccessGames' section
+        if 'LastAccessGames' in config:
+            last_access_games = dict(config.items('LastAccessGames'))
+            game_ids.update(last_access_games.keys())
+
+        # Parse game IDs from the 'UndoList' section
+        if 'UndoList' in config:
+            for key in config['UndoList']:
+                if 'vkplay://show' in config['UndoList'][key]:
+                    game_id = config['UndoList'][key].split('/')[1]
+                    game_ids.add(game_id)
+
+        # Parse game IDs from the 'LeftBar' section
+        if 'LeftBar' in config:
+            left_bar_ids = config['LeftBar'].get('Ids', '').split(';')
+            game_ids.update(left_bar_ids)
+
+        # Parse game IDs from the 'Ad' section
         if 'Ad' in config:
             for key in config['Ad']:
-                key_lower = key.lower()
-                if key_lower.startswith('idmtlink0.') or key_lower.startswith('idmtlinkts0.'):
-                    game_id = '0.' + key_lower.split('.')[1]
-                    all_game_ids.add(game_id)
+                if 'IdMTLink' in key:
+                    game_id = key.split('0.')[1]
+                    game_ids.add(game_id)
 
-        decky_plugin.logger.info(f"All game IDs from INI: {all_game_ids}")
+        decky_plugin.logger.info(f"Game IDs found in GameCenter.ini file: {game_ids}")
 
         # Check the cache folder for valid XML files
         all_files = os.listdir(cache_folder_path)
@@ -52,14 +88,14 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
 
         for file_name in all_files:
             if file_name.endswith(".json"):
-                continue
+                continue  # Skip JSON files
 
             file_path = os.path.join(cache_folder_path, file_name)
             try:
                 tree = ET.parse(file_path)
                 valid_xml_files.append(file_path)
             except ET.ParseError:
-                continue
+                continue  # Skip invalid XML files
 
         processed_game_ids = set()
         found_games = []
@@ -73,14 +109,16 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
 
                 if game_item is not None:
                     game_id_xml = game_item.get('Name') or game_item.get('PackageName')
+
                     if game_id_xml:
                         game_id_in_ini = game_id_xml.replace('_', '.')
-                        if game_id_in_ini in all_game_ids and game_id_in_ini not in processed_game_ids:
+
+                        if game_id_in_ini in game_ids and game_id_in_ini not in processed_game_ids:
                             game_name = game_item.get('TitleEn', 'Unnamed Game')
                             found_games.append(f"{game_name} (ID: {game_id_in_ini})")
                             processed_game_ids.add(game_id_in_ini)
             except ET.ParseError:
-                continue
+                continue  # Skip invalid XML files
 
         # Display found games
         if found_games:
@@ -91,7 +129,7 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
             decky_plugin.logger.info("No games found.")
 
         # Generate the final entry for each game
-        for game_id in all_game_ids:
+        for game_id in game_ids:
             game_name = 'Unknown Game'
             for xml_file in valid_xml_files:
                 try:
@@ -106,7 +144,7 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
                             game_name = game_item.get('TitleEn', 'Unnamed Game')
                             break
                 except ET.ParseError:
-                    continue
+                    continue  # Skip invalid XML files
 
             if game_name != 'Unknown Game':
                 display_name = game_name
