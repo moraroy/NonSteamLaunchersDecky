@@ -38,6 +38,8 @@ Supported Stores 🛍
 - Rockstar Games Launcher ✔️
 - Ubisoft Connect ✔️
 - Playstation Plus ✔️
+- VK Play ✔️
+- HoYoPlay ✔️
 
 
 <h1 align="center">
@@ -45,6 +47,7 @@ Supported Streaming Sites for games and as well as any website. 🌐
 </h1>
 
 - Website Shortcut Creator ✔️
+- Fortnite ✔️
 - Xbox Game Pass ✔️
 - GeForce Now ✔️
 - Amazon Luna ✔️
@@ -58,6 +61,7 @@ Supported Streaming Sites for games and as well as any website. 🌐
 - WebRcade ✔️
 - WebRcade Editor ✔️
 - Plex ✔️
+- Apple TV+ ✔️
 
 <h1 align="left">
 Finds Games Automatically
@@ -71,7 +75,9 @@ Finds Games Automatically
 - Battle.net 🎮
 - Amazon games 🎮       💾 Full SD Card Support
 - Itch.io 🎮
+- Legacy Games 🎮
 - VK Play 🎮            💾 Full SD Card Support
+- HoYoPlay 🎮           💾 Full SD Card Support
 
 
 <h1 align="center">
