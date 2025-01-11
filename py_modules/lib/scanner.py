@@ -16,6 +16,7 @@ from scanners.amazon_scanner import amazon_scanner
 from scanners.itchio_scanner import itchio_games_scanner
 from scanners.legacy_scanner import legacy_games_scanner
 from scanners.vkplay_scanner import vkplay_scanner
+from scanners.hoyoplay_scanner import hoyoplay_scanner
 from scanners.rpw_scanner import rpw_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
@@ -54,6 +55,8 @@ def initialiseVariables(env_vars):
     legacy_launcher = env_vars.get('legacy_launcher', '')
     global vkplay_launcher
     vkplay_launcher = env_vars.get('vkplay_launcher', '')
+    global hoyoplay_launcher
+    hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
 
     #Variables of the Launchers
     # Define the path of the Launchers
