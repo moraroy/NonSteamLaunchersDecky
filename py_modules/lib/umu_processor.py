@@ -106,13 +106,26 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                 elif "/command=runGame /gameId=" in launchoptions:
                     updated_launch = f'/command=runGame /gameId={codename} /path={launchoptions.split("/path=")[1]}'
 
+                # Ensure the first STEAM_COMPAT_DATA_PATH is included and avoid adding it again
+                if 'STEAM_COMPAT_DATA_PATH=' in updated_launch:
+                    # Remove the existing STEAM_COMPAT_DATA_PATH if it exists in the launch options
+                    updated_launch = re.sub(r'STEAM_COMPAT_DATA_PATH="[^"]+" ', '', updated_launch)
+
+                # Always include the first STEAM_COMPAT_DATA_PATH at the start
                 new_launch_options = (
                     f'STEAM_COMPAT_DATA_PATH="{base_path}" '
                     f'WINEPREFIX="{base_path}pfx" '
                     f'GAMEID="{umu_id}" '
                     f'PROTONPATH="{logged_in_home}/.steam/root/compatibilitytools.d/{compat_tool_name}" '
-                    f'%command% {updated_launch}'
                 )
+
+                # Check if %command% is already in the launch options
+                if '%command%' not in updated_launch:
+                    updated_launch = f'%command% {updated_launch}'
+
+                # Final new launch options
+                new_launch_options += updated_launch
+
                 decky_plugin.logger.info(f"Modified shortcut for {appname}")
                 return new_exe, new_start_dir, new_launch_options
     decky_plugin.logger.info(f"No matching codename found in UMU database for {appname}. Skipping modification.")
