@@ -1122,6 +1122,14 @@
           urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/560cc70f255b94b8408709e810914593.jpg'
       },
       {
+          name: 'venge',
+          label: 'Venge',
+          URL: 'https://www.venge.io',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://cdn.webgamer.io/games/venge-io/venge-io.960x.50pc.avif'
+      },
+      {
           name: 'geforceNow',
           label: 'GeForce Now',
           URL: 'https://play.geforcenow.com',
