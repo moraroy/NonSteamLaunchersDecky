@@ -153,6 +153,22 @@ export const sitesList = [
       enabled: false,
       urlimage: 'https://cdn2.steamgriddb.com/thumb/5966577c1d725b37c26c3f7aa493dd9c.jpg'
     },
+    { 
+      name: 'boosteroid',
+      label: 'Boosteroid Cloud Gaming',
+      URL: 'https://cloud.boosteroid.com',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://cdn2.steamgriddb.com/thumb/6a9a434f1c711791a03757058f7539b2.jpg'
+    },
+    {
+      name: 'stimio',
+      label: 'Stim.io',
+      URL: 'https://stim.io',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://www.pixellair.ir/storage/images/general/2023/09/4nPPPbeckctibtF3QuSledSlWvCM4JlpyeB5YeLq.jpg'
+    },
     {
       name: 'webRcade',
       label: 'WebRcade',
@@ -168,6 +184,22 @@ export const sitesList = [
       streaming: true,
       enabled: false,
       urlimage: 'https://cdn2.steamgriddb.com/thumb/f9b8cc42051c6d1c1ddaf5260118d585.jpg'
+    },
+    {
+      name: 'watchparty',
+      label: 'WatchParty',
+      URL: 'https://watchparty.me',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://image.pitchbook.com/CeBku52aTdNEWfTYrYi6cJF7Wjw1685029685197_200x200'
+    },
+    {
+      name: 'rocketcrab',
+      label: 'Rocketcrab',
+      URL: 'https://rocketcrab.com',
+      streaming: true,
+      enabled: false,
+      urlimage: 'https://d4.alternativeto.net/zfCT_UX_vwVPJeNiyNJ_htkj1lXoP3XhOQFeim4X1kg/rs:fill:618:394:1/g:no:0:0/YWJzOi8vZGlzdC9zL3JvY2tldGNyYWJfMTU1NzExX2Z1bGwucG5n.jpg'
     },
     {
       name: 'netflix',
