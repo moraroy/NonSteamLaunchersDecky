@@ -296,7 +296,9 @@ class Plugin:
                 {"name": 'rockstarGamesLauncher', "env_var": 'rockstar_launcher', "label": 'Rockstar Games Launcher'},
                 {"name": 'psPlus', "env_var": 'psplus_launcher', "label": 'Playstation Plus'},
                 {"name": 'hoyoPlay', "env_var": 'hoyoplay_launcher', "label": 'HoYoPlay'},
-                {"name": 'vkPlay', "env_var": 'vkplay_launcher', "label": 'VK Play'}
+                {"name": 'vkPlay', "env_var": 'vkplay_launcher', "label": 'VK Play'},
+                # exception
+                {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"}
             ]
 
             installed_launchers = []
@@ -330,7 +332,15 @@ class Plugin:
                 for launcher in launchers:
                     launcher_name = launcher["name"]
                     launcher_env_var = launcher["env_var"]
-                    if launcher_env_var in env_vars:
+                    launcher_file_check = launcher.get("file_check")
+
+                    # Check if the launcher has a file check (like 'remotePlayWhatever')
+                    if launcher_file_check:
+                        if os.path.exists(launcher_file_check):
+                            installed_launchers.append(launcher_name)
+
+                    # Otherwise, check the environment variable (standard launchers)
+                    elif launcher_env_var and launcher_env_var in env_vars:
                         installed_launchers.append(launcher_name)
 
                 # Send the installed launchers' names as a JSON response

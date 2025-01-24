@@ -1104,6 +1104,14 @@
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/b14d72b2a45fcf11d85120375d542982.jpg'
       },
+      {
+          name: 'remotePlayWhatever',
+          label: 'RemotePlayWhatever',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://opengraph.githubassets.com/68a584618d805217b103796afb7b13309abf7f9199e7299c9d31d4402184e963/m4dEngi/RemotePlayWhatever'
+      },
       //these are streaming sites vvv
       {
           name: 'xboxGamePass',
