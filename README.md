@@ -40,7 +40,10 @@ Supported Stores 🛍
 - Playstation Plus ✔️
 - VK Play ✔️
 - HoYoPlay ✔️
+- Game Jolt Client ✔️
+- Artix Game Launcher ✔️
 
+- RemotePlayWhatever ✔️
 
 <h1 align="center">
 Supported Streaming Sites for games and as well as any website. 🌐
@@ -48,20 +51,25 @@ Supported Streaming Sites for games and as well as any website. 🌐
 
 - Website Shortcut Creator ✔️
 - Fortnite ✔️
+- Venge ✔️
 - Xbox Game Pass ✔️
 - GeForce Now ✔️
 - Amazon Luna ✔️
+- Boosteroid Cloud Gaming ✔️
+- Stim.io ✔️
+- WebRcade ✔️
+- WebRcade Editor ✔️
+- WatchParty ✔️
+- Rocketcrab ✔️
 - Netflix ✔️
 - Amazon Prime Video ✔️
 - Disney+ ✔️
 - Hulu ✔️
 - Youtube ✔️
 - Twitch ✔️
-- Crunchyroll ✔️
-- WebRcade ✔️
-- WebRcade Editor ✔️
 - Plex ✔️
 - Apple TV+ ✔️
+- Crunchyroll ✔️
 
 <h1 align="left">
 Finds Games Automatically
