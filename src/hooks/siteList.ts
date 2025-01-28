@@ -112,7 +112,7 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/b14d72b2a45fcf11d85120375d542982.jpg'
   },
   {
-    name: 'gamejoltclient',
+    name: 'gameJoltClient',
     label: 'Game Jolt Client',
     URL: '',
     streaming: false,
@@ -120,7 +120,7 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/bfb3206155832047330e55a331d6734e.jpg'
   },
   {
-    name: 'artixgamelauncher',
+    name: 'artixGameLauncher',
     label: 'Artix Game Launcher',
     URL: '',
     streaming: false,

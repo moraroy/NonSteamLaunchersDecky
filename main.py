@@ -297,8 +297,8 @@ class Plugin:
                 {"name": 'psPlus', "env_var": 'psplus_launcher', "label": 'Playstation Plus'},
                 {"name": 'hoyoPlay', "env_var": 'hoyoplay_launcher', "label": 'HoYoPlay'},
                 {"name": 'vkPlay', "env_var": 'vkplay_launcher', "label": 'VK Play'},
-                {"name": 'gamejoltclient', "env_var": 'gamejolt_launcher', "label": 'Game Jolt Client'},
-                {"name": 'artixgamelauncher', "env_var": 'artixgame_launcher', "label": 'Artix Game Launcher'},
+                {"name": 'gameJoltClient', "env_var": 'gamejolt_launcher', "label": 'Game Jolt Client'},
+                {"name": 'artixGameLauncher', "env_var": 'artixgame_launcher', "label": 'Artix Game Launcher'},
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"}
             ]
