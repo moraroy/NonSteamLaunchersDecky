@@ -92,6 +92,13 @@ def initialiseVariables(env_vars):
     vkplayshortcutdirectory = env_vars.get('vkplayshortcutdirectory')
     global hoyoplayshortcutdirectory
     hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutdirectory')
+    global gamejoltshortcutdirectory
+    gamejoltshortcutdirectory = env_vars.get('gamejoltshortcutdirectory')
+    global artixgameshortcutdirectory
+    artixgameshortcutdirectory = env_vars.get('artixgameshortcutdirectory')
+    global arcshortcutdirectory
+    arcshortcutdirectory = env_vars.get('arcshortcutdirectory')
+    
     global repaireaappshortcutdirectory
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     #Streaming
@@ -276,6 +283,9 @@ def add_launchers():
     create_new_entry(env_vars.get('psplusshortcutdirectory'), 'Playstation Plus', env_vars.get('pspluslaunchoptions'), env_vars.get('psplusstartingdir'), None)
     create_new_entry(env_vars.get('vkplayshortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'), None)
     create_new_entry(env_vars.get('hoyoplayshortcutdirectory'), 'HoYoPlay', env_vars.get('hoyoplaylaunchoptions'), env_vars.get('hoyoplaystartingdir'), None)
+    create_new_entry(env_vars.get('gamejoltshortcutdirectory'), 'Game Jolt Client', env_vars.get('gamejoltlaunchoptions'), env_vars.get('gamejoltstartingdir'), None)
+    create_new_entry(env_vars.get('artixgameshortcutdirectory'), 'Artix Game Launcher', env_vars.get('artixgamelaunchoptions'), env_vars.get('artixgamestartingdir'), None)
+    create_new_entry(env_vars.get('arcshortcutdirectory'), 'ARC Launcher', env_vars.get('arclaunchoptions'), env_vars.get('arcstartingdir'), None)
     create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
 
 
@@ -303,7 +313,9 @@ def get_sgdb_art(game_id, launcher):
         "Legacy Games": "5438208",
         "Ubisoft Connect": "5270094",
         "VK Play": "5418177",
-        "HoYoPlay": "5454020"
+        "HoYoPlay": "5454020",
+        "Game Jolt Client": "5299692",
+        "Artix Game Launcher": "5264320",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")

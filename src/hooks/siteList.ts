@@ -112,6 +112,22 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/b14d72b2a45fcf11d85120375d542982.jpg'
   },
   {
+    name: 'gamejoltclient',
+    label: 'Game Jolt Client',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/bfb3206155832047330e55a331d6734e.jpg'
+  },
+  {
+    name: 'artixgamelauncher',
+    label: 'Artix Game Launcher',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/95ecb48a87cec666759152b68ed9a272.jpg'
+  },
+  {
     name: 'remotePlayWhatever',
     label: 'RemotePlayWhatever',
     URL: '',
