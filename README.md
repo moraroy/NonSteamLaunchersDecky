@@ -42,7 +42,6 @@ Supported Stores 🛍
 - HoYoPlay ✔️
 - Game Jolt Client ✔️
 - Artix Game Launcher ✔️
-
 - RemotePlayWhatever ✔️
 
 <h1 align="center">
