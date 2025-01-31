@@ -188,14 +188,56 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
     return False
 
 
-
-
 # Add or update the proton compatibility settings
 def add_compat_tool(launchoptions):
     if 'chrome' in launchoptions or '--appid 0' in launchoptions:
         return False
     else:
         return compat_tool_name
+
+
+def get_steam_store_appid(steam_store_game_name):
+    search_url = f"{proxy_url}/search/{steam_store_game_name}"
+    try:
+        response = requests.get(search_url)
+        response.raise_for_status()
+        data = response.json()
+        if 'data' in data and data['data']:
+            steam_store_appid = data['data'][0].get('steam_store_appid')
+            if steam_store_appid:
+                return steam_store_appid
+        return None
+
+    except requests.exceptions.RequestException as e:
+        return None
+
+def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_name):
+    steamapps_dir = f"{logged_in_home}/.steam/root/steamapps/"
+    appmanifest_path = os.path.join(steamapps_dir, f"appmanifest_{steam_store_appid}.acf")
+
+    # Ensure the directory exists
+    os.makedirs(steamapps_dir, exist_ok=True)
+
+    # Check if the file already exists
+    if os.path.exists(appmanifest_path):
+        decky_plugin.logger.info(f"Manifest file for {steam_store_appid} already exists.")
+        return
+
+    # Prepare the appmanifest data
+    app_manifest_data = {
+        "AppState": {
+            "AppID": str(steam_store_appid),
+            "Universe": "1",
+            "installdir": steam_store_game_name,
+            "StateFlags": "0"
+        }
+    }
+
+    # Write the manifest to the file
+    with open(appmanifest_path, 'w') as file:
+        json.dump(app_manifest_data, file, indent=2)
+
+    decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
 
 
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
@@ -243,6 +285,11 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
             icon, logo64, hero64, gridp64, grid64, launcher_icon = get_sgdb_art(game_id, launcher)
         else:
             decky_plugin.logger.info(f"No valid game ID found for {appname}. Skipping artwork download.")
+
+    steam_store_appid = get_steam_store_appid(appname)
+    if steam_store_appid:
+        decky_plugin.logger.info(f"Found Steam App ID for {appname}: {steam_store_appid}")
+        create_steam_store_app_manifest_file(steam_store_appid, appname)
 
     # Create a new entry for the Steam shortcut
     compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
