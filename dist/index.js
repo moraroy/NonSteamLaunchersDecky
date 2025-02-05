@@ -325,7 +325,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
           window.SP_REACT.createElement("div", null,
               window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered."),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered. Before installing, toggle Auto Scan \"on\" for these."),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, sites.map(({ siteName, siteURL }, index) => window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
                       window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}` },
                           window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "Name", value: siteName, placeholder: "The name you want to appear in the shortcut for your site.", onChange: (e) => onNameChange(siteName, e) }),
@@ -1152,6 +1152,14 @@
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn.webgamer.io/games/venge-io/venge-io.960x.50pc.avif'
+      },
+      {
+          name: 'pokerogue',
+          label: 'PokéRogue',
+          URL: 'https://www.pokerogue.net',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/a2ef91e05d923e48e5f1ad1826cb77de.jpg'
       },
       {
           name: 'geforceNow',

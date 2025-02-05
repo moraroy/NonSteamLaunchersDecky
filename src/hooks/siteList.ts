@@ -161,6 +161,14 @@ export const sitesList = [
     urlimage: 'https://cdn.webgamer.io/games/venge-io/venge-io.960x.50pc.avif'
   },
   {
+    name: 'pokerogue',
+    label: 'PokéRogue',
+    URL: 'https://www.pokerogue.net',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/a2ef91e05d923e48e5f1ad1826cb77de.jpg'
+  },
+  {
     name: 'geforceNow',
     label: 'GeForce Now',
     URL: 'https://play.geforcenow.com',

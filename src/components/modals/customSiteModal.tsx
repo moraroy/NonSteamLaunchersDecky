@@ -122,7 +122,7 @@ import {
                 strOKButtonText="Create Shortcuts"
                 strTitle = "Enter Custom Websites"
             >
-                <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered.</DialogBodyText>
+                <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered. Before installing, toggle Auto Scan "on" for these.</DialogBodyText>
                 <DialogBody>
                     {sites.map(({siteName, siteURL}, index) =>
                         <>
