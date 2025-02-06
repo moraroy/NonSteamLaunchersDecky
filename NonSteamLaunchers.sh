@@ -1696,10 +1696,13 @@ function install_launcher {
             eval "$post_install_command"
         fi
 
-        # Wait for the installation process to complete
-        wait
+        # Wait for the installation process to complete (EXCEPT GOG)
+        if [ "$launcher_name" != "GOG Galaxy" ]; then
+            wait
+        fi
     fi
 }
+
 
 # Install Epic Games Launcher
 install_launcher "Epic Games" "EpicGamesLauncher" "$msi_file" "$msi_url" "MsiExec.exe /i "$msi_file" -opengl /qn" "30" "" ""
