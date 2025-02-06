@@ -128,6 +128,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/95ecb48a87cec666759152b68ed9a272.jpg'
   },
   {
+    name: 'poketcg',
+    label: 'Pokémon Trading Card Game Live',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/6494a35bdfaec8c96f1a0103fa6c3fd7.jpg'
+  },
+  {
     name: 'remotePlayWhatever',
     label: 'RemotePlayWhatever',
     URL: '',

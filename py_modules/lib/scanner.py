@@ -98,6 +98,8 @@ def initialiseVariables(env_vars):
     artixgameshortcutdirectory = env_vars.get('artixgameshortcutdirectory')
     global arcshortcutdirectory
     arcshortcutdirectory = env_vars.get('arcshortcutdirectory')
+    global poketcgshortcutdirectory
+    poketcgshortcutdirectory = env_vars.get('poketcgshortcutdirectory')
     
     global repaireaappshortcutdirectory
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
@@ -333,6 +335,7 @@ def add_launchers():
     create_new_entry(env_vars.get('gamejoltshortcutdirectory'), 'Game Jolt Client', env_vars.get('gamejoltlaunchoptions'), env_vars.get('gamejoltstartingdir'), None)
     create_new_entry(env_vars.get('artixgameshortcutdirectory'), 'Artix Game Launcher', env_vars.get('artixgamelaunchoptions'), env_vars.get('artixgamestartingdir'), None)
     create_new_entry(env_vars.get('arcshortcutdirectory'), 'ARC Launcher', env_vars.get('arclaunchoptions'), env_vars.get('arcstartingdir'), None)
+    create_new_entry(env_vars.get('poketcgshortcutdirectory'), 'Pokémon Trading Card Game Live', env_vars.get('poketcglaunchoptions'), env_vars.get('poketcgstartingdir'), None)
     create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
 
 
