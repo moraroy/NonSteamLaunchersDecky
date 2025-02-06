@@ -1121,7 +1121,7 @@
           urlimage: 'https://cdn2.steamgriddb.com/thumb/95ecb48a87cec666759152b68ed9a272.jpg'
       },
       {
-          name: 'poketcg',
+          name: 'pokémonTradingCardGameLive',
           label: 'Pokémon Trading Card Game Live',
           URL: '',
           streaming: false,
