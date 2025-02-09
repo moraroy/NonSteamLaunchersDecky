@@ -87,7 +87,7 @@ Finds Games Automatically
 - Legacy Games 🎮
 - VK Play 🎮            💾 Full SD Card Support
 - HoYoPlay 🎮           💾 Full SD Card Support
-
+- Game Jolt Client 🎮   💾 Full SD Card Support
 
 <h1 align="center">
 Contributing 🤝

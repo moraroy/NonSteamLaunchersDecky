@@ -17,6 +17,7 @@ from scanners.itchio_scanner import itchio_games_scanner
 from scanners.legacy_scanner import legacy_games_scanner
 from scanners.vkplay_scanner import vkplay_scanner
 from scanners.hoyoplay_scanner import hoyoplay_scanner
+from scanners.gamejolt_scanner import gamejolt_scanner
 from scanners.rpw_scanner import rpw_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
@@ -57,6 +58,8 @@ def initialiseVariables(env_vars):
     vkplay_launcher = env_vars.get('vkplay_launcher', '')
     global hoyoplay_launcher
     hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
+    global gamejolt_launcher
+    gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
 
     #Variables of the Launchers
     # Define the path of the Launchers
@@ -131,6 +134,7 @@ def scan():
         legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry)
         vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry)
         hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry)
+        gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
     return decky_shortcuts
 
