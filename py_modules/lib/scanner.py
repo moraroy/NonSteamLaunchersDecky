@@ -230,22 +230,20 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         decky_plugin.logger.info(f"Manifest file for {steam_store_appid} already exists.")
         return
 
-    # Prepare the appmanifest data in the desired format
-    app_manifest_data = f"""
-"AppState"
-{{
-    "appid"         "{steam_store_appid}"
-    "Universe"      "1"
-    "StateFlags"    "0"
-    "installdir"    "{steam_store_game_name}"
-}}
-"""
+    # Prepare the appmanifest data
+    app_manifest_data = {
+        "AppState": {
+            "AppID": str(steam_store_appid),
+            "Universe": "1",
+            "installdir": steam_store_game_name,
+            "StateFlags": "0"
+        }
+    }
 
     # Write the manifest to the file
     with open(appmanifest_path, 'w') as file:
-        file.write(app_manifest_data.strip())
+        json.dump(app_manifest_data, file, indent=2)
 
-    # Log the outcome
     decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
 
 
