@@ -300,6 +300,7 @@ class Plugin:
                 {"name": 'gameJoltClient', "env_var": 'gamejolt_launcher', "label": 'Game Jolt Client'},
                 {"name": 'artixGameLauncher', "env_var": 'artixgame_launcher', "label": 'Artix Game Launcher'},
                 {"name": 'pokémonTradingCardGameLive', "env_var": 'poketcg_launcher', "label": 'Pokémon Trading Card Game Live'},
+                {"name": 'minecraftLauncher', "env_var": 'minecraft_launcher', "label": 'Minecraft Launcher'},
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"}
             ]

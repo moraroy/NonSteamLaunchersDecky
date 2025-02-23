@@ -1129,6 +1129,14 @@
           urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/6494a35bdfaec8c96f1a0103fa6c3fd7.jpg'
       },
       {
+          name: 'minecraftLauncher',
+          label: 'Minecraft Launcher',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/7469578bd8aad76c5351f927619d8e4a.jpg'
+      },
+      {
           name: 'remotePlayWhatever',
           label: 'RemotePlayWhatever',
           URL: '',

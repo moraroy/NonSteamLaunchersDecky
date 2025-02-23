@@ -18,6 +18,7 @@ from scanners.legacy_scanner import legacy_games_scanner
 from scanners.vkplay_scanner import vkplay_scanner
 from scanners.hoyoplay_scanner import hoyoplay_scanner
 from scanners.gamejolt_scanner import gamejolt_scanner
+from scanners.minecraft_scanner import minecraft_scanner
 from scanners.rpw_scanner import rpw_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
@@ -60,6 +61,8 @@ def initialiseVariables(env_vars):
     hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
     global gamejolt_launcher
     gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
+    global minecraft_launcher
+    minecraft_launcher = env_vars.get('minecraft_launcher', '')
 
     #Variables of the Launchers
     # Define the path of the Launchers
@@ -135,6 +138,7 @@ def scan():
         vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry)
         hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry)
         gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry)
+        minecraft_scanner(logged_in_home, minecraft_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
     return decky_shortcuts
 
@@ -333,7 +337,7 @@ def add_launchers():
     create_new_entry(env_vars.get('indieshortcutdirectory'), 'IndieGala Client', env_vars.get('indielaunchoptions'), env_vars.get('indiestartingdir'), None)
     create_new_entry(env_vars.get('rockstarshortcutdirectory'), 'Rockstar Games Launcher', env_vars.get('rockstarlaunchoptions'), env_vars.get('rockstarstartingdir'), None)
     create_new_entry(env_vars.get('glyphshortcutdirectory'), 'Glyph', env_vars.get('glyphlaunchoptions'), env_vars.get('glyphstartingdir'), "Glyph")
-    create_new_entry(env_vars.get('minecraftshortcutdirectory'), 'Minecraft: Java Edition', env_vars.get('minecraftlaunchoptions'), env_vars.get('minecraftstartingdir'), None)
+    create_new_entry(env_vars.get('minecraftshortcutdirectory'), 'Minecraft Launcher', env_vars.get('minecraftlaunchoptions'), env_vars.get('minecraftstartingdir'), None)
     create_new_entry(env_vars.get('psplusshortcutdirectory'), 'Playstation Plus', env_vars.get('pspluslaunchoptions'), env_vars.get('psplusstartingdir'), None)
     create_new_entry(env_vars.get('vkplayshortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'), None)
     create_new_entry(env_vars.get('hoyoplayshortcutdirectory'), 'HoYoPlay', env_vars.get('hoyoplaylaunchoptions'), env_vars.get('hoyoplaystartingdir'), None)
@@ -371,6 +375,7 @@ def get_sgdb_art(game_id, launcher):
         "HoYoPlay": "5454020",
         "Game Jolt Client": "5299692",
         "Artix Game Launcher": "5264320",
+        "Minecraft Launcher": "5302646",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
