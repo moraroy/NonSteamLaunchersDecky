@@ -99,6 +99,12 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             elif game_key == "fenris":
                 decky_plugin.logger.info("Handling 'fenris' as 'Fen'")
                 game_key = "Fen"
+            elif game_key == "diablo3":
+                decky_plugin.logger.info("Handling 'diablo3' as 'D3'")
+                game_key = "D3"
+            #elif game_key == "aqua":
+                #decky_plugin.logger.info("Handling 'aqua' as 'unknowm'")
+                #game_key = "unknown"
 
             game_name = flavor_mapping.get(game_key, "unknown")
 

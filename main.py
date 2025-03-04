@@ -301,6 +301,8 @@ class Plugin:
                 {"name": 'artixGameLauncher', "env_var": 'artixgame_launcher', "label": 'Artix Game Launcher'},
                 {"name": 'pokémonTradingCardGameLive', "env_var": 'poketcg_launcher', "label": 'Pokémon Trading Card Game Live'},
                 {"name": 'minecraftLauncher', "env_var": 'minecraft_launcher', "label": 'Minecraft Launcher'},
+                {"name": 'antstreamArcade', "env_var": 'antstream_launcher', "label": 'Antstream Arcade'},
+
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"}
             ]

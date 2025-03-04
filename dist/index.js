@@ -1137,6 +1137,14 @@
           urlimage: 'https://cdn2.steamgriddb.com/thumb/7469578bd8aad76c5351f927619d8e4a.jpg'
       },
       {
+          name: 'antstreamArcade',
+          label: 'Antstream Arcade',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
+      },
+      {
           name: 'remotePlayWhatever',
           label: 'RemotePlayWhatever',
           URL: '',
@@ -1224,6 +1232,46 @@
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/f9b8cc42051c6d1c1ddaf5260118d585.jpg'
+      },
+      {
+          name: 'afterplay.io',
+          label: 'Afterplay.io',
+          URL: 'https://afterplay.io/play/recently-played',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/4a756de6acd2c74629b778156dcdeaf6.jpg'
+      },
+      {
+          name: 'oneplay',
+          label: 'OnePlay',
+          URL: 'https://app.airgpu.com',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://sm.ign.com/t/ign_in/screenshot/default/oneplay_vzqc.1280.jpg'
+      },
+      {
+          name: 'airGPU',
+          label: 'AirGPU',
+          URL: 'https://www.oneplay.in/dashboard/home',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://miro.medium.com/v2/resize:fit:784/1*bddIlLtmPp1o2jIIROYmVg@2x.jpeg'
+      },
+      {
+          name: 'cloudDeck',
+          label: 'CloudDeck',
+          URL: 'https://clouddeck.app',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://clouddeck.app/images/og-banner.png'
+      },
+      {
+          name: 'jioGamesCloud',
+          label: 'JioGamesCloud',
+          URL: 'https://cloudplay.jiogames.com',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://www.itvoice.in/wp-content/uploads/2022/11/jiogamescloud-1.jpg'
       },
       {
           name: 'watchparty',
