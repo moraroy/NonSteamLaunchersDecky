@@ -105,7 +105,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               margin: "auto",
             }}
           >
-            A new update is available! Please update your plugin :)
+            A new update is available! Please use the NSLPlugin.desktop to update your plugin :)
           </div>
         </PanelSectionRow>
       ) : (

@@ -1409,7 +1409,7 @@
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
                       margin: "auto",
-                  } }, "A new update is available! Please update your plugin :)"))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                  } }, "A new update is available! Please use the NSLPlugin.desktop to update your plugin :)"))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",
