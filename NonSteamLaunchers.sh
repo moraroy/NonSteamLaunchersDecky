@@ -1909,6 +1909,68 @@ if ! flatpak list | grep com.github.mtkennerly.ludusavi &> /dev/null; then
 fi
 
 
+rclone_zip_url="https://downloads.rclone.org/rclone-current-linux-amd64.zip"
+rclone_zip_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/rclone-current-linux-amd64.zip"
+rclone_base_dir="${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
+nsl_config_dir="${logged_in_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig"
+
+# Function to download and extract rclone
+download_and_extract_rclone() {
+    # Check if rclone already exists in the NSLconfig directory
+    if [ -f "${nsl_config_dir}/rclone" ]; then
+        echo "rclone already exists in ${nsl_config_dir}. Skipping download."
+        return
+    fi
+
+    if [ -d "$rclone_base_dir" ]; then
+        echo "Downloading rclone..."
+        if ! wget -O "$rclone_zip_file" "$rclone_zip_url"; then
+            echo "Failed to download rclone. Exiting script."
+            exit 1
+        fi
+
+        echo "Extracting rclone..."
+        if ! unzip -o "$rclone_zip_file" -d "$rclone_base_dir"; then
+            echo "Failed to extract rclone. Exiting script."
+            exit 1
+        fi
+
+        echo "rclone downloaded and extracted"
+    else
+        echo "Download directory does not exist. Exiting script."
+        return
+    fi
+
+    # Find the extracted rclone directory dynamically
+    rclone_extract_dir=$(find "$rclone_base_dir" -maxdepth 1 -type d -name "rclone-v*-linux-amd64" | head -n 1)
+    rclone_bin="${rclone_extract_dir}/rclone"
+
+    # Debug: Check if rclone_bin exists
+    if [ -f "$rclone_bin" ]; then
+        echo "rclone binary found at $rclone_bin"
+    else
+        echo "rclone binary not found at $rclone_bin. Exiting script."
+        return
+    fi
+
+    # Ensure the NSLconfig directory exists
+    mkdir -p "$nsl_config_dir"
+
+    # Move rclone to the NSLconfig directory
+    if [ -f "$rclone_bin" ]; then
+        echo "Moving rclone to $nsl_config_dir"
+        mv "$rclone_bin" "$nsl_config_dir"
+        rclone_path="${nsl_config_dir}/rclone"
+        echo "rclone moved to $nsl_config_dir"
+    else
+        echo "rclone binary not found. Exiting script."
+    fi
+}
+
+# Run the function in a separate process
+download_and_extract_rclone &
+rclone_pid=$!
+wait $rclone_pid
 
 # Setting up Backup Saves through Ludusavi
 
