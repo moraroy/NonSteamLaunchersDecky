@@ -3,6 +3,7 @@ import os
 import json
 import decky_plugin
 import platform
+import time
 from base64 import b64encode
 import externals.requests as requests
 import externals.vdf as vdf
@@ -429,17 +430,31 @@ def get_game_id(game_name):
     if game_name == "Disney+":  # hardcode disney+ game ID
         return 5260961
     decky_plugin.logger.info(f"Searching for game ID for: {game_name}")
-    try:
-        url = f"{proxy_url}/search/{game_name}"
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        if data['data']:
-            game_id = data['data'][0]['id']
-            decky_plugin.logger.info(f"Found game ID: {game_id}")
-            return game_id
-        decky_plugin.logger.info("No game ID found")
-        return "default_game_id"  # Return a default value when no games are found
-    except requests.exceptions.RequestException as e:
-        decky_plugin.logger.info(f"Error searching for game ID: {e}")
-        return "default_game_id"  # Return a default value in case of an error
+
+    retry_attempts = 1  # Retry only once
+    for attempt in range(retry_attempts + 1):  # Try once initially, then retry if it fails
+        try:
+            url = f"{proxy_url}/search/{game_name}"
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            if data['data']:
+                game_id = data['data'][0]['id']
+                decky_plugin.logger.info(f"Found game ID: {game_id}")
+                return game_id
+            decky_plugin.logger.info("No game ID found")
+            return "default_game_id"  # Return a default value when no games are found
+        except requests.exceptions.RequestException as e:
+            decky_plugin.logger.info(f"Error searching for game ID (attempt {attempt + 1}): {e}")
+            if "502 Server Error: Bad Gateway" in str(e) and attempt < retry_attempts:
+                # Retry after a short delay
+                delay_time = 2  # 2 seconds delay for retry
+                decky_plugin.logger.info(f"Retrying search for game ID after {delay_time}s...")
+                time.sleep(delay_time)  # Retry after 2 seconds
+            else:
+                decky_plugin.logger.info(f"Error searching for game ID: {e}")
+                return "default_game_id"  # Return default game ID if the error is not related to server issues
+
+    # If all retry attempts fail, return the default game ID
+    decky_plugin.logger.info("Max retry attempts reached. Returning default game ID.")
+    return "default_game_id"

@@ -102,6 +102,12 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             elif game_key == "diablo3":
                 decky_plugin.logger.info("Handling 'diablo3' as 'D3'")
                 game_key = "D3"
+            elif game_key == "hs_beta":
+                decky_plugin.logger.info("Handling 'hs_beta' as 'WTCG'")
+                game_key = "WTCG"
+            elif game_key == "wow_classic":
+                decky_plugin.logger.info("Handling 'wow_classic' as 'WoWC'")
+                game_key = "WowC"
             #elif game_key == "aqua":
                 #decky_plugin.logger.info("Handling 'aqua' as 'unknowm'")
                 #game_key = "unknown"
