@@ -107,7 +107,7 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
                 game_key = "WTCG"
             elif game_key == "wow_classic":
                 decky_plugin.logger.info("Handling 'wow_classic' as 'WoWC'")
-                game_key = "WowC"
+                game_key = "WoWC"
             #elif game_key == "aqua":
                 #decky_plugin.logger.info("Handling 'aqua' as 'unknowm'")
                 #game_key = "unknown"
