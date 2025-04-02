@@ -961,11 +961,12 @@
                   setError(data.error);
               }
               else {
-                  const { status, local_version, github_version } = data;
+                  const { status, local_version, github_version, patch_notes } = data;
                   setUpdateInfo({
                       status,
                       local_version,
-                      github_version
+                      github_version,
+                      patch_notes, // Now we also store the patch notes
                   });
               }
               setLoading(false);
@@ -1363,6 +1364,63 @@
       }
   ];
 
+  const UpdateNotesModal = ({ closeModal, serverAPI }) => {
+      const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
+      const [showRestartModal, setShowRestartModal] = React.useState(false);
+      const handleSendNotesClick = async () => {
+          console.log('handleSendNotesClick called');
+          setProgress({ percent: 0, status: 'Sending notes...', description: '' });
+          try {
+              const result = await serverAPI.callPluginMethod("install", {
+                  selected_options: '',
+                  install_chrome: false,
+                  separate_app_ids: false,
+                  start_fresh: false,
+                  update_proton_ge: false,
+                  nslgamesaves: false,
+                  note: true,
+              });
+              if (result) {
+                  setProgress({ percent: 100, status: 'Notes sent successfully!', description: '' });
+                  notify.toast("Notes Sent", "Your notes have been successfully sent to the community.");
+                  setShowRestartModal(true);
+              }
+              else {
+                  setProgress({ percent: 100, status: 'Failed to send notes.', description: '' });
+                  notify.toast("Sending Failed", "Failed to send notes. Please check the logs for details.");
+              }
+          }
+          catch (error) {
+              setProgress({ percent: 100, status: 'Failed to send notes.', description: '' });
+              notify.toast("Sending Failed", "An error occurred while sending your notes. Check the logs.");
+              console.error('Error calling note method on server-side plugin:', error);
+          }
+      };
+      const handleRestartSteam = () => {
+          SteamClient.User.StartRestart(false);
+          setShowRestartModal(false);
+          closeModal();
+      };
+      return (window.SP_REACT.createElement(window.SP_REACT.Fragment, null, progress.status !== '' && progress.percent < 100 ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Sending Your Notes!"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Please wait while your notes are being sent to the community..."),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restart Steam"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: () => setShowRestartModal(false) }, "Back"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestartSteam }, "Restart Steam"))))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Send Your Note!"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the \"#nsl\" tag, you can share it with the community. All notes from participants will be visible in the \"NSL Community Notes\" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleSendNotesClick }, "Send Notes")))))));
+  };
+
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
@@ -1421,6 +1479,7 @@
                       margin: "auto", // Centers the card horizontally
                   } }, randomGreeting))),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateNotesModal, { serverAPI: serverAPI })) }, "Send N\u2665tes"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(StreamingInstallModal, { serverAPI: serverAPI, streamingOptions: streamingOptions })) }, "Streaming Sites"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(CustomSiteModal, { serverAPI: serverAPI })) }, "Custom Website Shortcut"),

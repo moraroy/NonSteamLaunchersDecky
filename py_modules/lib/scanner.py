@@ -2,6 +2,7 @@
 import os
 import json
 import decky_plugin
+from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 import platform
 import time
 from base64 import b64encode
@@ -143,6 +144,9 @@ def scan():
         gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry)
         minecraft_scanner(logged_in_home, minecraft_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
+        # After all scanners, write the shortcuts to the file
+        write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin)
+
     return decky_shortcuts
 
 
@@ -201,12 +205,56 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
     return False
 
 
+
+
+
+
+
+def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
+    # Define the path for the new file
+    new_file_path = f'{DECKY_USER_HOME}/.config/systemd/user/shortcuts'
+
+    # Create a set to store unique names (to avoid duplicates)
+    existing_shortcuts = set()
+
+    # Define the extensions to skip
+    skip_extensions = {'.exe', '.sh', '.bat', '.msi', '.app', '.apk', '.url', '.desktop'}
+
+    # Check if the shortcuts file exists, create it if not
+    if not os.path.exists(new_file_path):
+        decky_plugin.logger.info(f"Shortcuts file not found: {new_file_path}. Creating file...")
+        with open(new_file_path, 'w') as f:
+            pass  # Create an empty file
+
+    # Ensure decky_shortcuts is defined
+    if not decky_shortcuts:
+        decky_plugin.logger.warning("Decky shortcuts data is missing.")
+    else:
+        # Iterate over all appnames and add them to the set
+        for appname in decky_shortcuts:
+            # If appname doesn't end with a skip extension, add it to the set (avoid duplicates)
+            if appname and not any(appname.endswith(ext) for ext in skip_extensions) and appname not in existing_shortcuts:
+                existing_shortcuts.add(appname)
+
+        # Write the unique appnames to the new file
+        with open(new_file_path, 'w') as f:
+            for name in existing_shortcuts:
+                f.write(f"{name}\n")  # Write only the appname (raw)
+
+        decky_plugin.logger.info(f"Shortcuts written to {new_file_path}.")
+
+
 # Add or update the proton compatibility settings
 def add_compat_tool(launchoptions):
     if 'chrome' in launchoptions or '--appid 0' in launchoptions:
         return False
     else:
         return compat_tool_name
+
+
+
+
+
 
 
 def get_steam_store_appid(steam_store_game_name):
