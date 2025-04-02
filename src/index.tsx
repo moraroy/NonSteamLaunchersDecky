@@ -22,6 +22,7 @@ import { RestoreGameSavesModal } from "./components/modals/restoreGameSavesModal
 import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
+import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 
 const initialOptions = sitesList;
 
@@ -128,6 +129,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       )}
 
       <PanelSection title="Install">
+        <ButtonItem layout="below" onClick={() => showModal(<UpdateNotesModal serverAPI={serverAPI} />)}>
+          Send N♥tes
+        </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions} />)}>
           Game Launchers
         </ButtonItem>

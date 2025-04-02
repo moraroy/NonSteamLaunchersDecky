@@ -13,6 +13,7 @@ def add_plugin_to_path():
 import decky_plugin
 add_plugin_to_path()
 
+
 import os
 import logging
 import re
@@ -21,6 +22,8 @@ import subprocess
 import shutil
 import json
 import requests
+from collections import defaultdict
+from datetime import datetime
 from aiohttp import web
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 from py_modules.lib.scanner import scan, addCustomSite
@@ -50,8 +53,90 @@ class Plugin:
         decky_user_home = decky_plugin.DECKY_USER_HOME
         defaultSettings = {"autoscan": False, "customSites": ""}
 
+        # Function to fetch GitHub commit history for patch notes
+        async def fetch_patch_notes():
+            owner = "moraroy"  # Repository owner
+            repo = "NonSteamLaunchersDecky"  # Repository name
+            url = f"https://api.github.com/repos/{owner}/{repo}/commits"
 
-        # Function to fetch GitHub package.json
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    commits = response.json()
+                    return categorize_commits(commits)
+                else:
+                    decky_plugin.logger.error(f"Failed to fetch commits. HTTP Status Code: {response.status_code}")
+                    return {"error": "Failed to fetch patch notes"}
+            except Exception as e:
+                decky_plugin.logger.error(f"Error fetching patch notes: {e}")
+                return {"error": "Error fetching patch notes"}
+
+        # Function to format the commit message for user-friendly patch notes
+        def format_patch_note(commit):
+            sha = commit['sha']
+            message = commit['commit']['message']
+            author_name = commit['commit']['author']['name']
+            author_date = commit['commit']['author']['date']
+
+            # Format the date into a more user-friendly format
+            formatted_date = datetime.strptime(author_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%B %d, %Y")
+
+            # Return a single formatted string that can be used for the patch notes
+            return {
+                "formatted_note": f"- **{message}** (Commit SHA: {sha}) by {author_name} on {formatted_date}",
+                "date": author_date
+            }
+
+        # Function to categorize commits (you can customize this as needed)
+        def categorize_commits(commits):
+            categories = defaultdict(list)
+
+            # Categorize commits based on message keywords (you can adjust as needed)
+            for commit in commits:
+                message = commit['commit']['message'].lower()
+
+                if "fix" in message:
+                    categories["Fixed"].append(format_patch_note(commit))
+                elif "add" in message or "new" in message:
+                    categories["Added"].append(format_patch_note(commit))
+                elif "update" in message or "change" in message:
+                    categories["Changed"].append(format_patch_note(commit))
+                else:
+                    categories["Other"].append(format_patch_note(commit))
+
+            # Sort commits in each category by date
+            for category in categories:
+                categories[category] = sorted(categories[category], key=lambda x: x['date'], reverse=True)
+
+            return categories
+
+        # Function to compare versions
+        async def compare_versions():
+            if Plugin.update_cache:  # Check if we have cached update info
+                decky_plugin.logger.info("Returning cached update information.")
+                return Plugin.update_cache
+
+            local_version = await fetch_local_version()
+            github_data = await fetch_github_version()
+
+            if not local_version or not github_data:
+                return {"error": "Could not fetch version information"}
+
+            github_version = github_data.get("version")
+            if not github_version:
+                return {"error": "GitHub version not found"}
+
+            decky_plugin.logger.info(f"Local Version: {local_version}, GitHub Version: {github_version}")
+
+            if local_version == github_version:
+                update_info = {"status": "Up-to-date", "local_version": local_version, "github_version": github_version}
+            else:
+                update_info = {"status": "Update available", "local_version": local_version, "github_version": github_version}
+
+            Plugin.update_cache = update_info  # Cache the update info
+            return update_info
+
+        # Function to fetch GitHub version info
         async def fetch_github_version():
             github_url = "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/refs/heads/main/package.json"
             loop = asyncio.get_event_loop()
@@ -78,33 +163,7 @@ class Plugin:
                 decky_plugin.logger.error(f"Failed to parse {local_package_path}")
                 return None
 
-        # Compare versions
-        async def compare_versions():
-            if Plugin.update_cache:  # Check if we have cached update info
-                decky_plugin.logger.info("Returning cached update information.")
-                return Plugin.update_cache
-
-            local_version = await fetch_local_version()
-            github_data = await fetch_github_version()
-
-            if not local_version or not github_data:
-                return {"error": "Could not fetch version information"}
-
-            github_version = github_data.get("version")
-            if not github_version:
-                return {"error": "GitHub version not found"}
-
-            decky_plugin.logger.info(f"Local Version: {local_version}, GitHub Version: {github_version}")
-
-            if local_version == github_version:
-                update_info = {"status": "Up-to-date", "local_version": local_version, "github_version": github_version}
-            else:
-                update_info = {"status": "Update available", "local_version": local_version, "github_version": github_version}
-
-            Plugin.update_cache = update_info  # Cache the update info
-            return update_info
-
-        # WebSocket handler to check for updates
+        # WebSocket handler to check for updates and patch notes
         async def handle_check_update(request):
             ws = web.WebSocketResponse()
             await ws.prepare(request)
@@ -112,15 +171,22 @@ class Plugin:
             try:
                 # Fetch and compare the versions
                 version_info = await compare_versions()
-                await ws.send_json(version_info)
+
+                # Fetch patch notes
+                patch_notes = await fetch_patch_notes()
+
+                # Combine the version info and patch notes
+                response_data = {**version_info, "patch_notes": patch_notes}
+
+                # Send the combined response to the frontend
+                await ws.send_json(response_data)
+
             except Exception as e:
                 decky_plugin.logger.error(f"Error handling update check: {e}")
                 await ws.send_json({"error": "Internal error"})
             finally:
                 await ws.close()
                 return ws
-
-
 
 
         async def handleAutoScan(request):
@@ -462,7 +528,7 @@ class Plugin:
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
 
-    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, operation="Install"):
+    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, note, operation="Install"):
         decky_plugin.logger.info('install was called')
 
         # Log the arguments for debugging
@@ -472,6 +538,7 @@ class Plugin:
         decky_plugin.logger.info(f"install_chrome: {install_chrome}")
         decky_plugin.logger.info(f"update_proton_ge: {update_proton_ge}")
         decky_plugin.logger.info(f"nslgamesaves: {nslgamesaves}")
+        decky_plugin.logger.info(f"note: {note}")
 
 
 
@@ -503,6 +570,7 @@ class Plugin:
             ([f'"Start Fresh"'] if start_fresh else []) +
             ([f'"NSLGameSaves"'] if nslgamesaves else []) +
             ([f'"Update Proton-GE"'] if update_proton_ge else []) +
+            ([f'"❤️"'] if note else []) +
             [f'"DeckyPlugin"']
         )
         command = f"{script_path} {command_suffix}"

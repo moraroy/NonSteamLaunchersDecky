@@ -4,6 +4,7 @@ interface UpdateInfo {
   status: string;  // "Up-to-date" or "Update available"
   local_version: string;
   github_version: string;
+  patch_notes: Record<string, { formatted_note: string }[]>;  // New structure for patch notes
 }
 
 export const useUpdateInfo = () => {
@@ -29,11 +30,12 @@ export const useUpdateInfo = () => {
       if (data.error) {
         setError(data.error);
       } else {
-        const { status, local_version, github_version } = data;
+        const { status, local_version, github_version, patch_notes } = data;
         setUpdateInfo({
           status,
           local_version,
-          github_version
+          github_version,
+          patch_notes,  // Now we also store the patch notes
         });
       }
       setLoading(false);
