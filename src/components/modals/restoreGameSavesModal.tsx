@@ -29,7 +29,8 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
         separate_app_ids: false,
         start_fresh: false,
         update_proton_ge: false,
-        nslgamesaves: true
+        nslgamesaves: true,
+        note: false,
       });
 
       if (result) {

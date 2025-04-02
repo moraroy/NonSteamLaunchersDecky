@@ -580,7 +580,8 @@
                   separate_app_ids: separateAppIds,
                   start_fresh: false,
                   update_proton_ge: false,
-                  nslgamesaves: false
+                  nslgamesaves: false,
+                  note: false,
               });
               if (result) {
                   setProgress({ percent: endPercent, status: `${operation} Selection ${index + 1} of ${total}`, description: `${launcher}` });
@@ -799,7 +800,8 @@
                   separate_app_ids: false,
                   start_fresh: true,
                   update_proton_ge: false,
-                  nslgamesaves: false
+                  nslgamesaves: false,
+                  note: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'NSL has been wiped. Remember to delete your shortcuts!', description: '' });
@@ -842,7 +844,8 @@
                   separate_app_ids: false,
                   start_fresh: false,
                   update_proton_ge: true,
-                  nslgamesaves: false
+                  nslgamesaves: false,
+                  note: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Proton GE updated successfully.', description: '' });
@@ -897,7 +900,8 @@
                   separate_app_ids: false,
                   start_fresh: false,
                   update_proton_ge: false,
-                  nslgamesaves: true
+                  nslgamesaves: true,
+                  note: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Game saves restored successfully!', description: '' });

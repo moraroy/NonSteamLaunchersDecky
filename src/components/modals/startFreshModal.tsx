@@ -34,7 +34,8 @@ export const StartFreshModal: VFC<startFreshModalProps> = ({ closeModal, serverA
                 separate_app_ids: false,
                 start_fresh: true,
                 update_proton_ge: false,
-                nslgamesaves: false
+                nslgamesaves: false,
+                note: false,
             });
 
             if (result) {
