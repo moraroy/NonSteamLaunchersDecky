@@ -80,7 +80,7 @@ export const UpdateNotesModal: VFC<UpdateNotesModalProps> = ({ closeModal, serve
                 <ModalRoot>
                     <DialogHeader>Send Your Note!</DialogHeader>
                     <DialogBodyText>
-                        Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?
+                        Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?
                     </DialogBodyText>
                     <DialogBody>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>

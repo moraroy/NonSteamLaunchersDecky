@@ -210,6 +210,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 
 
+
 def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
     # Define the path for the new file
     new_file_path = f'{DECKY_USER_HOME}/.config/systemd/user/shortcuts'
@@ -220,7 +221,7 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
     # Define the extensions to skip
     skip_extensions = {'.exe', '.sh', '.bat', '.msi', '.app', '.apk', '.url', '.desktop'}
 
-    # Check if the shortcuts file exists, create it if not
+    # Check if the shortcuts file exists
     if not os.path.exists(new_file_path):
         decky_plugin.logger.info(f"Shortcuts file not found: {new_file_path}. Creating file...")
         with open(new_file_path, 'w') as f:
@@ -236,12 +237,13 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
             if appname and not any(appname.endswith(ext) for ext in skip_extensions) and appname not in existing_shortcuts:
                 existing_shortcuts.add(appname)
 
-        # Write the unique appnames to the new file
-        with open(new_file_path, 'w') as f:
+        # Open the file in append mode and add the new shortcuts
+        with open(new_file_path, 'a') as f:
             for name in existing_shortcuts:
                 f.write(f"{name}\n")  # Write only the appname (raw)
 
-        decky_plugin.logger.info(f"Shortcuts written to {new_file_path}.")
+        decky_plugin.logger.info(f"Shortcuts added to {new_file_path}.")
+
 
 
 # Add or update the proton compatibility settings

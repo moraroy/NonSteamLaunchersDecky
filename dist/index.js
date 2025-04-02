@@ -1414,7 +1414,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: () => setShowRestartModal(false) }, "Back"),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestartSteam }, "Restart Steam"))))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
           window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Send Your Note!"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the \"#nsl\" tag, you can share it with the community. All notes from participants will be visible in the \"NSL Community Notes\" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the \"#nsl\" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the \"NSL Community Notes\" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?"),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
               window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
