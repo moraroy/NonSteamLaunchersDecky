@@ -130,7 +130,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
       <PanelSection title="Install">
         <ButtonItem layout="below" onClick={() => showModal(<UpdateNotesModal serverAPI={serverAPI} />)}>
-          Send N♥tes
+          Send Notes!♥
         </ButtonItem>
         <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions} />)}>
           Game Launchers
