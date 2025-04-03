@@ -2707,8 +2707,8 @@ update_notes_in_file() {
 # Function to list game names from the shortcuts file
 list_game_names() {
     if [[ ! -f "$shortcuts_file" ]]; then
-        echo "The shortcuts file does not exist at $shortcuts_file."
-        exit 1
+        echo "The shortcuts file does not exist at $shortcuts_file. Creating an empty file..."
+        touch "$shortcuts_file"  
     fi
 
     echo "Reading game names from $shortcuts_file..."
