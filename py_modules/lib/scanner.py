@@ -211,15 +211,16 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 
 
+
 def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
     # Define the path for the new file
     new_file_path = f'{DECKY_USER_HOME}/.config/systemd/user/shortcuts'
 
-    # Create a set to store unique names (to avoid duplicates)
-    existing_shortcuts = set()
-
     # Define the extensions to skip
     skip_extensions = {'.exe', '.sh', '.bat', '.msi', '.app', '.apk', '.url', '.desktop'}
+
+    # Initialize a set to store the unique app names
+    existing_shortcuts = set()
 
     # Check if the shortcuts file exists
     if not os.path.exists(new_file_path):
@@ -227,22 +228,32 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
         with open(new_file_path, 'w') as f:
             pass  # Create an empty file
 
+    # Read the existing shortcuts from the file and add them to the set
+    with open(new_file_path, 'r') as f:
+        for line in f:
+            existing_shortcuts.add(line.strip())  # Add existing shortcuts to the set
+
     # Ensure decky_shortcuts is defined
     if not decky_shortcuts:
         decky_plugin.logger.warning("Decky shortcuts data is missing.")
     else:
-        # Iterate over all appnames and add them to the set
+        # Iterate over all appnames and check for duplicates before adding
+        new_shortcuts = []
         for appname in decky_shortcuts:
-            # If appname doesn't end with a skip extension, add it to the set (avoid duplicates)
+            # If appname doesn't end with a skip extension and is not already in existing_shortcuts, add it
             if appname and not any(appname.endswith(ext) for ext in skip_extensions) and appname not in existing_shortcuts:
-                existing_shortcuts.add(appname)
+                new_shortcuts.append(appname)  # Collect the new shortcuts to append
+                existing_shortcuts.add(appname)  # Add to the existing shortcuts set to avoid future duplicates
 
-        # Open the file in append mode and add the new shortcuts
-        with open(new_file_path, 'a') as f:
-            for name in existing_shortcuts:
-                f.write(f"{name}\n")  # Write only the appname (raw)
+        # Only append new shortcuts to the file
+        if new_shortcuts:
+            with open(new_file_path, 'a') as f:
+                for name in new_shortcuts:
+                    f.write(f"{name}\n")  # Write only the appname (raw)
 
-        decky_plugin.logger.info(f"Shortcuts added to {new_file_path}.")
+            decky_plugin.logger.info(f"New shortcuts added to {new_file_path}.")
+        else:
+            decky_plugin.logger.info("No new shortcuts to add.")
 
 
 
