@@ -757,7 +757,7 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
 # Set the URL to download the GameJolt Launcher file from
-gamejolt_url="https://download.gamejolt.net/7f4ea08f3f8b964dafd1df8a4a4e44f4af49390b6c9402bd25d410b71341fb0b,1738120837,7/data/games/5/162/362412/files/66bc359fe3e14/gamejoltclientsetup.exe"
+gamejolt_url="https://download.gamejolt.net/1a78c0ebf8c80197cead04f3883bf5ab1fc38d4ff562b09f289b83354e48ec80,1743848519,7/data/games/5/162/362412/files/66bc359fe3e14/gamejoltclientsetup.exe"
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
@@ -1879,7 +1879,43 @@ install_launcher "Pokémon Trading Card Game Live" "PokeTCGLauncher" "$poketcg_f
 install_launcher "Antstream Arcade" "AntstreamLauncher" "$antstream_file" "$antstream_url" "$antstream_file /silent" "99" "" ""
 #End of Launcher Installations
 
+# Temporary fix for Epic
+if [[ $options == *"Epic Games"* ]]; then
 
+    function install_epic {
+
+        pkill -f wineserver
+
+        # Check if the first path exists, otherwise use the second one
+        if [[ -f "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe" ]]; then
+            echo "Starting first installation of Epic Games Launcher"
+            "$STEAM_RUNTIME" "$proton_dir/proton" run "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe" &
+            first_install_pid=$!
+        else
+            echo "First path doesn't exist, trying the alternative path"
+            "$STEAM_RUNTIME" "$proton_dir/proton" run "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe" &
+            first_install_pid=$!
+        fi
+
+        # Wait for the installation to complete
+        wait $first_install_pid
+
+        # Rsync files
+        rsync -av --progress \
+          ${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Update/Install/{Engine,Portal}/ \
+          "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/"
+
+        rsync -av --progress \
+          ${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Update/Install/{Engine,Portal}/ \
+          "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/"
+
+        # Optionally, run Epic Online Services installer
+        # "$STEAM_RUNTIME" "$proton_dir/proton" run "EpicOnlineServicesInstaller.exe"
+    }
+
+    # Call the install_epic function
+    install_epic
+fi
 
 
 
