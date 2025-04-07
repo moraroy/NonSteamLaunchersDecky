@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import json
+import re
 import decky_plugin
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 import platform
@@ -205,13 +206,17 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
     return False
 
 
+# Add or update the proton compatibility settings
+def add_compat_tool(launchoptions):
+    if 'chrome' in launchoptions or '--appid 0' in launchoptions:
+        return False
+    else:
+        return compat_tool_name
 
 
 
 
-
-
-
+#shortcuts file
 def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
     # Define the path for the new file
     new_file_path = f'{DECKY_USER_HOME}/.config/systemd/user/shortcuts'
@@ -233,10 +238,6 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
         for line in f:
             existing_shortcuts.add(line.strip())  # Add existing shortcuts to the set
 
-    # Ensure decky_shortcuts is defined
-    if not decky_shortcuts:
-        decky_plugin.logger.warning("Decky shortcuts data is missing.")
-    else:
         # Iterate over all appnames and check for duplicates before adding
         new_shortcuts = []
         for appname in decky_shortcuts:
@@ -254,22 +255,11 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
             decky_plugin.logger.info(f"New shortcuts added to {new_file_path}.")
         else:
             decky_plugin.logger.info("No new shortcuts to add.")
+#End of Shortcuts file
 
 
 
-# Add or update the proton compatibility settings
-def add_compat_tool(launchoptions):
-    if 'chrome' in launchoptions or '--appid 0' in launchoptions:
-        return False
-    else:
-        return compat_tool_name
-
-
-
-
-
-
-
+#Manifest File Logic
 def get_steam_store_appid(steam_store_game_name):
     search_url = f"{proxy_url}/search/{steam_store_game_name}"
     try:
@@ -313,14 +303,157 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         json.dump(app_manifest_data, file, indent=2)
 
     decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
+#End of manifest file logic
 
 
+#Descriptions file logic
+
+# Define the path for descriptions.json
+descriptions_file_path = f"{DECKY_USER_HOME}/.config/systemd/user/descriptions.json"
+
+# Function to create descriptions.json if it doesn't exist
+def create_descriptions_file():
+    if not os.path.exists(descriptions_file_path):
+        try:
+            # Create an empty list inside the JSON file if it doesn't exist
+            with open(descriptions_file_path, 'w') as file:
+                json.dump([], file, indent=4)
+            decky_plugin.logger.info(f"{descriptions_file_path} created successfully with an empty list.")
+        except IOError as e:
+            decky_plugin.logger.error(f"Error creating {descriptions_file_path}: {e}")
+
+# Function to load existing game data from descriptions.json
+def load_game_data():
+    create_descriptions_file()  # Ensure the file is created if it doesn't exist
+    try:
+        with open(descriptions_file_path, 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        decky_plugin.logger.info(f"File not found: {descriptions_file_path}, returning empty data.")
+        return []
+    except json.JSONDecodeError as e:
+        decky_plugin.logger.error(f"Error decoding JSON: {e}, returning empty data.")
+        return []
+
+# Function to check if a game already exists in descriptions.json
+def game_exists_in_data(existing_data, game_name):
+    return any(game['game_name'] == game_name for game in existing_data)
+
+# Function to fetch game details from the API
+def get_game_details(game_name):
+    url = f"https://nonsteamlaunchers.onrender.com/api/details/{game_name}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json()  # Return game details as a dictionary
+    else:
+        decky_plugin.logger.error(f"Error: Unable to retrieve data for {game_name}. Status code {response.status_code}")
+        return None
+
+# Function to strip HTML tags from a string
+def strip_html_tags(text):
+    clean_text = re.sub(r'<[^>]*>', '', text)
+    return clean_text
+
+# Function to decode HTML entities like \u00a0 (non-breaking space) and \u2013 (en dash)
+def decode_html_entities(text):
+    text = text.replace("\u00a0", " ")
+    text = text.replace("\u2013", "-")
+    text = text.replace("\u2019", "'")
+    return text
+
+# Function to write game details to descriptions.json (only if it's not already present)
+def write_game_details(existing_data, game_details):
+    if not game_details:
+        decky_plugin.logger.info("No game details to write.")
+        return existing_data
+
+    # Strip HTML tags and decode HTML entities from the 'about_the_game' section
+    if 'about_the_game' in game_details:
+        game_details['about_the_game'] = strip_html_tags(game_details['about_the_game'])
+        game_details['about_the_game'] = decode_html_entities(game_details['about_the_game'])
+
+    # Ensure that 'game_details' key does not exist before adding
+    if 'game_details' in game_details:
+        del game_details['game_details']  # Remove 'game_details' key
+
+    # Check if the game details already exist in the data based on game_name
+    game_exists = any(game['game_name'] == game_details['game_name'] for game in existing_data)
+
+    if not game_exists:
+        # Append new data if it doesn't already exist
+        existing_data.append(game_details)
+        decky_plugin.logger.info(f"Game details for {game_details['game_name']} added successfully.")
+    else:
+        decky_plugin.logger.info(f"Game details for {game_details['game_name']} already exist, skipping.")
+
+    return existing_data
+
+# Function to update descriptions.json for new games
+def update_game_details(games_to_check):
+    # Load the existing game data
+    existing_data = load_game_data()
+
+    # List of app names to exclude from API requests
+    excluded_apps = [
+        "Epic Games",
+        "GOG Galaxy",
+        "Ubisoft Connect",
+        "Battle.net",
+        "EA App",
+        "Amazon Games",
+        "itch.io",
+        "Legacy Games",
+        "Humble Bundle",
+        "IndieGala Client",
+        "Rockstar Games Launcher",
+        "Glyph",
+        "Minecraft Launcher",
+        "Playstation Plus",
+        "VK Play",
+        "HoYoPlay",
+        "Game Jolt Client",
+        "Artix Game Launcher",
+        "ARC Launcher",
+        "Pokémon Trading Card Game Live",
+        "Antstream Arcade",
+        "Repair EA App"
+    ]
+
+    # Iterate through the list of games to check and update game details
+    for game_name in games_to_check:
+        # Skip the API call for excluded app names
+        if game_name in excluded_apps:
+            decky_plugin.logger.info(f"Skipping API call for {game_name} as it is in the exclusion list.")
+            continue  # Skip this iteration and move to the next game
+
+        if not game_exists_in_data(existing_data, game_name):
+            decky_plugin.logger.info(f"Fetching details for {game_name} as details were missing...")
+            game_details = get_game_details(game_name)
+            if game_details:
+                existing_data = write_game_details(existing_data, game_details)
+
+    # Only write back to descriptions.json if new data was added
+    if existing_data != load_game_data():  # Check if data was changed
+        with open(descriptions_file_path, 'w') as file:
+            json.dump(existing_data, file, indent=4)
+        decky_plugin.logger.info(f"Updated {descriptions_file_path} with new game details (if applicable).")
+    else:
+        decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
+#End of Descriptions file logic
+
+
+
+
+#Create a shortcut
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     global decky_shortcuts
     # Check if the necessary fields are provided
     if not exe or not appname or not startingdir:
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
         return
+
+    update_game_details([appname])
 
     if launchoptions is None:
         launchoptions = ''
