@@ -2877,7 +2877,6 @@ fi
 
 
 
-
 # Pre check for updating the config file
 
 # Set the default Steam directory
