@@ -307,7 +307,6 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
 
 
 #Descriptions file logic
-
 # Define the path for descriptions.json
 descriptions_file_path = f"{DECKY_USER_HOME}/.config/systemd/user/descriptions.json"
 
