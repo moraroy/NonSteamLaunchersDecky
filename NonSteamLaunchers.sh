@@ -1478,6 +1478,7 @@ function install_gog2 {
         done
     else
         echo "GOG Galaxy executable not found, skipping process kill."
+        wait
     fi
 }
 
