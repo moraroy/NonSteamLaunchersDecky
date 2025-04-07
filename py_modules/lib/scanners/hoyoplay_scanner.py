@@ -80,6 +80,11 @@ def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
                 install_path = game_install_status.get("gameInstallPath", None)
                 game_shortcut_name = data.get("gameShortcutName", None)  # Get the game shortcut name
 
+                # If persistentInstallPath is empty, use installPath as fallback
+                if not persistent_install_path:
+                    decky_plugin.logger.info(f"Persistent Install Path is empty for gameBiz: {game_biz}, using Install Path as fallback.")
+                    persistent_install_path = install_path  # Use installPath as fallback
+
                 # Check if all important fields are missing or empty
                 if not game_exe_name and not install_path and not persistent_install_path:
                     decky_plugin.logger.info(f"Skipping empty game entry for gameBiz: {game_biz}")
