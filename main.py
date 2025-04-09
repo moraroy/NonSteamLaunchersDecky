@@ -446,17 +446,40 @@ class Plugin:
 
 
     async def _migration(self):
-
         decky_plugin.logger.info("Starting migration process")
 
         # Get the path to the Decky user's home directory
         decky_user_home = decky_plugin.DECKY_USER_HOME
 
-        # Define the paths for the service file, symlink, and NSLGameScanner.py
+        # Define the paths for the service file, symlink, NSLGameScanner.py, and the env_vars file
         service_file = os.path.join(decky_user_home, '.config/systemd/user/nslgamescanner.service')
         symlink = os.path.join(decky_user_home, '.config/systemd/user/default.target.wants/nslgamescanner.service')
         nslgamescanner_py = os.path.join(decky_user_home, '.config/systemd/user/NSLGameScanner.py')
+        env_vars_file = os.path.join(decky_user_home, '.config/systemd/user/env_vars')
 
+        # Define the required directories leading up to the files
+        required_dirs = [
+            os.path.join(decky_user_home, '.config/systemd/user'),
+            os.path.join(decky_user_home, '.config/systemd/user/default.target.wants')
+        ]
+
+        # Ensure required directories exist (but not the files themselves)
+        for dir_path in required_dirs:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)  # Create the directories if they do not exist
+                decky_plugin.logger.info(f"Directory created: {dir_path}")
+            else:
+                decky_plugin.logger.info(f"Directory already exists: {dir_path}")
+
+        # Check if the env_vars file exists, and create it if it doesn't
+        if not os.path.exists(env_vars_file):
+            with open(env_vars_file, 'w') as file:
+                # Create an empty file
+                pass
+            decky_plugin.logger.info(f"env_vars file created at {env_vars_file}")
+        else:
+            decky_plugin.logger.info(f"env_vars file already exists at {env_vars_file}")
+            
         # Flags to check if any action was taken
         service_file_deleted = False
         symlink_removed = False
