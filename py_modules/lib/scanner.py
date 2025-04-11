@@ -577,6 +577,7 @@ def get_sgdb_art(game_id, launcher):
         "Game Jolt Client": "5299692",
         "Artix Game Launcher": "5264320",
         "Minecraft Launcher": "5302646",
+        "Google Chrome": "37126",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
