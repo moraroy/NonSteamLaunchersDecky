@@ -28,6 +28,11 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 if "play.geforcenow.com/games" in url:
                     if name == "GeForce NOW":
                         continue  # Skip generic folder/bookmark
+
+                    # Strip anything from &lang and onward
+                    if "&" in url:
+                        url = url.split("&")[0]
+
                     geforce_now_urls.append(("GeForce NOW", name, url))
 
                 # Xbox Cloud Gaming
