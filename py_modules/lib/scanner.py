@@ -23,6 +23,7 @@ from scanners.hoyoplay_scanner import hoyoplay_scanner
 from scanners.gamejolt_scanner import gamejolt_scanner
 from scanners.minecraft_scanner import minecraft_scanner
 from scanners.rpw_scanner import rpw_scanner
+from scanners.chrome_scanner import chrome_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
 
@@ -145,6 +146,9 @@ def scan():
         gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry)
         minecraft_scanner(logged_in_home, minecraft_launcher, create_new_entry)
         rpw_scanner(logged_in_home, create_new_entry)
+
+        # Call chrome_scanner to process the Chrome Bookmarks
+        chrome_scanner(logged_in_home, create_new_entry)
         # After all scanners, write the shortcuts to the file
         write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin)
 
