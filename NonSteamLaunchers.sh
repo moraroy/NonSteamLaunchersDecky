@@ -1485,14 +1485,28 @@ function install_gog2 {
 
 # Battle.net specific installation steps
 function install_battlenet {
+    # Terminate any existing Battle.net processes before starting installation
     terminate_processes "Battle.net.exe" #"BlizzardError.exe"
-    # Second installation
+
+    # Start the first installation in the background
+    echo "Starting first installation of Battle.net"
+    "$STEAM_RUNTIME" "$proton_dir/proton" run "$battle_file" Battle.net-Setup.exe --lang=enUS --installpath="C:\Program Files (x86)\Battle.net" &
+    first_install_pid=$!
+
+    # After first installation, kill wineserver to clean up
+    pkill wineserver
+    sleep 1  
+
+    # Start the second installation process in the background
     echo "Starting second installation of Battle.net"
     "$STEAM_RUNTIME" "$proton_dir/proton" run "$battle_file" Battle.net-Setup.exe --lang=enUS --installpath="C:\Program Files (x86)\Battle.net" &
     second_install_pid=$!
-    # Wait for both installations to complete
-    wait $first_install_pid
-    wait $second_install_pid
+
+    # After second installation, kill wineserver again to clean up
+    pkill wineserver
+    sleep 1  
+
+    # After both installations are done, terminate any remaining Battle.net processes
     terminate_processes "Battle.net.exe" #"BlizzardError.exe"
 }
 
@@ -1807,12 +1821,13 @@ function install_launcher {
             eval "$post_install_command"
         fi
 
-        # Wait for the installation process to complete (EXCEPT GOG)
-        if [ "$launcher_name" != "GOG Galaxy" ]; then
+        # Wait for the installation process to complete (except GOG Galaxy and Battle.net)
+        if [ "$launcher_name" != "GOG Galaxy" ] && [ "$launcher_name" != "Battle.net" ]; then
             wait
         fi
     fi
 }
+
 # Install Epic Games Launcher
 install_launcher "Epic Games" "EpicGamesLauncher" "$msi_file" "$msi_url" "MsiExec.exe /i "$msi_file" -opengl /qn" "30" "" ""
 

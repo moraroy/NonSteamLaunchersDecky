@@ -97,30 +97,50 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
           <div
             style={{
-              backgroundColor: "red", // Red background for update card
-              color: "white", // White text color
+              backgroundColor: "red",
+              color: "white",
               padding: "1em",
-              borderRadius: "8px", // Rounded corners
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Shadow effect
+              borderRadius: "8px",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
               maxWidth: "80%",
               margin: "auto",
+              lineHeight: 1.6
             }}
           >
-            A new update is available! Please use the NSLPlugin.desktop to update your plugin :)
+            <div>A new update is available! Please use the NSLPlugin.desktop to update your plugin :)</div>
+            <div style={{ marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" }}>
+              <div>📌 <strong>Local version:</strong> {updateInfo.local_version}</div>
+              <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
+              <div style={{ marginTop: "0.5em" }}>
+                <strong>📝 Patch Notes:</strong>
+                <ul style={{ textAlign: "left", marginLeft: "1.5em", fontSize: "13px" }}>
+                  {Object.entries(updateInfo.patch_notes).map(([version, notes]) => (
+                    <li key={version}>
+                      <strong>{version}</strong>
+                      <ul>
+                        {notes.map((note, idx) => (
+                          <li key={idx}>{note.formatted_note}</li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </PanelSectionRow>
       ) : (
         <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
           <div
             style={{
-              display: "inline-block", // Keeps the card format
-              padding: "1em", // Adds padding inside the card
-              borderRadius: "8px", // Gives rounded corners
-              border: "2px solid rgba(255, 255, 255, 0.3)", // Adds a faint border
-              backgroundColor: "white", // White background for testing
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Adds subtle shadow to the card
-              maxWidth: "80%", // Keeps the card size responsive
-              margin: "auto", // Centers the card horizontally
+              display: "inline-block",
+              padding: "1em",
+              borderRadius: "8px",
+              border: "2px solid rgba(255, 255, 255, 0.3)",
+              backgroundColor: "white",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              maxWidth: "80%",
+              margin: "auto",
             }}
           >
             {randomGreeting}
