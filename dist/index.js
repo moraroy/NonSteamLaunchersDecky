@@ -1471,7 +1471,9 @@
                       boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
                       maxWidth: "80%",
                       margin: "auto",
-                      lineHeight: 1.6
+                      lineHeight: 1.6,
+                      overflow: "hidden",
+                      wordWrap: "break-word", // Word wrap
                   } },
                   window.SP_REACT.createElement("div", null, "A new update is available! Please use the NSLPlugin.desktop to update your plugin :)"),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
@@ -1487,9 +1489,19 @@
                           updateInfo.github_version),
                       window.SP_REACT.createElement("div", { style: { marginTop: "0.5em" } },
                           window.SP_REACT.createElement("strong", null, "\uD83D\uDCDD Patch Notes:"),
-                          window.SP_REACT.createElement("ul", { style: { textAlign: "left", marginLeft: "1.5em", fontSize: "13px" } }, Object.entries(updateInfo.patch_notes).map(([version, notes]) => (window.SP_REACT.createElement("li", { key: version },
-                              window.SP_REACT.createElement("strong", null, version),
-                              window.SP_REACT.createElement("ul", null, notes.map((note, idx) => (window.SP_REACT.createElement("li", { key: idx }, note.formatted_note))))))))))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                          window.SP_REACT.createElement("ul", { style: {
+                                  textAlign: "left",
+                                  marginLeft: "1.5em",
+                                  fontSize: "13px",
+                                  listStyleType: "none",
+                                  padding: "0"
+                              } }, Object.entries(updateInfo.patch_notes).map(([category, notes]) => (window.SP_REACT.createElement("li", { key: category, style: { marginBottom: "1em" } },
+                              window.SP_REACT.createElement("strong", null, category),
+                              window.SP_REACT.createElement("ul", { style: { paddingLeft: "20px" } }, notes.map((note, idx) => (window.SP_REACT.createElement("li", { key: idx, style: {
+                                      wordWrap: "break-word",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis"
+                                  } }, note.formatted_note))))))))))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",

@@ -81,9 +81,12 @@ class Plugin:
             # Format the date into a more user-friendly format
             formatted_date = datetime.strptime(author_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%B %d, %Y")
 
+            # Truncate the message to fit within your red box, limiting it to 100 characters
+            truncated_message = (message[:97] + '...') if len(message) > 100 else message
+
             # Return a single formatted string that can be used for the patch notes
             return {
-                "formatted_note": f"- **{message}** (Commit SHA: {sha}) by {author_name} on {formatted_date}",
+                "formatted_note": f"- **{truncated_message}** (Commit SHA: {sha}) by {author_name} on {formatted_date}",
                 "date": author_date
             }
 
@@ -104,9 +107,8 @@ class Plugin:
                 else:
                     categories["Other"].append(format_patch_note(commit))
 
-            # Sort commits in each category by date
-            for category in categories:
-                categories[category] = sorted(categories[category], key=lambda x: x['date'], reverse=True)
+            # Limit to the most recent commit in each category (you can adjust this number if needed)
+            categories = {category: commits[:1] for category, commits in categories.items()}
 
             return categories
 

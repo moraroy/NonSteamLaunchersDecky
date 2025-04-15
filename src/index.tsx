@@ -104,7 +104,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
               maxWidth: "80%",
               margin: "auto",
-              lineHeight: 1.6
+              lineHeight: 1.6,
+              overflow: "hidden",
+              wordWrap: "break-word",  // Word wrap
             }}
           >
             <div>A new update is available! Please use the NSLPlugin.desktop to update your plugin :)</div>
@@ -113,13 +115,25 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
               <div style={{ marginTop: "0.5em" }}>
                 <strong>📝 Patch Notes:</strong>
-                <ul style={{ textAlign: "left", marginLeft: "1.5em", fontSize: "13px" }}>
-                  {Object.entries(updateInfo.patch_notes).map(([version, notes]) => (
-                    <li key={version}>
-                      <strong>{version}</strong>
-                      <ul>
+                <ul style={{
+                  textAlign: "left", 
+                  marginLeft: "1.5em", 
+                  fontSize: "13px", 
+                  listStyleType: "none", 
+                  padding: "0"
+                }}>
+                  {Object.entries(updateInfo.patch_notes).map(([category, notes]) => (
+                    <li key={category} style={{ marginBottom: "1em" }}>
+                      <strong>{category}</strong>
+                      <ul style={{ paddingLeft: "20px" }}>
                         {notes.map((note, idx) => (
-                          <li key={idx}>{note.formatted_note}</li>
+                          <li key={idx} style={{
+                            wordWrap: "break-word", 
+                            overflow: "hidden", 
+                            textOverflow: "ellipsis"
+                          }}>
+                            {note.formatted_note}
+                          </li>
                         ))}
                       </ul>
                     </li>
