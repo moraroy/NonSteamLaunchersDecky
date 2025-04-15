@@ -1169,7 +1169,7 @@
       {
           name: 'fortnite',
           label: 'Fortnite (xCloud)',
-          URL: 'https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2/',
+          URL: 'https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/560cc70f255b94b8408709e810914593.jpg'
@@ -1201,7 +1201,7 @@
       {
           name: 'amazonLuna',
           label: 'Amazon Luna',
-          URL: 'https://luna.amazon.com/',
+          URL: 'https://luna.amazon.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/5966577c1d725b37c26c3f7aa493dd9c.jpg'
@@ -1225,7 +1225,7 @@
       {
           name: 'webRcade',
           label: 'WebRcade',
-          URL: 'https://play.webrcade.com/',
+          URL: 'https://play.webrcade.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/f9b8cc42051c6d1c1ddaf5260118d585.jpg'
@@ -1233,7 +1233,7 @@
       {
           name: 'webRcadeeditor',
           label: 'WebRcade (Editor)',
-          URL: 'https://editor.webrcade.com/',
+          URL: 'https://editor.webrcade.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/f9b8cc42051c6d1c1ddaf5260118d585.jpg'
@@ -1329,10 +1329,18 @@
       {
           name: 'plex',
           label: 'Plex',
-          URL: 'https://www.plex.tv/',
+          URL: 'https://www.plex.tv',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/7c8db737a231930514b03b61dda48c60.jpg'
+      },
+      {
+          name: 'tubi',
+          label: 'Tubi',
+          URL: 'https://tubitv.com',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/225608983dc66adb163c3a64b6b42f91.jpg'
       },
       {
           name: 'youtube',
@@ -1345,7 +1353,7 @@
       {
           name: 'crunchyroll',
           label: 'Crunchyroll',
-          URL: 'https://www.crunchyroll.com/',
+          URL: 'https://www.crunchyroll.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/b51869faee0c2357dc5c2c34e4229a80.jpg'
@@ -1353,7 +1361,7 @@
       {
           name: 'appletv+',
           label: 'Apple TV+',
-          URL: 'https://tv.apple.com/',
+          URL: 'https://tv.apple.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/305aefb84d348c156953f7a3d4aa3e04.jpg'
@@ -1361,7 +1369,7 @@
       {
           name: 'twitch',
           label: 'Twitch',
-          URL: 'https://www.twitch.tv/',
+          URL: 'https://www.twitch.tv',
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/72f0b767094fe8e24d620a2273bd0839.jpg'
