@@ -369,6 +369,9 @@ class Plugin:
                 {"name": 'artixGameLauncher', "env_var": 'artixgame_launcher', "label": 'Artix Game Launcher'},
                 {"name": 'pokémonTradingCardGameLive', "env_var": 'poketcg_launcher', "label": 'Pokémon Trading Card Game Live'},
                 {"name": 'minecraftLauncher', "env_var": 'minecraft_launcher', "label": 'Minecraft Launcher'},
+                {"name": 'vfun', "env_var": 'vfun_launcher', "label": 'VFUN Launcher'},
+                {"name": 'tempo', "env_var": 'tempo_launcher', "label": 'Tempo Launcher'},
+
                 {"name": 'antstreamArcade', "env_var": 'antstream_launcher', "label": 'Antstream Arcade'},
 
                 # exception

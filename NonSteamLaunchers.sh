@@ -2,7 +2,6 @@
 
 set -x              # activate debugging (execution shown)
 set -o pipefail     # capture error from pipes
-# set -eu           # exit immediately, undefined vars are errors
 
 # ENVIRONMENT VARIABLES
 # $USER
@@ -23,36 +22,125 @@ logged_in_uid=$(id -u "${logged_in_user}")
 # $HOME
 logged_in_home=$(eval echo "~${logged_in_user}")
 
-# Debugging: Check the value of the DBUS_SESSION_BUS_ADDRESS environment variable
-zenity --info --text="DBus session address: $DBUS_SESSION_BUS_ADDRESS" --no-session-bus
-
-
-
-
-
 # Log
 download_dir=$(eval echo ~$user)/Downloads/NonSteamLaunchersInstallation
 log_file=$(eval echo ~$user)/Downloads/NonSteamLaunchers-install.log
+
+
+#some cleaning
+find ${logged_in_home}/.local/share/Steam/steamapps/compatdata/ -maxdepth 1 -type d -empty -delete
+find ${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/ -maxdepth 1 -type f -name "*.tmp" -delete
+
+
+# Function to display a Zenity message
+show_message() {
+  zenity --notification --text="$1" --timeout=1
+}
+
+
+
+
+
+
+
+
 
 # Remove existing log file if it exists
 if [[ -f $log_file ]]; then
   rm $log_file
 fi
 
-# Redirect all output to the log file with line buffering
-exec > >(stdbuf -oL tee -a $log_file) 2>&1
-
-
+# Redirect all output to the log file
+exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.0.4
+version=v4.1.4
 #NSL DECKY VERSION (NO RCE)
 
 
 
+# Check if Zenity is installed
+if ! command -v zenity &> /dev/null; then
+    echo "Zenity is not installed. Installing Zenity..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get install -y zenity
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y zenity
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm zenity
+    else
+        echo "Unknown package manager. Please install Zenity manually."
+        exit 1
+    fi
+fi
+
+# Check if Steam is installed (non-flatpak)
+if ! command -v steam &> /dev/null; then
+    echo "Steam is not installed. Please install the non-flatpak version of Steam."
+    # Provide instructions for different package managers:
+    if command -v apt-get &> /dev/null; then
+        echo "To install Steam on a Debian-based system (e.g., Ubuntu, Pop!_OS), run:"
+        echo "  sudo apt update && sudo apt install steam"
+    elif command -v dnf &> /dev/null; then
+        echo "To install Steam on a Fedora-based system, run:"
+        echo "  sudo dnf install steam"
+    elif command -v pacman &> /dev/null; then
+        echo "To install Steam on an Arch-based system (e.g., ChimeraOS), run:"
+        echo "  sudo pacman -S steam"
+    else
+        echo "Unknown package manager. Please install Steam manually."
+        exit 1
+    fi
+fi
+
+# Check if wget is installed
+if ! command -v wget &> /dev/null; then
+    echo "wget is not installed. Installing wget..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get install -y wget
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y wget
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm wget
+    else
+        echo "Unknown package manager. Please install wget manually."
+        exit 1
+    fi
+fi
+
+# Check if curl is installed
+if ! command -v curl &> /dev/null; then
+    echo "curl is not installed. Installing curl..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get install -y curl
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y curl
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm curl
+    else
+        echo "Unknown package manager. Please install curl manually."
+        exit 1
+    fi
+fi
+
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    echo "jq is not installed. Installing jq..."
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get install -y jq
+    elif command -v dnf &> /dev/null; then
+        sudo dnf install -y jq
+    elif command -v pacman &> /dev/null; then
+        sudo pacman -S --noconfirm jq
+    else
+        echo "Unknown package manager. Please install jq manually."
+        exit 1
+    fi
+fi
 
 # Get the command line arguments
 args=("$@")
+echo "Arguments passed: ${args[@]}"  # Debugging the passed arguments
 deckyplugin=false
 installchrome=false
 
@@ -62,30 +150,8 @@ for arg in "${args[@]}"; do
   elif [ "$arg" = "Chrome" ]; then
     installchrome=true
   fi
-  done
+done
 
-# Check if the user wants to install Chrome
-if $installchrome; then
-  # Check if Google Chrome is already installed for the current user
-  if flatpak list --user | grep com.google.Chrome &> /dev/null; then
-    echo "Google Chrome is already installed for the current user"
-    flatpak --user override --filesystem=/run/udev:ro com.google.Chrome
-  else
-    # Check if the Flathub repository exists for the current user
-    if flatpak remote-list --user | grep flathub &> /dev/null; then
-      echo "Flathub repository exists for the current user"
-    else
-      # Add the Flathub repository for the current user
-      flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    fi
-
-    # Install Google Chrome for the current user
-    flatpak install --user flathub com.google.Chrome -y
-
-    # Run the flatpak --user override command
-    flatpak --user override --filesystem=/run/udev:ro com.google.Chrome
-  fi
-fi
 
 
 
@@ -154,6 +220,19 @@ poketcg_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonStea
 poketcg_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher/pfx/drive_c/users/steamuser/The Pokémon Company International/Pokémon Trading Card Game Live/Pokemon TCG Live.exe"
 antstream_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd/Antstream/AntstreamArcade.exe"
 antstream_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher/pfx/drive_c/Program Files (x86)/Antstream Ltd/Antstream/AntstreamArcade.exe"
+purple_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/PurpleLauncher.exe"
+purple_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/PurpleLauncher.exe"
+plarium_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay/PlariumPlay.exe"
+plarium_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay/PlariumPlay.exe"
+vfun_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/VFUN/VLauncher/VFUNLauncher.exe"
+vfun_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher/pfx/drive_c/VFUN/VLauncher/VFUNLauncher.exe"
+tempo_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Tempo Launcher - Beta/Tempo Launcher - Beta.exe"
+tempo_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/Program Files/Tempo Launcher - Beta/Tempo Launcher - Beta.exe"
+
+
+
+
+
 
 # Chrome File Path
 # chrome_installpath="/app/bin/chrome"
@@ -164,11 +243,11 @@ chromedirectory="\"$chrome_path\""
 #Zenity Launcher Check Installation
 function CheckInstallations {
     declare -A paths1 paths2 names
-    paths1=(["epic_games"]="$epic_games_launcher_path1" ["gog_galaxy"]="$gog_galaxy_path1" ["uplay"]="$uplay_path1" ["battlenet"]="$battlenet_path1" ["eaapp"]="$eaapp_path1" ["amazongames"]="$amazongames_path1" ["itchio"]="$itchio_path1" ["legacygames"]="$legacygames_path1" ["humblegames"]="$humblegames_path1" ["indiegala"]="$indiegala_path1" ["rockstar"]="$rockstar_path1" ["glyph"]="$glyph_path1" ["minecraft"]="$minecraft_path1" ["psplus"]="$psplus_path1" ["vkplay"]="$vkplay_path1" ["hoyoplay"]="$hoyoplay_path1" ["nexon"]="$nexon_path1" ["gamejolt"]="$gamejolt_path1" ["artixgame"]="$artixgame_path1" ["arc"]="$arc_path1" ["poketcg"]="$poketcg_path1" ["antstream"]="$antstream_path1")
+    paths1=(["epic_games"]="$epic_games_launcher_path1" ["gog_galaxy"]="$gog_galaxy_path1" ["uplay"]="$uplay_path1" ["battlenet"]="$battlenet_path1" ["eaapp"]="$eaapp_path1" ["amazongames"]="$amazongames_path1" ["itchio"]="$itchio_path1" ["legacygames"]="$legacygames_path1" ["humblegames"]="$humblegames_path1" ["indiegala"]="$indiegala_path1" ["rockstar"]="$rockstar_path1" ["glyph"]="$glyph_path1" ["minecraft"]="$minecraft_path1" ["psplus"]="$psplus_path1" ["vkplay"]="$vkplay_path1" ["hoyoplay"]="$hoyoplay_path1" ["nexon"]="$nexon_path1" ["gamejolt"]="$gamejolt_path1" ["artixgame"]="$artixgame_path1" ["arc"]="$arc_path1" ["poketcg"]="$poketcg_path1" ["antstream"]="$antstream_path1" ["purple"]="$purple_path1" ["plarium"]="$plarium_path1" ["vfun"]="$vfun_path1" ["tempo"]="$tempo_path1")
 
-    paths2=(["epic_games"]="$epic_games_launcher_path2" ["gog_galaxy"]="$gog_galaxy_path2" ["uplay"]="$uplay_path2" ["battlenet"]="$battlenet_path2" ["eaapp"]="$eaapp_path2" ["amazongames"]="$amazongames_path2" ["itchio"]="$itchio_path2" ["legacygames"]="$legacygames_path2" ["humblegames"]="$humblegames_path2" ["indiegala"]="$indiegala_path2" ["rockstar"]="$rockstar_path2" ["glyph"]="$glyph_path2" ["minecraft"]="$minecraft_path2" ["psplus"]="$psplus_path2" ["vkplay"]="$vkplay_path2" ["hoyoplay"]="$hoyoplay_path2" ["nexon"]="$nexon_path2" ["gamejolt"]="$gamejolt_path2" ["artixgame"]="$artixgame_path2" ["arc"]="$arc_path2" ["poketcg"]="$poketcg_path2" ["antstream"]="$antstream_path2")
+    paths2=(["epic_games"]="$epic_games_launcher_path2" ["gog_galaxy"]="$gog_galaxy_path2" ["uplay"]="$uplay_path2" ["battlenet"]="$battlenet_path2" ["eaapp"]="$eaapp_path2" ["amazongames"]="$amazongames_path2" ["itchio"]="$itchio_path2" ["legacygames"]="$legacygames_path2" ["humblegames"]="$humblegames_path2" ["indiegala"]="$indiegala_path2" ["rockstar"]="$rockstar_path2" ["glyph"]="$glyph_path2" ["minecraft"]="$minecraft_path2" ["psplus"]="$psplus_path2" ["vkplay"]="$vkplay_path2" ["hoyoplay"]="$hoyoplay_path2" ["nexon"]="$nexon_path2" ["gamejolt"]="$gamejolt_path2" ["artixgame"]="$artixgame_path2" ["arc"]="$arc_path2" ["poketcg"]="$poketcg_path2" ["antstream"]="$antstream_path2" ["purple"]="$purple_path2" ["plarium"]="$plarium_path2" ["vfun"]="$vfun_path2" ["tempo"]="$tempo_path2")
 
-    names=(["epic_games"]="Epic Games" ["gog_galaxy"]="GOG Galaxy" ["uplay"]="Ubisoft Connect" ["battlenet"]="Battle.net" ["eaapp"]="EA App" ["amazongames"]="Amazon Games" ["itchio"]="itch.io" ["legacygames"]="Legacy Games" ["humblegames"]="Humble Games Collection" ["indiegala"]="IndieGala" ["rockstar"]="Rockstar Games Launcher" ["glyph"]="Glyph Launcher" ["minecraft"]="Minecraft Launcher" ["psplus"]="Playstation Plus" ["vkplay"]="VK Play" ["hoyoplay"]="HoYoPlay" ["nexon"]="Nexon Launcher" ["gamejolt"]="Game Jolt Client" ["artixgame"]="Artix Game Launcher" ["arc"]="ARC Launcher" ["poketcg"]="Pokémon Trading Card Game Live" ["antstream"]="Antstream Arcade")
+    names=(["epic_games"]="Epic Games" ["gog_galaxy"]="GOG Galaxy" ["uplay"]="Ubisoft Connect" ["battlenet"]="Battle.net" ["eaapp"]="EA App" ["amazongames"]="Amazon Games" ["itchio"]="itch.io" ["legacygames"]="Legacy Games" ["humblegames"]="Humble Games Collection" ["indiegala"]="IndieGala" ["rockstar"]="Rockstar Games Launcher" ["glyph"]="Glyph Launcher" ["minecraft"]="Minecraft Launcher" ["psplus"]="Playstation Plus" ["vkplay"]="VK Play" ["hoyoplay"]="HoYoPlay" ["nexon"]="Nexon Launcher" ["gamejolt"]="Game Jolt Client" ["artixgame"]="Artix Game Launcher" ["arc"]="ARC Launcher" ["poketcg"]="Pokémon Trading Card Game Live" ["antstream"]="Antstream Arcade" ["purple"]="PURPLE Launcher" ["plarium"]="Plarium Play" ["vfun"]="VFUN Launcher" ["tempo"]="Tempo Launcher")
 
     for launcher in "${!names[@]}"; do
         if [[ -f "${paths1[$launcher]}" ]]; then
@@ -187,9 +266,9 @@ function CheckInstallations {
 # Verify launchers are installed
 function CheckInstallationDirectory {
     declare -A paths names
-    paths=(["nonsteamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers" ["epicgameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" ["goggalaxylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GogGalaxyLauncher" ["uplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" ["battlenetlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" ["eaapplauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher" ["amazongameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" ["itchiolauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/itchioLauncher" ["legacygameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/LegacyGamesLauncher" ["humblegameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HumbleGamesLauncher" ["indiegalalauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/IndieGalaLauncher" ["rockstargameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/RockstarGamesLauncher" ["glyphlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GlyphLauncher" ["minecraftlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/MinecraftLauncher" ["pspluslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" ["vkplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VKPlayLauncher" ["hoyoplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HoYoPlayLauncher" ["nexonlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NexonLauncher" ["gamejoltlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GameJoltLauncher" ["artixgamelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ArtixGameLauncher" ["arc"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ARCLauncher" ["poketcglauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher" ["antstreamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher")
+    paths=(["nonsteamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers" ["epicgameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" ["goggalaxylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GogGalaxyLauncher" ["uplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" ["battlenetlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" ["eaapplauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher" ["amazongameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" ["itchiolauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/itchioLauncher" ["legacygameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/LegacyGamesLauncher" ["humblegameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HumbleGamesLauncher" ["indiegalalauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/IndieGalaLauncher" ["rockstargameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/RockstarGamesLauncher" ["glyphlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GlyphLauncher" ["minecraftlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/MinecraftLauncher" ["pspluslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" ["vkplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VKPlayLauncher" ["hoyoplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HoYoPlayLauncher" ["nexonlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NexonLauncher" ["gamejoltlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GameJoltLauncher" ["artixgamelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ArtixGameLauncher" ["arc"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ARCLauncher" ["poketcglauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher" ["antstreamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher" ["purplelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher" ["plarium"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" ["vfun"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher" ["tempo"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher")
 
-    names=(["nonsteamlauncher"]="NonSteamLaunchers" ["epicgameslauncher"]="EpicGamesLauncher" ["goggalaxylauncher"]="GogGalaxyLauncher" ["uplaylauncher"]="UplayLauncher" ["battlenetlauncher"]="Battle.netLauncher" ["eaapplauncher"]="TheEAappLauncher" ["amazongameslauncher"]="AmazonGamesLauncher" ["itchiolauncher"]="itchioLauncher" ["legacygameslauncher"]="LegacyGamesLauncher" ["humblegameslauncher"]="HumbleGamesLauncher" ["indiegalalauncher"]="IndieGalaLauncher" ["rockstargameslauncher"]="RockstarGamesLauncher" ["glyphlauncher"]="GlyphLauncher" ["minecraftlauncher"]="MinecraftLauncher" ["pspluslauncher"]="PlaystationPlusLauncher" ["vkplaylauncher"]="VKPlayLauncher" ["hoyoplaylauncher"]="HoYoPlayLauncher" ["nexonlauncher"]="NexonLauncher" ["gamejoltlauncher"]="GameJoltLauncher" ["artixgamelauncher"]="ArtixGameLauncher" ["arc"]="ARCLauncher" ["poketcg"]="PokeTCGLauncher" ["antstreamlauncher"]="AntstreamLauncher")
+    names=(["nonsteamlauncher"]="NonSteamLaunchers" ["epicgameslauncher"]="EpicGamesLauncher" ["goggalaxylauncher"]="GogGalaxyLauncher" ["uplaylauncher"]="UplayLauncher" ["battlenetlauncher"]="Battle.netLauncher" ["eaapplauncher"]="TheEAappLauncher" ["amazongameslauncher"]="AmazonGamesLauncher" ["itchiolauncher"]="itchioLauncher" ["legacygameslauncher"]="LegacyGamesLauncher" ["humblegameslauncher"]="HumbleGamesLauncher" ["indiegalalauncher"]="IndieGalaLauncher" ["rockstargameslauncher"]="RockstarGamesLauncher" ["glyphlauncher"]="GlyphLauncher" ["minecraftlauncher"]="MinecraftLauncher" ["pspluslauncher"]="PlaystationPlusLauncher" ["vkplaylauncher"]="VKPlayLauncher" ["hoyoplaylauncher"]="HoYoPlayLauncher" ["nexonlauncher"]="NexonLauncher" ["gamejoltlauncher"]="GameJoltLauncher" ["artixgamelauncher"]="ArtixGameLauncher" ["arc"]="ARCLauncher" ["poketcg"]="PokeTCGLauncher" ["antstreamlauncher"]="AntstreamLauncher" ["purplelauncher"]="PURPLELauncher" ["plariumlauncher"]="PlariumLauncher" ["vfunlauncher"]="VFUNLauncher" ["tempolauncher"]="TempoLauncher")
 
     for launcher in "${!names[@]}"; do
         if [[ -d "${paths[$launcher]}" ]]; then
@@ -199,7 +278,6 @@ function CheckInstallationDirectory {
         fi
     done
 }
-
 
 
 #Get SD Card Path
@@ -316,7 +394,7 @@ function download_umu_launcher() {
 
     # Check if the downloaded file is a .zip file or a .tar.gz file and extract accordingly
     if [[ "$downloaded_file" =~ \.zip$ ]]; then
-        # Extract the .zip file into /home/deck/bin/ without preserving directory structure
+        # Extract the .zip file into without preserving directory structure
         unzip -o -j "$downloaded_file" -d "${logged_in_home}/bin/"
         if [ $? -ne 0 ]; then
             echo "Zip extraction failed. Exiting."
@@ -379,10 +457,15 @@ function update_umu_launcher() {
 
 
 
-
 # Check which app IDs are installed
 CheckInstallations
 CheckInstallationDirectory
+
+
+rm -rf ${logged_in_home}/.config/systemd/user/nslgamescanner.service
+unlink ${logged_in_home}/.config/systemd/user/default.target.wants/nslgamescanner.service
+systemctl --user daemon-reload
+
 
 # Get the command line arguments
 args=("$@")
@@ -393,10 +476,12 @@ custom_websites=()
 # Initialize a variable to store whether the "Separate App IDs" option is selected or not
 separate_app_ids=false
 
+
+
 # Check if any command line arguments were provided
 if [ ${#args[@]} -eq 0 ]; then
     # No command line arguments were provided, so display the main zenity window
-    selected_launchers=$(zenity --list --text="Which launchers do you want to download and install?" --checklist --column="$version" --column="Default = one App ID Installation, One Prefix, NonSteamLaunchers - updated the NSLGameScanner.py $live" FALSE "SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX" $epic_games_value "$epic_games_text" $gog_galaxy_value "$gog_galaxy_text" $uplay_value "$uplay_text" $battlenet_value "$battlenet_text" $amazongames_value "$amazongames_text" $eaapp_value "$eaapp_text" $legacygames_value "$legacygames_text" $itchio_value "$itchio_text" $humblegames_value "$humblegames_text" $indiegala_value "$indiegala_text" $rockstar_value "$rockstar_text" $glyph_value "$glyph_text" $minecraft_value "$minecraft_text" $psplus_value "$psplus_text" $vkplay_value "$vkplay_text" $hoyoplay_value "$hoyoplay_text" $nexon_value "$nexon_text" $gamejolt_value "$gamejolt_text" $artixgame_value "$artixgame_text" $arc_value "$arc_text" $poketcg_value "$poketcg_text" $antstream_value "$antstream_text" FALSE "RemotePlayWhatever" FALSE "Fortnite" FALSE "Venge" FALSE "PokéRogue" FALSE "Xbox Game Pass" FALSE "GeForce Now" FALSE "Amazon Luna" FALSE "Stim.io" FALSE "Boosteroid Cloud Gaming" FALSE "Rocketcrab" FALSE "WebRcade" FALSE "WebRcade Editor" FALSE "Afterplay.io" FALSE "OnePlay" FALSE "AirGPU" FALSE "CloudDeck" FALSE "JioGamesCloud" FALSE "WatchParty" FALSE "Netflix" FALSE "Hulu" FALSE "Disney+" FALSE "Amazon Prime Video" FALSE "Youtube" FALSE "Twitch" FALSE "Apple TV+" FALSE "Tubi" FALSE "Crunchyroll" FALSE "Plex" --width=800 --height=740 --extra-button="Uninstall" --extra-button="Stop NSLGameScanner" --extra-button="Start Fresh" --extra-button="Move to SD Card" --extra-button="Update Proton-GE")
+    selected_launchers=$(zenity --list --text="Which launchers do you want to download and install?" --checklist --column="$version" --column="Default = one App ID Installation, One Prefix, NonSteamLaunchers - updated the NSLGameScanner.py $live" FALSE "SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX" $epic_games_value "$epic_games_text" $gog_galaxy_value "$gog_galaxy_text" $uplay_value "$uplay_text" $battlenet_value "$battlenet_text" $amazongames_value "$amazongames_text" $eaapp_value "$eaapp_text" $legacygames_value "$legacygames_text" $itchio_value "$itchio_text" $humblegames_value "$humblegames_text" $indiegala_value "$indiegala_text" $rockstar_value "$rockstar_text" $glyph_value "$glyph_text" $minecraft_value "$minecraft_text" $psplus_value "$psplus_text" $vkplay_value "$vkplay_text" $hoyoplay_value "$hoyoplay_text" $nexon_value "$nexon_text" $gamejolt_value "$gamejolt_text" $artixgame_value "$artixgame_text" $arc_value "$arc_text" $purple_value "$purple_text" $plarium_value "$plarium_text" $vfun_value "$vfun_text" $tempo_value "$tempo_text" $poketcg_value "$poketcg_text" $antstream_value "$antstream_text" FALSE "RemotePlayWhatever" FALSE "Fortnite" FALSE "Venge" FALSE "PokéRogue" FALSE "Xbox Game Pass" FALSE "Better xCloud" FALSE "GeForce Now" FALSE "Amazon Luna" FALSE "Stim.io" FALSE "Boosteroid Cloud Gaming" FALSE "Rocketcrab" FALSE "WebRcade" FALSE "WebRcade Editor" FALSE "Afterplay.io" FALSE "OnePlay" FALSE "AirGPU" FALSE "CloudDeck" FALSE "JioGamesCloud" FALSE "WatchParty" FALSE "Netflix" FALSE "Hulu" FALSE "Tubi" FALSE "Disney+" FALSE "Amazon Prime Video" FALSE "Youtube" FALSE "Twitch" FALSE "Apple TV+" FALSE "Crunchyroll" FALSE "Plex" --width=800 --height=600 --extra-button="❤️" --extra-button="Uninstall" --extra-button="🔍" --extra-button="Start Fresh" --extra-button="Move to SD Card" --extra-button="Update Proton-GE" --extra-button="🖥️ Off" --extra-button="NSLGameSaves")
 
 
     # Check if the user clicked the 'Cancel' button or selected one of the extra buttons
@@ -444,6 +529,9 @@ else
     fi
 fi
 
+
+
+
 # TODO: SC2145
 # Print the selected launchers and custom websites
 echo "Selected launchers: $selected_launchers"
@@ -484,6 +572,21 @@ else
 fi
 
 
+
+
+
+
+
+
+
+
+if [[ $options == *"🖥️ Off"* ]]; then
+    sleep 1
+    xset dpms force off
+    exit 0
+fi
+
+
 # Define the StartFreshFunction
 function StartFreshFunction {
     # Define the path to the compatdata directory
@@ -492,7 +595,7 @@ function StartFreshFunction {
     other_dir="${logged_in_home}/.local/share/Steam/steamapps/shadercache/"
 
     # Define an array of original folder names
-    folder_names=("EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher")
+    folder_names=("EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher")
 
     # Define an array of app IDs
     app_ids=("3772819390" "4294900670" "4063097571" "3786021133" "3448088735" "3923904787" "3440562512" "2948446662" "3908676077" "4206469918" "3303169468" "3595505624" "4272271078" "3259996605" "2588786779" "4090616647" "3494943831" "2390200925" "4253976432" "2221882453" "2296676888" "2486751858" "3974004104" "3811372789" "3788101956" "3782277090" "3640061468" "3216372511" "2882622939" "2800812206" "2580882702" "4022508926" "4182617613" "1981254598" "2136059209" "1401184678" "3141683525")
@@ -596,10 +699,15 @@ function StartFreshFunction {
     rm -rf "/run/media/mmcblk0p1/ARCLauncher/"
     rm -rf "/run/media/mmcblk0p1/PokeTCGLauncher/"
     rm -rf "/run/media/mmcblk0p1/AntstreamLauncher/"
+    rm -rf "/run/media/mmcblk0p1/PURPLELauncher/"
+    rm -rf "/run/media/mmcblk0p1/PlariumLauncher/"
+    rm -rf "/run/media/mmcblk0p1/VFUNLauncher/"
+    rm -rf "/run/media/mmcblk0p1/TempoLauncher/"
     rm -rf ${logged_in_home}/Downloads/NonSteamLaunchersInstallation
     rm -rf ${logged_in_home}/.config/systemd/user/Modules
     rm -rf ${logged_in_home}/.config/systemd/user/env_vars
     rm -rf ${logged_in_home}/.config/systemd/user/NSLGameScanner.py
+	rm -rf ${logged_in_home}/.config/systemd/user/shortcuts
     rm -rf ${logged_in_home}/.local/share/applications/RemotePlayWhatever
     rm -rf ${logged_in_home}/.local/share/applications/RemotePlayWhatever.desktop
     rm -rf ${logged_in_home}/Downloads/NonSteamLaunchers-install.log
@@ -655,6 +763,7 @@ msi_url=https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/ins
 
 # Set the path to save the MSI file to
 msi_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/EpicGamesLauncherInstaller.msi
+
 
 # Set the URL to download the second file from
 exe_url=https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.74.352/setup_galaxy_2.0.74.352.exe
@@ -731,6 +840,9 @@ minecraft_url=https://aka.ms/minecraftClientWindows
 # Set the path to save the Minecraft Launcher to
 minecraft_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/MinecraftInstaller.msi
 
+
+
+
 # Set the URL to download the Playstation Launcher file from
 psplus_url=https://download-psplus.playstation.com/downloads/psplus/pc/latest
 
@@ -744,7 +856,7 @@ vkplay_url=https://static.gc.vkplay.ru/VKPlayLoader.exe
 # Set the path to save the VK Play Launcher to
 vkplay_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/VKPlayLoader.exe
 
-# Set the URL to download the Hoyo Play Launcher file from
+# Set the URL to download the Hoyo Play Play Launcher file from
 hoyoplay_url="https://download-porter.hoyoverse.com/download-porter/2024/06/07/hyp_global_setup_1.0.5.exe"
 
 # Set the path to save the Hoyo Play Launcher to
@@ -757,7 +869,7 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
 # Set the URL to download the GameJolt Launcher file from
-gamejolt_url="https://download.gamejolt.net/1a78c0ebf8c80197cead04f3883bf5ab1fc38d4ff562b09f289b83354e48ec80,1743848519,7/data/games/5/162/362412/files/66bc359fe3e14/gamejoltclientsetup.exe"
+gamejolt_url="https://download1652.mediafire.com/mzoty4dbmnagGikRUqK9uWSBBWCQxWr8Huf53X7W5FYaGVW5VKFmyqT6t3CElxXD4dnKxsZb1n7aOeBxsFk2Gc0lvI8qmIZ7lIh31tSE5dUwVKc_pUiIfbpZjM8lke5aPXQBsd787ibzNEEtEe8l4vvDnqTM674ZL5AqVxkf5ySzlE0/3qq9rj7bnknr5g6/gamejoltclientsetup.exe"
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
@@ -781,11 +893,32 @@ poketcg_url=https://installer.studio-prod.pokemon.com/installer/PokemonTCGLiveIn
 
 poketcg_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/PokemonTCGLiveInstaller.msi
 
-
 #Antstream Arcade
 
 antstream_url=https://downloads.antstream.com/antstreamInstaller-2.1.2986.exe
 antstream_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/antstreamInstaller-2.1.2986.exe
+
+
+#PURPLE Launcher
+purple_url=https://gs-purple-inst.download.ncupdate.com/Purple/PurpleInstaller_2_25_325_23.exe
+purple_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/PurpleInstaller_2_25_325_23.exe
+
+#Plarium Launcher
+plarium_url="https://installer.plarium.com/desktop?lid=1&arc=64&os=windows"
+plarium_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/PlariumPlaySetup.exe
+
+
+#VFUNLauncher
+vfun_url=https://vfun-cdn.qijisoft.com/vlauncher/fullclient/VFUNLauncherInstaller.exe
+vfun_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/VFUNLauncherInstaller.exe
+
+# TempoLauncher
+tempo_url="https://cdn.playthebazaar.com/launcher-0ca5d6/Tempo%20Launcher%20-%20Beta%20Setup%201.0.1.exe"
+tempo_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/TempoLauncherSetup.exe"
+
+
+
+
 #End of Downloads INFO
 
 
@@ -835,11 +968,7 @@ handle_uninstall_ea() {
     handle_uninstall_common "$1" "$eaapp_file" "/uninstall /quiet" "EA App"
 }
 
-# Function to handle GOG Galaxy uninstallation
-handle_uninstall_gog() {
-    gog_uninstaller="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files (x86)/GOG Galaxy/unins000.exe"
-    handle_uninstall_common "$1" "$gog_uninstaller" "/SILENT" "GOG Galaxy"
-}
+
 
 # Uninstall EA App
 if [[ $uninstall_options == *"Uninstall EA App"* ]]; then
@@ -850,6 +979,16 @@ if [[ $uninstall_options == *"Uninstall EA App"* ]]; then
     fi
 fi
 
+
+
+
+# Function to handle GOG Galaxy uninstallation
+handle_uninstall_gog() {
+    gog_uninstaller="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files (x86)/GOG Galaxy/unins000.exe"
+    handle_uninstall_common "$1" "$gog_uninstaller" "/SILENT" "GOG Galaxy"
+}
+
+
 # Uninstall GOG Galaxy
 if [[ $uninstall_options == *"Uninstall GOG Galaxy"* ]]; then
     if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/GOG Galaxy" ]]; then
@@ -858,6 +997,9 @@ if [[ $uninstall_options == *"Uninstall GOG Galaxy"* ]]; then
         handle_uninstall_gog "GogGalaxyLauncher"
     fi
 fi
+
+
+
 
 # Function to handle Legacy Games Launcher uninstallation
 handle_uninstall_legacy() {
@@ -916,7 +1058,7 @@ handle_uninstall_antstream() {
         wget $antstream_url -O $antstream_file
     fi
 
-    handle_uninstall_common "$1" "$antstream_file" "/uninstall /silent" "AntStream Arcade"
+    handle_uninstall_common "$1" "$antstream_file" "/uninstall /quiet" "AntStream Arcade"
 }
 
 # Uninstall Antstream Arcade
@@ -927,6 +1069,97 @@ if [[ $uninstall_options == *"Uninstall Antstream Arcade"* ]]; then
         handle_uninstall_antstream "AntstreamLauncher"
     fi
 fi
+
+# Function to handle PURPLE uninstallation
+handle_uninstall_purple() {
+    # Define the path to the Purple uninstaller
+    purpleun_file="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/Uninstall.exe"
+
+    # Call the common uninstallation handler with necessary parameters
+    handle_uninstall_common "$1" "$purpleun_file" "/S" "PURPLE Launcher"
+
+    sleep 5
+
+    # Timeout duration (30 seconds)
+    timeout=30
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        # Check if Un_A.exe is running
+        if pgrep -f "Un_A.exe" > /dev/null; then
+            # Kill the Un_A.exe process
+            pkill -f "Un_A.exe"
+            echo "Un_A.exe has been terminated."
+            return
+        fi
+
+        # Wait for 1 second before checking again
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+
+    # If we reach here, Un_A.exe wasn't found within the timeout
+    echo "Un_A.exe was not found within the $timeout seconds timeout."
+}
+
+
+
+# Uninstall PURPLE
+if [[ $uninstall_options == *"Uninstall PURPLE Launcher"* ]]; then
+    if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd" ]]; then
+        handle_uninstall_purple "NonSteamLaunchers"
+    elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd" ]]; then
+        handle_uninstall_purple "PURPLELauncher"
+    fi
+fi
+
+
+
+
+# Function to handle Plarium Play folder deletion
+handle_uninstall_plarium() {
+    # Define the two possible paths
+    plarium_play_dir_1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay"
+    plarium_play_dir_2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay"
+
+    # Check if either of the directories exists and delete the first one found
+    if [ -d "$plarium_play_dir_1" ]; then
+        echo "Deleting PlariumPlay folder from path 1... and is now uninstalled."
+        rm -rf "$plarium_play_dir_1"
+        # Notify the user via Zenity
+        zenity --info --text="Plarium Play folder has been successfully deleted from path 1." --width=300 --height=150 &
+        sleep 3
+        killall zenity
+    elif [ -d "$plarium_play_dir_2" ]; then
+        echo "Deleting PlariumPlay folder from path 2...and is now uninstalled."
+        rm -rf "$plarium_play_dir_2"
+        # Notify the user via Zenity
+        zenity --info --text="Plarium Play folder has been successfully deleted from path 2." --width=300 --height=150 &
+        sleep 3
+        killall zenity
+    else
+        # Notify the user if neither folder exists
+        zenity --error --text="Plarium Play folder not found at either path. Please check the paths." --width=300 --height=150 &
+    fi
+}
+
+
+# Function to handle Tempo uninstallation
+handle_uninstall_tempo() {
+    tempo_uninstaller="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files/Tempo Launcher - Beta/Uninstall Tempo Launcher - Beta.exe"
+    handle_uninstall_common "$1" "$tempo_uninstaller" "/S" "Tempo Launcher"
+}
+
+
+# Uninstall Tempo
+if [[ $uninstall_options == *"Uninstall Tempo Launcher"* ]]; then
+    if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Tempo Launcher - Beta" ]]; then
+        handle_uninstall_tempo "NonSteamLaunchers"
+    elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/Program Files/Tempo Launcher - Beta" ]]; then
+        handle_uninstall_tempo "TempoLauncher"
+    fi
+fi
+
+
 
 uninstall_launcher() {
     local uninstall_options=$1
@@ -955,6 +1188,10 @@ uninstall_launcher() {
         echo "Deleted environment variables for $launcher"
     fi
 }
+
+
+
+
 
 # Function to process uninstall options
 process_uninstall_options() {
@@ -1020,10 +1257,49 @@ process_uninstall_options() {
                 sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
             elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher/pfx/drive_c/Program Files (x86)/Antstream Ltd" ]]; then
                 handle_uninstall_antstream "AntstreamLauncher"
-                uninstall_launcher "$uninstall_options" "Antstream Arcade" "$antstream_path1" "$antstream_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd" "" "antstream" "antstream"
+                uninstall_launcher "$uninstall_options" "Antstream Arcade" "$antstream_path1" "$antstream_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd" "antstream" "antstream"
                 sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
             fi
         fi
+        # Uninstall PURPLE Launcher
+        if [[ $uninstall_options == *"Uninstall PURPLE Launcher"* ]]; then
+            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT" ]]; then
+                handle_uninstall_purple "NonSteamLaunchers"
+                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT" "" "purple"
+                sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
+            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT" ]]; then
+                handle_uninstall_purple "PURPLELauncher"
+                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT" "" "purple"
+                sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
+            fi
+        fi
+
+        if [[ $uninstall_options == *"Uninstall Plarium Play"* ]]; then
+            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay" ]]; then
+                handle_uninstall_plarium "NonSteamLaunchers"
+                uninstall_launcher "$uninstall_options" "Plarium Play" "$plarium_path1" "$plarium_path2" "plarium" "plarium"
+                sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
+            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" ]]; then
+                handle_uninstall_plarium "PlariumLauncher"
+                uninstall_launcher "$uninstall_options" "Plarium Play" "$eaapp_path1" "$eaapp_path2" "plarium" "plarium"
+                sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
+            fi
+        fi
+
+
+        if [[ $uninstall_options == *"Uninstall Tempo Launcher"* ]]; then
+            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Tempo Launcher - Beta" ]]; then
+                handle_uninstall_tempo "NonSteamLaunchers"
+                uninstall_launcher "$uninstall_options" "Tempo Launcher" "$tempo_path1" "$tempo_path2" "" "" "tempo"
+            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/Program Files/Tempo Launcher - Beta" ]]; then
+                handle_uninstall_tempo "TempoLauncher"
+                uninstall_launcher "$uninstall_options" "Tempo Launcher" "$tempo_path1" "$tempo_path2" "" "" "tempo"
+            fi
+        fi
+
+
+
+
 
 
         if [[ $uninstall_options == *"Uninstall RemotePlayWhatever"* ]]; then
@@ -1051,7 +1327,9 @@ process_uninstall_options() {
         uninstall_launcher "$uninstall_options" "Game Jolt Client" "$gamejolt_path1" "$gamejolt_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/GameJoltClient" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/GameJoltLauncher" "gamejolt"
         uninstall_launcher "$uninstall_options" "ARC Launcher" "$arc_path1" "$arc_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Arc" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/ARCLauncher" "arc"
         uninstall_launcher "$uninstall_options" "Pokémon Trading Card Game Live" "$poketcg_path1" "$poketcg_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/The Pokémon Company International" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher" "poketcg"
-        uninstall_launcher "$uninstall_options" "Antstream Arcade" "$antstream_path1" "$antstream_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher" "antstream"
+        uninstall_launcher "$uninstall_options" "Plarium Play" "$plarium_path1" "$plarium_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" "plarium"
+
+        uninstall_launcher "$uninstall_options" "VFUN Launcher" "$vfun_path1" "$vfun_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/VFUN/VLauncher" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher" "vfun"
 
     fi
     # If the uninstall was successful,  set uninstalled_any_launcher to true
@@ -1112,6 +1390,10 @@ else
             FALSE "Game Jolt Client" \
             FALSE "Artix Game Launcher" \
             FALSE "ARC Launcher" \
+            FALSE "PURPLE Launcher" \
+            FALSE "Plarium Play" \
+            FALSE "VFUN Launcher" \
+            FALSE "Tempo Launcher" \
             FALSE "Pokémon Trading Card Game Live" \
             FALSE "Antstream Arcade" \
             FALSE "RemotePlayWhatever" \
@@ -1128,6 +1410,7 @@ else
     fi
 fi
 #End of Uninstall
+
 
 move_to_sd() {
     local launcher_id=$1
@@ -1161,7 +1444,7 @@ else
     if [[ $options == "Move to SD Card" ]]; then
         CheckInstallationDirectory
 
-    move_options=$(zenity --list --text="Which launcher IDs do you want to move to the SD card?" --checklist --column="Select" --column="Launcher ID" $nonsteamlauncher_move_value "NonSteamLaunchers" $epicgameslauncher_move_value "EpicGamesLauncher" $goggalaxylauncher_move_value "GogGalaxyLauncher" $uplaylauncher_move_value "UplayLauncher" $battlenetlauncher_move_value "Battle.netLauncher" $eaapplauncher_move_value "TheEAappLauncher" $amazongameslauncher_move_value "AmazonGamesLauncher" $itchiolauncher_move_value "itchioLauncher" $legacygameslauncher_move_value "LegacyGamesLauncher" $humblegameslauncher_move_value "HumbleGamesLauncher" $indiegalalauncher_move_value "IndieGalaLauncher" $rockstargameslauncher_move_value "RockstarGamesLauncher" $glyphlauncher_move_value "GlyphLauncher" "$minecraftlauncher_move_value" "MinecraftLauncher" $pspluslauncher_move_value "PlaystationPlusLauncher" $vkplaylauncher_move_value "VKPlayLauncher" $hoyoplaylauncher_move_value "HoYoPlayLauncher" $nexonlauncher_move_value "NexonLauncher" $gamejoltlauncher_move_value "GameJoltLauncher" $artixgame_move_value "ArtixGameLauncher" $arc_move_value "ARCLauncher" $poketcg_move_value "PokeTCGLauncher" $antstream_move_value "AntstreamLauncher" --width=335 --height=524)
+    move_options=$(zenity --list --text="Which launcher IDs do you want to move to the SD card?" --checklist --column="Select" --column="Launcher ID" $nonsteamlauncher_move_value "NonSteamLaunchers" $epicgameslauncher_move_value "EpicGamesLauncher" $goggalaxylauncher_move_value "GogGalaxyLauncher" $uplaylauncher_move_value "UplayLauncher" $battlenetlauncher_move_value "Battle.netLauncher" $eaapplauncher_move_value "TheEAappLauncher" $amazongameslauncher_move_value "AmazonGamesLauncher" $itchiolauncher_move_value "itchioLauncher" $legacygameslauncher_move_value "LegacyGamesLauncher" $humblegameslauncher_move_value "HumbleGamesLauncher" $indiegalalauncher_move_value "IndieGalaLauncher" $rockstargameslauncher_move_value "RockstarGamesLauncher" $glyphlauncher_move_value "GlyphLauncher" "$minecraftlauncher_move_value" "MinecraftLauncher" $pspluslauncher_move_value "PlaystationPlusLauncher" $vkplaylauncher_move_value "VKPlayLauncher" $hoyoplaylauncher_move_value "HoYoPlayLauncher" $nexonlauncher_move_value "NexonLauncher" $gamejoltlauncher_move_value "GameJoltLauncher" $artixgame_move_value "ArtixGameLauncher" $arc_move_value "ARCLauncher" $purple_move_value "PURPLELauncher" $plarium_move_value "PlariumLauncher" $vfun_move_value "VFUNLauncher" $tempo_move_value "TempoLauncher" $poketcg_move_value "PokeTCGLauncher" $antstream_move_value "AntstreamLauncher" --width=335 --height=524)
 
     if [ $? -eq 0 ]; then
         zenity --info --text="The selected directories have been moved to the SD card and symbolic links have been created." --width=200 --height=150
@@ -1206,8 +1489,8 @@ function stop_service {
 # Get the command line arguments
 args=("$@")
 
-# Check if the Stop NSLGameScanner option was passed as a command line argument or clicked in the GUI
-if [[ " ${args[@]} " =~ " Stop NSLGameScanner " ]] || [[ $options == "Stop NSLGameScanner" ]]; then
+# Check if the 🔍 option was passed as a command line argument or clicked in the GUI
+if [[ " ${args[@]} " =~ " 🔍 " ]] || [[ $options == "🔍" ]]; then
     stop_service
 
     # If command line arguments were provided, exit the script
@@ -1217,14 +1500,15 @@ if [[ " ${args[@]} " =~ " Stop NSLGameScanner " ]] || [[ $options == "Stop NSLGa
     fi
 
     # If no command line arguments were provided, display the zenity window
-    zenity --question --text="NSLGameScanner has been stopped. Do you want to run it again?" --width=200 --height=150
+    zenity --question --text="NSLGameScanner has been stopped and is no longer scanning for games. Do you want to run it again?" --width=200 --height=150
     if [ $? = 0 ]; then
         # User wants to run NSLGameScanner again
         python3 $python_script_path
+        show_message "NSLGameScanner is now restarting!"
     else
         # User does not want to run NSLGameScanner again
         stop_service
-        exit 0
+		exit 0
     fi
 fi
 
@@ -1232,6 +1516,7 @@ fi
 # TODO: probably better to break this subshell into a function that can then be redirected to zenity
 # Massive subshell pipes into `zenity --progress` around L2320 for GUI rendering
 (
+
 
 #Update Proton GE
 # Call the function directly
@@ -1243,6 +1528,7 @@ if [[ $options == *"Update Proton-GE"* ]]; then
     update_proton
     update_umu_launcher
 fi
+
 
 
 echo "20"
@@ -1271,67 +1557,16 @@ export STEAM_COMPAT_CLIENT_INSTALL_PATH="${logged_in_home}/.local/share/Steam"
 export STEAM_COMPAT_DATA_PATH="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${appid}"
 
 
+
+
 if [[ $options == *"NSLGameSaves"* ]]; then
-    compatdata_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
-    custom_app_id=4206469918
-
-    echo "App ID for the custom shortcut: $custom_app_id"
-    non_steam_launchers_path="${compatdata_dir}/NonSteamLaunchers"
-
-    if [[ -e "$non_steam_launchers_path" ]]; then
-        echo "NonSteamLaunchers already exists at the expected path."
-
-        current_path="${compatdata_dir}/NonSteamLaunchers"
-        echo "Current path for NonSteamLaunchers: $current_path"
-
-        if [[ -L "$current_path" ]]; then
-            echo 'NonSteamLaunchers is already a symbolic link'
-            if [[ "$(readlink "$current_path")" != "${compatdata_dir}/${custom_app_id}" ]]; then
-                echo 'NonSteamLaunchers is symlinked to a different folder'
-                unlink "$current_path"
-                echo "Removed existing symlink at $current_path"
-                ln -s "${compatdata_dir}/${custom_app_id}" "$current_path"
-                echo "Created new symlink at $current_path to ${compatdata_dir}/${custom_app_id}"
-            else
-                echo 'NonSteamLaunchers is already correctly symlinked'
-            fi
-        else
-            echo "NonSteamLaunchers is not a symbolic link."
-            if [[ -e "$current_path" ]]; then
-                echo "NonSteamLaunchers exists at the current path."
-                new_path="${compatdata_dir}/${custom_app_id}"
-                echo "New path for NonSteamLaunchers: $new_path"
-
-                if [[ -e "$new_path" ]]; then
-                    echo "$new_path already exists. Skipping renaming and symlinking."
-                else
-                    mv "$current_path" "$new_path"
-                    echo "Moved NonSteamLaunchers folder to $new_path"
-                    symlink_path="${compatdata_dir}/NonSteamLaunchers"
-                    ln -s "$new_path" "$symlink_path"
-                    echo "Created symlink at $symlink_path to $new_path"
-                fi
-            else
-                echo "The directory $current_path does not exist. Skipping."
-            fi
-        fi
-    else
-        echo "NonSteamLaunchers does not exist at the expected path."
-    fi
-
     echo "Running restore..."
     nohup flatpak run com.github.mtkennerly.ludusavi --config "${logged_in_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/" restore --force > /dev/null 2>&1 &
     wait $!
     echo "Restore completed"
     zenity --info --text="Restore was successful" --timeout=5
-
     exit 0
 fi
-
-
-
-
-
 
 ###Launcher Installations
 #Terminate Processese
@@ -1478,7 +1713,6 @@ function install_gog2 {
         done
     else
         echo "GOG Galaxy executable not found, skipping process kill."
-        wait
     fi
 }
 
@@ -1495,7 +1729,7 @@ function install_battlenet {
 
     # After first installation, kill wineserver to clean up
     pkill wineserver
-    sleep 1  
+    sleep 1
 
     # Start the second installation process in the background
     echo "Starting second installation of Battle.net"
@@ -1504,7 +1738,7 @@ function install_battlenet {
 
     # After second installation, kill wineserver again to clean up
     pkill wineserver
-    sleep 1  
+    sleep 1
 
     # After both installations are done, terminate any remaining Battle.net processes
     terminate_processes "Battle.net.exe" #"BlizzardError.exe"
@@ -1825,74 +2059,88 @@ function install_launcher {
         if [ "$launcher_name" != "GOG Galaxy" ] && [ "$launcher_name" != "Battle.net" ]; then
             wait
         fi
+        #pkill -f wineserver
     fi
 }
-
 # Install Epic Games Launcher
-install_launcher "Epic Games" "EpicGamesLauncher" "$msi_file" "$msi_url" "MsiExec.exe /i "$msi_file" -opengl /qn" "30" "" ""
+install_launcher "Epic Games" "EpicGamesLauncher" "$msi_file" "$msi_url" "MsiExec.exe /i "$msi_file" -opengl /qn" "70" "" ""
 
 # Install GOG Galaxy
-install_launcher "GOG Galaxy" "GogGalaxyLauncher" "$exe_file" "$exe_url" "$exe_file /silent" "40" "" "" true
+install_launcher "GOG Galaxy" "GogGalaxyLauncher" "$exe_file" "$exe_url" "$exe_file /silent" "71" "" "" true
 
 # Install Ubisoft Connect
-install_launcher "Ubisoft Connect" "UplayLauncher" "$ubi_file" "$ubi_url" "$ubi_file /S" "50" "" ""
+install_launcher "Ubisoft Connect" "UplayLauncher" "$ubi_file" "$ubi_url" "$ubi_file /S" "72" "" ""
 
 # Install Battle.net
-install_launcher "Battle.net" "Battle.netLauncher" "$battle_file" "$battle_url" "" "70" "" "" true
+install_launcher "Battle.net" "Battle.netLauncher" "$battle_file" "$battle_url" "" "73" "" "" true
 
 #Install Amazon Games
-install_launcher "Amazon Games" "AmazonGamesLauncher" "$amazon_file" "$amazon_url" "" "80" "" "" true
+install_launcher "Amazon Games" "AmazonGamesLauncher" "$amazon_file" "$amazon_url" "" "74" "" "" true
 
 #Install EA App
-install_launcher "EA App" "TheEAappLauncher" "$eaapp_file" "$eaapp_url" "$eaapp_file /quiet" "88" "" "install_eaapp" true
+install_launcher "EA App" "TheEAappLauncher" "$eaapp_file" "$eaapp_url" "$eaapp_file /quiet" "75" "" "install_eaapp" true
 
 # Install itch.io
-install_launcher "itch.io" "itchioLauncher" "$itchio_file" "$itchio_url" "$itchio_file --silent" "89" "" "install_itchio" true
+install_launcher "itch.io" "itchioLauncher" "$itchio_file" "$itchio_url" "$itchio_file --silent" "76" "" "install_itchio" true
 
 # Install Legacy Games
-install_launcher "Legacy Games" "LegacyGamesLauncher" "$legacygames_file" "$legacygames_url" "$legacygames_file /S" "90" "" ""
+install_launcher "Legacy Games" "LegacyGamesLauncher" "$legacygames_file" "$legacygames_url" "$legacygames_file /S" "77" "" ""
 
 # Install Humble Games
-install_launcher "Humble Games Collection" "HumbleGamesLauncher" "$humblegames_file" "$humblegames_url" "" "91" "" "" true
+install_launcher "Humble Games Collection" "HumbleGamesLauncher" "$humblegames_file" "$humblegames_url" "" "78" "" "" true
 
 # Install IndieGala
-install_launcher "IndieGala" "IndieGalaLauncher" "$indiegala_file" "$indiegala_url" "$indiegala_file /S" "92" "" ""
+install_launcher "IndieGala" "IndieGalaLauncher" "$indiegala_file" "$indiegala_url" "$indiegala_file /S" "79" "" ""
 
 # Install Rockstar Games Launcher
-install_launcher "Rockstar Games Launcher" "RockstarGamesLauncher" "$rockstar_file" "$rockstar_url" "" "93" "" "" true
+install_launcher "Rockstar Games Launcher" "RockstarGamesLauncher" "$rockstar_file" "$rockstar_url" "" "80" "" "" true
 
 # Install Glyph Launcher
-install_launcher "Glyph Launcher" "GlyphLauncher" "$glyph_file" "$glyph_url" "$glyph_file" "94" "" ""
+install_launcher "Glyph Launcher" "GlyphLauncher" "$glyph_file" "$glyph_url" "$glyph_file" "81" "" ""
 
 # Install Minecraft Legacy Launcher
-install_launcher "Minecraft Launcher" "MinecraftLauncher" "$minecraft_file" "$minecraft_url" "MsiExec.exe /i "$minecraft_file" /q" "94" "" ""
+install_launcher "Minecraft Launcher" "MinecraftLauncher" "$minecraft_file" "$minecraft_url" "MsiExec.exe /i "$minecraft_file" /q" "82" "" ""
 
 # Install Playstation Plus Launcher
-install_launcher "Playstation Plus" "PlaystationPlusLauncher" "$psplus_file" "$psplus_url" "$psplus_file /q" "96" "" ""
+install_launcher "Playstation Plus" "PlaystationPlusLauncher" "$psplus_file" "$psplus_url" "$psplus_file /q" "83" "" ""
 
 # Install VK Play
-install_launcher "VK Play" "VKPlayLauncher" "$vkplay_file" "$vkplay_url" "$vkplay_file" "98" "" "install_vkplay" true
+install_launcher "VK Play" "VKPlayLauncher" "$vkplay_file" "$vkplay_url" "$vkplay_file" "84" "" "install_vkplay" true
 
 # Install Hoyo Play
-install_launcher "HoYoPlay" "HoYoPlayLauncher" "$hoyoplay_file" "$hoyoplay_url" "" "99" "" "install_hoyo" true
+install_launcher "HoYoPlay" "HoYoPlayLauncher" "$hoyoplay_file" "$hoyoplay_url" "" "85" "" "install_hoyo" true
 
 # Install Nexon Launcher
-install_launcher "Nexon Launcher" "NexonLauncher" "$nexon_file" "$nexon_url" "$nexon_file" "99" "" "install_nexon" true
+install_launcher "Nexon Launcher" "NexonLauncher" "$nexon_file" "$nexon_url" "$nexon_file" "86" "" "install_nexon" true
 
 # Install GameJolt Launcher
-install_launcher "Game Jolt Client" "GameJoltLauncher" "$gamejolt_file" "$gamejolt_url" "$gamejolt_file /silent" "99" "" ""
+install_launcher "Game Jolt Client" "GameJoltLauncher" "$gamejolt_file" "$gamejolt_url" "$gamejolt_file /silent" "67" "" ""
 
 # Install artix Launcher
-install_launcher "Artix Game Launcher" "ArtixGameLauncher" "$artixgame_file" "$artixgame_url" "$artixgame_file /S" "99" "" ""
+install_launcher "Artix Game Launcher" "ArtixGameLauncher" "$artixgame_file" "$artixgame_url" "$artixgame_file /S" "88" "" ""
 
 # Install ARC Launcher
-install_launcher "ARC Launcher" "ARCLauncher" "$arc_file" "$arc_url" "$arc_file" "98" "" "" true
+install_launcher "ARC Launcher" "ARCLauncher" "$arc_file" "$arc_url" "$arc_file" "89" "" "" true
 
 # Install PokemonTCGLIVE
-install_launcher "Pokémon Trading Card Game Live" "PokeTCGLauncher" "$poketcg_file" "$poketcg_url" "MsiExec.exe /i "$poketcg_file" /qn" "99" "" ""
+install_launcher "Pokémon Trading Card Game Live" "PokeTCGLauncher" "$poketcg_file" "$poketcg_url" "MsiExec.exe /i "$poketcg_file" /qn" "90" "" ""
 
 # Install Antstream Arcade
-install_launcher "Antstream Arcade" "AntstreamLauncher" "$antstream_file" "$antstream_url" "$antstream_file /silent" "99" "" ""
+install_launcher "Antstream Arcade" "AntstreamLauncher" "$antstream_file" "$antstream_url" "$antstream_file /quiet" "91" "" ""
+
+# Install Purple Launcher
+install_launcher "PURPLE Launcher" "PURPLELauncher" "$purple_file" "$purple_url" "$purple_file /S" "92" "" ""
+
+# Install Plarium Launcher
+install_launcher "Plarium Play" "PlariumLauncher" "$plarium_file" "$plarium_url" "$plarium_file /S" "93" "" ""
+
+#Install VFUN Launcher
+install_launcher "VFUN Launcher" "VFUNLauncher" "$vfun_file" "$vfun_url" "$vfun_file /S" "94" "" ""
+
+#Install Tempo Launcher
+install_launcher "Tempo Launcher" "TempoLauncher" "$tempo_file" "$tempo_url" "$tempo_file /S" "95" "" ""
+
+
 #End of Launcher Installations
 
 # Temporary fix for Epic
@@ -1940,8 +2188,17 @@ if [[ $options == *"Epic Games"* ]]; then
           "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Update/Install/Portal/" \
           "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/"
 
-        # Optionally, run Epic Online Services installer
-        # "$STEAM_RUNTIME" "$proton_dir/proton" run "EpicOnlineServicesInstaller.exe"
+        # Download and run Epic Online Services installer
+        eos_dir="${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
+        eos_file="${eos_dir}/EpicOnlineServicesInstaller.exe"
+        eos_url="https://download1324.mediafire.com/0kg8it779xoglGdpxdIdxz1mU62VluXUIpSp7huzU-C47nXK98ZyXPF4R_sxtWkDSb4liX6fnwEUc3As8RA3K3WEQiAWwnot1e2PfH2JUr4ZYMFvli3qIlgvguY17OJhtz28NAqPhApMYNPzGZOWtj8P2K8vZu7RiB1SxwUeqNbsd3w/2qn3ff2wbh9dnvr/EpicOnlineServicesInstaller.exe"
+
+        echo "Downloading Epic Online Services installer..."
+        mkdir -p "$eos_dir"
+        curl -L -o "$eos_file" "$eos_url"
+
+        echo "Running Epic Online Services installer with Proton..."
+        "$STEAM_RUNTIME" "$proton_dir/proton" run "$eos_file"
     }
 
     # Call the install_epic function
@@ -1951,12 +2208,15 @@ fi
 
 
 
+
+
+
+wait
 echo "99"
 echo "# Checking if Chrome is installed...please wait..."
 
-
 # Check if user selected any of the options
-if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
+if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Better xCloud"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
 
     # User selected one of the options
     echo "User selected one of the options"
@@ -1981,6 +2241,7 @@ if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Plex"* ]] || [[ $options 
         flatpak --user override --filesystem=/run/udev:ro com.google.Chrome
     fi
 fi
+
 
 echo "99.1"
 echo "# Checking if Ludusavi is installed...please wait..."
@@ -2153,6 +2414,14 @@ roots:
     path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/MinecraftLauncher/pfx/drive_c/
   - store: otherWindows
     path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/
 redirects: []
 backup:
   path: ${logged_in_home}/NSLGameSaves
@@ -2219,10 +2488,6 @@ echo "Backup completed"
 
 
 
-
-
-
-
     echo "100"
     echo "# Installation Complete - Steam will now restart. Your launchers will be in your library!...Food for thought...do Jedis use Force Compatability?"
 ) |
@@ -2230,8 +2495,6 @@ zenity --progress \
   --title="Update Status" \
   --text="Starting update...please wait..." --width=450 --height=350\
   --percentage=0 --auto-close
-
-
 
 
 # Write to env_vars
@@ -2299,6 +2562,11 @@ check_and_write "artixgame" "$artixgame_path1" "$artixgame_path2" "NonSteamLaunc
 check_and_write "arc" "$arc_path1" "$arc_path2" "NonSteamLaunchers" "ARCLauncher" "" "arc_launcher"
 check_and_write "poketcg" "$poketcg_path1" "$poketcg_path2" "NonSteamLaunchers" "PokeTCGLauncher" "" "poketcg_launcher"
 check_and_write "antstream" "$antstream_path1" "$antstream_path2" "NonSteamLaunchers" "AntstreamLauncher" "" "antstream_launcher"
+check_and_write "purple" "$purple_path1" "$purple_path2" "NonSteamLaunchers" "PURPLELauncher" "" "purple_launcher"
+check_and_write "plarium" "$plarium_path1" "$plarium_path2" "NonSteamLaunchers" "PlariumLauncher" "" "plarium_launcher"
+
+check_and_write "vfun" "$vfun_path1" "$vfun_path2" "NonSteamLaunchers" "VFUNLauncher" "" "vfun_launcher"
+check_and_write "tempo" "$tempo_path1" "$tempo_path2" "NonSteamLaunchers" "TempoLauncher" "" "tempo_launcher"
 
 # Special Shortcut for EA App NoRepair
 eaapp_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe"
@@ -2351,8 +2619,11 @@ if [[ $options == *"RemotePlayWhatever"* ]]; then
 
     # Make the .desktop file executable
     chmod +x "$DIRECTORY/RemotePlayWhatever.desktop"
-fi
 
+    steamos-add-to-steam "$DIRECTORY/RemotePlayWhatever.desktop"
+    sleep 5
+    echo "added RemotePlayWhatever to steamos"
+fi
 
 
 # Set Chrome options based on user's selection
@@ -2372,13 +2643,14 @@ declare -A services=(
     ["Netflix"]="netflix|https://www.netflix.com"
     ["GeForce Now"]="geforce|https://play.geforcenow.com"
     ["Hulu"]="hulu|https://www.hulu.com/welcome"
+    ["Tubi"]="tubi|https://tubitv.com"
     ["Disney+"]="disney|https://www.disneyplus.com"
     ["Amazon Prime Video"]="amazon|https://www.amazon.com/primevideo"
     ["Youtube"]="youtube|https://www.youtube.com"
     ["Amazon Luna"]="luna|https://luna.amazon.com"
     ["Twitch"]="twitch|https://www.twitch.tv"
     ["Fortnite"]="fortnite|https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2"
-    ["Tubi"]= "tubi|https://tubitv.com"
+    ["Better xCloud"]="xcloud|https://better-xcloud.github.io"
     ["Venge"]="venge|https://venge.io"
     ["PokéRogue"]="pokerogue|https://pokerogue.net"
     ["Boosteroid Cloud Gaming"]="boosteroid|https://cloud.boosteroid.com"
@@ -2404,6 +2676,7 @@ for option in "${!services[@]}"; do
     fi
 done
 
+
 # Check if any custom websites were provided
 if [ ${#custom_websites[@]} -gt 0 ]; then
     # User entered one or more custom websites
@@ -2412,6 +2685,15 @@ if [ ${#custom_websites[@]} -gt 0 ]; then
     custom_websites_str=$(IFS=", "; echo "${custom_websites[*]}")
     echo "export custom_websites_str=$custom_websites_str" >> ${logged_in_home}/.config/systemd/user/env_vars
 fi
+
+
+
+# Create the download directory if it doesn't exist
+mkdir -p "$download_dir"
+
+
+
+
 
 
 
@@ -2435,6 +2717,8 @@ if [[ -f "${logged_in_home}/.steam/root/config/loginusers.vdf" ]] || [[ -f "${lo
     max_timestamp=0
     current_user=""
     current_steamid=""
+
+
 
     # Process each user block
     # Set IFS to only look for Commas to avoid issues with Whitespace in older account names.
@@ -2468,6 +2752,7 @@ if [[ -f "${logged_in_home}/.steam/root/config/loginusers.vdf" ]] || [[ -f "${lo
         echo "No users found."
     fi
 
+
     # Convert steamid to steamid3
     steamid3=$((current_steamid - 76561197960265728))
 
@@ -2484,12 +2769,17 @@ else
     echo "Could not find loginusers.vdf file"
 fi
 
-set -x
+
+
+
+
+
+
 
 
 # Send Notes
 if [[ $options == *"❤️"* ]]; then
-    #show_message "Sending any #nsl notes to the community!<3"
+    show_message "Sending any #nsl notes to the community!<3"
 
     search_directory="${logged_in_home}/.steam/root/userdata/${steamid3}/"
     echo "Searching directory: $search_directory"
@@ -2611,9 +2901,10 @@ if [[ $options == *"❤️"* ]]; then
     else
         echo "Failed to send data to the API. Status code: $response"
     fi
+
+    show_message "#nsl notes have been sent :) looking for new ones!<3"
 fi
 
-#show_message "#nsl notes have been sent :) looking for new ones!<3"
 
 
 
@@ -2621,7 +2912,7 @@ fi
 
 
 
-
+#recieve noooooooooooootes
 # Paths
 proton_dir=$(find -L "${logged_in_home}/.steam/root/compatibilitytools.d" -maxdepth 1 -type d -name "GE-Proton*" | sort -V | tail -n1)
 CSV_FILE="$proton_dir/protonfixes/umu-database.csv"
@@ -2847,9 +3138,19 @@ for game_name in "${games[@]}"; do
 done
 
 echo "Script execution complete."
-#show_message "Notes have been recieved!"
+show_message "Notes have been recieved!"
+#noooooooooooooooootes
 
 
+
+
+
+
+
+
+
+
+#set -x
 
 # Check if userdata folder was found
 if [[ -n "$userdata_folder" ]]; then
@@ -2891,9 +3192,6 @@ fi
 
 
 
-
-
-
 # Pre check for updating the config file
 
 # Set the default Steam directory
@@ -2927,8 +3225,18 @@ echo "export chrome_startdir=$chrome_startdir" >> ${logged_in_home}/.config/syst
 
 
 # TODO: might be better to relocate temp files to `/tmp` or even use `mktemp -d` since `rm -rf` is potentially dangerous without the `-i` flag
+
 # Delete NonSteamLaunchersInstallation subfolder in Downloads folder
 rm -rf "$download_dir"
 
+
+
+
+
+
+
 echo "Script completed successfully."
+
+
+
 exit 0

@@ -112,6 +112,15 @@ def initialiseVariables(env_vars):
     poketcgshortcutdirectory = env_vars.get('poketcgshortcutdirectory')
     global antstreamshortcutdirectory
     antstreamshortcutdirectory = env_vars.get('antstreamshortcutdirectory')
+    global vfunshortcutdirectory
+    vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
+    global temposhortcutdirectory
+    temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
+
+
+
+
+
     
     global repaireaappshortcutdirectory
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
@@ -420,6 +429,8 @@ def update_game_details(games_to_check):
         "ARC Launcher",
         "Pokémon Trading Card Game Live",
         "Antstream Arcade",
+        "VFUN Launcher",
+        "Tempo Launcher",
         "Repair EA App"
     ]
 
@@ -546,6 +557,8 @@ def add_launchers():
     create_new_entry(env_vars.get('arcshortcutdirectory'), 'ARC Launcher', env_vars.get('arclaunchoptions'), env_vars.get('arcstartingdir'), None)
     create_new_entry(env_vars.get('poketcgshortcutdirectory'), 'Pokémon Trading Card Game Live', env_vars.get('poketcglaunchoptions'), env_vars.get('poketcgstartingdir'), None)
     create_new_entry(env_vars.get('antstreamshortcutdirectory'), 'Antstream Arcade', env_vars.get('antstreamlaunchoptions'), env_vars.get('antstreamstartingdir'), None)
+    create_new_entry(env_vars.get('vfunshortcutdirectory'), 'VFUN Launcher', env_vars.get('vfunlaunchoptions'), env_vars.get('vfunstartingdir'), None)
+    create_new_entry(env_vars.get('temposhortcutdirectory'), 'Tempo Launcher', env_vars.get('tempolaunchoptions'), env_vars.get('tempostartingdir'), None)
     create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
 
 
@@ -562,7 +575,7 @@ def get_sgdb_art(game_id, launcher):
     decky_plugin.logger.info("Downloading grids artwork of size 920x430...")
     grid64 = download_artwork(game_id, "grids", "920x430")
 
-    # Fetch launcher icon based on the launcher type
+    # Fetch launcher icon based on the launcher type for (scanner icon notiifications in the front end)
     launcher_icons = {
         "Epic Games": "5255885",
         "Amazon Games": "5255884",

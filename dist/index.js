@@ -1150,6 +1150,22 @@
           urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
       },
       {
+          name: 'vfun',
+          label: 'VFUN Launcher',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://file.qijisoft.com/Valofe_file/web/vfun/images/funny-download-gude.png'
+      },
+      {
+          name: 'tempo',
+          label: 'Tempo Launcher',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://cdn.tempogames.com/wp-content/uploads/2020/02/article-tempo-raise2.jpg'
+      },
+      {
           name: 'remotePlayWhatever',
           label: 'RemotePlayWhatever',
           URL: '',
@@ -1165,6 +1181,14 @@
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/167b7d08b38facb1c06185861a5845dd.jpg'
+      },
+      {
+          name: 'xcloud',
+          label: 'Better xCloud',
+          URL: 'https://better-xcloud.github.io',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://raw.githubusercontent.com/redphx/better-xcloud/refs/heads/typescript/resources/logos/better-xcloud.png'
       },
       {
           name: 'fortnite',
@@ -1309,6 +1333,14 @@
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/4bbddbaea593148384a27a8dcf498d30.jpg'
+      },
+      {
+          name: 'tubi',
+          label: 'Tubi',
+          URL: 'https://tubitv.com',
+          streaming: true,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/thumb/225608983dc66adb163c3a64b6b42f91.jpg'
       },
       {
           name: 'disneyPlus',
