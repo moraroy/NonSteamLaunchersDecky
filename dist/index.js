@@ -1150,7 +1150,7 @@
           urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
       },
       {
-          name: 'vfun',
+          name: 'vfunLauncher',
           label: 'VFUN Launcher',
           URL: '',
           streaming: false,
@@ -1158,7 +1158,7 @@
           urlimage: 'https://file.qijisoft.com/Valofe_file/web/vfun/images/funny-download-gude.png'
       },
       {
-          name: 'tempo',
+          name: 'tempoLauncher',
           label: 'Tempo Launcher',
           URL: '',
           streaming: false,
