@@ -1,5 +1,6 @@
 import requests
 import csv
+import os
 import re
 import decky_plugin
 
@@ -58,6 +59,24 @@ def extract_base_path(launchoptions):
     raise ValueError("STEAM_COMPAT_DATA_PATH not found in launch options")
 
 def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name):
+
+    dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
+    pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
+
+    def parse_version(m):
+        main, sub = m.groups()
+        return tuple(map(int, (main + '.' + (sub or '0')).split('.')))
+
+    umu_folders = [
+        (parse_version(m), name)
+        for name in os.listdir(dir_path)
+        if (m := pattern.match(name)) and os.path.isdir(os.path.join(dir_path, name))
+    ]
+
+    if umu_folders:
+        compat_tool_name = max(umu_folders)[1]
+
+
     # Skip processing if STEAM_COMPAT_DATA_PATH is not present
     if 'STEAM_COMPAT_DATA_PATH=' not in launchoptions:
         decky_plugin.logger.info(f"Launch options for {appname} do not contain STEAM_COMPAT_DATA_PATH. Skipping modification.")

@@ -86,7 +86,7 @@ class Plugin:
 
             # Return a single formatted string that can be used for the patch notes
             return {
-                "formatted_note": f"- **{truncated_message}** (Commit SHA: {sha}) by {author_name} on {formatted_date}",
+                "formatted_note": f"- **{truncated_message}** (Commit by {author_name} on {formatted_date}",
                 "date": author_date
             }
 
