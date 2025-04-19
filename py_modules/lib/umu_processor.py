@@ -59,7 +59,12 @@ def extract_base_path(launchoptions):
     raise ValueError("STEAM_COMPAT_DATA_PATH not found in launch options")
 
 def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name):
-
+    # Skip UMU modification for specific titles
+    skip_titles = ["genshin impact", "zenless zone zero"]
+    if appname.lower() in skip_titles:
+        decky_plugin.logger.info(f"Skipping UMU modification for {appname}.")
+        return exe, startingdir, launchoptions
+    
     dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
     pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
 
