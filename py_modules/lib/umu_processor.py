@@ -109,10 +109,10 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                 updated_launch = launchoptions
 
                 # Hoyoplay - Extract the game identifier
-                match = re.search(r'--game=(\w+)', launchoptions)
-                if match:
-                    codename = match.group(1)  # Capture the identifier
-                    updated_launch = f"'--game={codename}'"
+               #match = re.search(r'--game=(\w+)', launchoptions)
+                #if match:
+                    #codename = match.group(1)  # Capture the identifier
+                    #updated_launch = f"'--game={codename}'"
 
                 if "origin2://game/launch?offerIds=" in launchoptions:
                     updated_launch = f'"origin2://game/launch?offerIds={codename}"'
