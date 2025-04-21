@@ -78,7 +78,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
     setTimeout(() => {
       console.log("3 seconds passed. Reloading the page...");
       window.location.reload(); // Reload the page after 3 seconds
-    }, 3000);
+    }, 5000);
 
     try {
       // Notify the user that the update has started
@@ -133,7 +133,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               wordWrap: "break-word",  // Word wrap
             }}
           >
-            <div>A new update is available! Please use the NSLPlugin.desktop to update your plugin :)</div>
+            <div>A new update is available! Please update your NSL Plugin. :)</div>
+
+            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </ButtonItem>
             <div style={{ marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" }}>
               <div>📌 <strong>Local version:</strong> {updateInfo.local_version}</div>
               <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
@@ -165,10 +169,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 </ul>
               </div>
             </div>
-            {/* Add the update button here */}
-            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-              {isUpdating ? 'Updating...' : 'Update Plugin'}
-            </ButtonItem>
           </div>
         </PanelSectionRow>
       ) : (

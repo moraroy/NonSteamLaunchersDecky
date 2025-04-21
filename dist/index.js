@@ -1509,7 +1509,7 @@
           setTimeout(() => {
               console.log("3 seconds passed. Reloading the page...");
               window.location.reload(); // Reload the page after 3 seconds
-          }, 3000);
+          }, 5000);
           try {
               // Notify the user that the update has started
               const result = await serverAPI.callPluginMethod("install", {
@@ -1557,7 +1557,8 @@
                       overflow: "hidden",
                       wordWrap: "break-word", // Word wrap
                   } },
-                  window.SP_REACT.createElement("div", null, "A new update is available! Please use the NSLPlugin.desktop to update your plugin :)"),
+                  window.SP_REACT.createElement("div", null, "A new update is available! Please update your NSL Plugin. :)"),
+                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
                       window.SP_REACT.createElement("div", null,
                           "\uD83D\uDCCC ",
@@ -1583,8 +1584,7 @@
                                       wordWrap: "break-word",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis"
-                                  } }, note.formatted_note)))))))))),
-                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update Plugin')))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                                  } }, note.formatted_note))))))))))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",
