@@ -55,6 +55,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const [isManualScanComplete, setIsManualScanComplete] = useState(false);
   const [isAutoScanDisabled, setIsAutoScanDisabled] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Track if an update is in progress
+  const [progress, setProgress] = useState({
+    percent: 0,
+    status: '',
+    description: ''
+  });
 
   const handleScanClick = async () => {
     setIsLoading(true); // Set loading state to true
@@ -68,6 +73,13 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const handleUpdateClick = async () => {
     setIsUpdating(true); // Set updating state
     setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
+
+    // Set a timeout for 3 seconds to reload the page
+    setTimeout(() => {
+      console.log("3 seconds passed. Reloading the page...");
+      window.location.reload(); // Reload the page after 3 seconds
+    }, 3000);
+
     try {
       // Notify the user that the update has started
       const result = await serverAPI.callPluginMethod("install", {
@@ -84,8 +96,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       if (result) {
         setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
         notify.toast("Update complete", "The plugin has been updated successfully.");
-        // After the install call completes, reload the page
-        window.location.reload(); // This will force a full reload of the page
       } else {
         setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
         notify.toast("Update failed", "There was an issue with the update.");
