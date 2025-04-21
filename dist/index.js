@@ -1505,10 +1505,10 @@
       const handleUpdateClick = async () => {
           setIsUpdating(true); // Set updating state
           setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
-          // Set a timeout for 3 seconds to reload the page
+          // Set a timeout for 3 seconds to restart Steam
           setTimeout(() => {
-              console.log("3 seconds passed. Reloading the page...");
-              window.location.reload(); // Reload the page after 3 seconds
+              console.log("3 seconds passed. Restarting Steam...");
+              handleRestartSteam(); // Restart Steam instead of reloading the page
           }, 5000);
           try {
               // Notify the user that the update has started
@@ -1538,23 +1538,16 @@
           }
           setIsUpdating(false); // Reset updating state
       };
+      const handleRestartSteam = () => {
+          // Restart Steam
+          SteamClient.User.StartRestart(false);
+      };
       React.useEffect(() => {
           if (isManualScanComplete) {
               setIsManualScanComplete(false); // Reset the completion state
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
-          updateInfo && (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
-              window.SP_REACT.createElement("div", { style: {
-                      backgroundColor: "blue",
-                      color: "white",
-                      padding: "1em",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                      maxWidth: "80%",
-                      margin: "auto",
-                      lineHeight: 1.6,
-                  } }, updateInfo.local_version))),
           updateInfo && updateInfo.status === "Update available" ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "red",
