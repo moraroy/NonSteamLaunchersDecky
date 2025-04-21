@@ -226,7 +226,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         
         {/* Moved description of supported launchers */}
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
-          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client and Minecraft Launcher as well as Chrome Bookmarks for Xbox Game Pass & GeForce Now games.
+          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client and Minecraft Launcher as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games.
         </PanelSectionRow>
 
         <ToggleField
