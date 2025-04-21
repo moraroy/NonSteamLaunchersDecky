@@ -116,6 +116,26 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   return (
     <div className="decky-plugin">
+      {/* Display the local version at the top */}
+      {updateInfo && (
+        <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
+          <div
+            style={{
+              backgroundColor: "blue",
+              color: "white",
+              padding: "1em",
+              borderRadius: "8px",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+              maxWidth: "80%",
+              margin: "auto",
+              lineHeight: 1.6,
+            }}
+          >
+            {updateInfo.local_version}
+          </div>
+        </PanelSectionRow>
+      )}
+
       {/* Conditionally render the red card for update info */}
       {updateInfo && updateInfo.status === "Update available" ? (
         <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
@@ -218,8 +238,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
-        
-        {/* Moved description of supported launchers */}
+
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client and Minecraft Launcher as well as Chrome Bookmarks for Xbox Game Pass & GeForce Now games.
         </PanelSectionRow>

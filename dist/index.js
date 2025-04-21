@@ -1544,6 +1544,17 @@
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
+          updateInfo && (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+              window.SP_REACT.createElement("div", { style: {
+                      backgroundColor: "blue",
+                      color: "white",
+                      padding: "1em",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                      maxWidth: "80%",
+                      margin: "auto",
+                      lineHeight: 1.6,
+                  } }, updateInfo.local_version))),
           updateInfo && updateInfo.status === "Update available" ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "red",
