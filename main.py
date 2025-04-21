@@ -644,7 +644,7 @@ class Plugin:
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
 
-    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, note, operation="Install"):
+    async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, note, up, operation="Install"):
         decky_plugin.logger.info('install was called')
 
         # Log the arguments for debugging
@@ -655,7 +655,7 @@ class Plugin:
         decky_plugin.logger.info(f"update_proton_ge: {update_proton_ge}")
         decky_plugin.logger.info(f"nslgamesaves: {nslgamesaves}")
         decky_plugin.logger.info(f"note: {note}")
-
+        decky_plugin.logger.info(f"up: {up}")
 
 
         # Convert the selected options mapping to a list of strings
@@ -687,6 +687,7 @@ class Plugin:
             ([f'"NSLGameSaves"'] if nslgamesaves else []) +
             ([f'"Update Proton-GE"'] if update_proton_ge else []) +
             ([f'"❤️"'] if note else []) +
+            ([f'"Up"'] if up else []) +
             [f'"DeckyPlugin"']
         )
         command = f"{script_path} {command_suffix}"

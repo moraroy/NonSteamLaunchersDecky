@@ -55,6 +55,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const [isManualScanComplete, setIsManualScanComplete] = useState(false);
   const [isAutoScanDisabled, setIsAutoScanDisabled] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Track if an update is in progress
+  const [progress, setProgress] = useState({
+    percent: 0,
+    status: '',
+    description: ''
+  });
 
   const handleScanClick = async () => {
     setIsLoading(true); // Set loading state to true
@@ -67,21 +72,45 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   // Handle update button click
   const handleUpdateClick = async () => {
     setIsUpdating(true); // Set updating state
+    setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
+
+    // Set a timeout for 3 seconds to restart Steam
+    setTimeout(() => {
+      console.log("3 seconds passed. Restarting Steam...");
+      handleRestartSteam(); // Restart Steam instead of reloading the page
+    }, 5000);
+
     try {
       // Notify the user that the update has started
-      notify.toast("Updating plugin", "Please wait while the plugin updates.");
+      const result = await serverAPI.callPluginMethod("install", {
+        selected_options: '',
+        install_chrome: false,
+        separate_app_ids: false,
+        start_fresh: false,
+        update_proton_ge: false,
+        nslgamesaves: false,
+        note: false,
+        up: true,
+      });
 
-      const result = await serverAPI.callPluginMethod("update", {});
       if (result) {
+        setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
         notify.toast("Update complete", "The plugin has been updated successfully.");
       } else {
+        setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
         notify.toast("Update failed", "There was an issue with the update.");
       }
     } catch (error) {
-      console.error('Error calling Update method on server-side plugin:', error);
+      console.error('Error calling install method on server-side plugin:', error);
+      setProgress({ percent: 0, status: 'Update failed', description: 'An error occurred during the update.' });
       notify.toast("Update failed", "An error occurred during the update.");
     }
     setIsUpdating(false); // Reset updating state
+  };
+
+  const handleRestartSteam = () => {
+    // Restart Steam
+    SteamClient.User.StartRestart(false);
   };
 
   useEffect(() => {
@@ -109,7 +138,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               wordWrap: "break-word",  // Word wrap
             }}
           >
-            <div>A new update is available! Please use the NSLPlugin.desktop to update your plugin :)</div>
+            <div>A new update is available! :) Pressing update will restart Steam.</div>
+
+            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </ButtonItem>
             <div style={{ marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" }}>
               <div>📌 <strong>Local version:</strong> {updateInfo.local_version}</div>
               <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
