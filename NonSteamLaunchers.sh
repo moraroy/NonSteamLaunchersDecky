@@ -40,6 +40,139 @@ show_message() {
 
 
 
+args=("$@")
+
+# A flag to track if the subshell was executed
+subshell_called=false
+
+# update DP
+(
+    # Check if "Up" argument is passed
+    for arg in "${args[@]}"; do
+        if [[ "$arg" == "Up" ]]; then
+            subshell_called=true  # Set the flag to true since the subshell was called
+
+            # ENVIRONMENT VARIABLES
+            logged_in_user=$(logname 2>/dev/null || whoami)
+            logged_in_home=$(eval echo "~${logged_in_user}")
+
+            REPO_URL="https://github.com/moraroy/NonSteamLaunchersDecky/archive/refs/heads/main.zip"
+            LOCAL_DIR="${logged_in_home}/homebrew/plugins/NonSteamLaunchers"
+
+            # Set version check variables
+            GITHUB_URL="https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/refs/heads/main/package.json"
+
+            DECKY_LOADER_EXISTS=false
+            NSL_PLUGIN_EXISTS=false
+
+            if [ -d "${logged_in_home}/homebrew/plugins" ]; then
+                DECKY_LOADER_EXISTS=true
+            fi
+
+            if [ -d "$LOCAL_DIR" ] && [ -n "$(ls -A $LOCAL_DIR)" ]; then
+                NSL_PLUGIN_EXISTS=true
+            fi
+
+            fetch_github_version() {
+                response=$(curl -s "$GITHUB_URL")
+                github_version=$(echo "$response" | jq -r '.version')
+                if [ "$github_version" != "null" ]; then
+                    echo "$github_version"
+                else
+                    echo "Error: Could not fetch or parse GitHub version"
+                    return 1
+                fi
+            }
+
+            fetch_local_version() {
+                if [ -f "$LOCAL_DIR/package.json" ]; then
+                    local_version=$(jq -r '.version' "$LOCAL_DIR/package.json")
+                    if [ "$local_version" != "null" ]; then
+                        echo "$local_version"
+                    else
+                        echo "Error: Failed to parse local version"
+                        return 1
+                    fi
+                else
+                    echo "Error: Local package.json not found!"
+                    return 1
+                fi
+            }
+
+            compare_versions() {
+                if [ ! -f "$LOCAL_DIR/package.json" ]; then
+                    echo "Local plugin not found or no package.json. Skipping version comparison."
+                    return 1
+                fi
+
+                local_version=$(fetch_local_version)
+                github_version=$(fetch_github_version)
+
+                if [ "$local_version" == "Error:" ] || [ "$github_version" == "Error:" ]; then
+                    echo "Error: Could not fetch version information"
+                    return 1
+                fi
+
+                echo "Local Version: $local_version, GitHub Version: $github_version"
+
+                if [ "$local_version" == "$github_version" ]; then
+                    echo "Status: Up-to-date"
+                    return 0
+                else
+                    echo "Status: Update available"
+                    return 1
+                fi
+            }
+
+            if $DECKY_LOADER_EXISTS; then
+                echo "Decky Loader detected. Proceeding with update."
+            else
+                echo "Decky Loader not detected. Please install it first."
+                exit 1
+            fi
+
+            compare_versions
+            if [ $? -eq 0 ]; then
+                echo "No update needed. The plugin is already up-to-date."
+                exit 0  # Exit if no update is needed
+            else
+                local_version=$(fetch_local_version)
+                github_version=$(fetch_github_version)
+                echo "Updating from version $local_version to $github_version..."
+
+                if $NSL_PLUGIN_EXISTS; then
+                    echo "NSL Plugin detected. Deleting and updating..."
+                    rm -rf "$LOCAL_DIR"
+                fi
+
+                echo "Creating base directory and setting permissions..."
+                mkdir -p "$LOCAL_DIR"
+                chmod -R 700 "$LOCAL_DIR"
+                chown -R $logged_in_user:$logged_in_user "$LOCAL_DIR"
+
+                echo "Downloading and extracting the repository..."
+                curl -L "$REPO_URL" -o /tmp/NonSteamLaunchersDecky.zip
+                unzip -o /tmp/NonSteamLaunchersDecky.zip -d /tmp/
+                cp -r /tmp/NonSteamLaunchersDecky-main/* "$LOCAL_DIR"
+                rm -rf /tmp/NonSteamLaunchersDecky*
+
+                chmod -R 700 "$LOCAL_DIR"
+            fi
+
+            cd "$LOCAL_DIR"
+            echo "Plugin installed."
+        fi
+    done
+)
+
+# After subshell completion, check if it was called and exit the parent shell
+if [ "$subshell_called" = true ]; then
+    echo "Subshell completed. Exiting parent shell."
+    exit 0  # Exit parent shell if subshell was called and completed
+fi
+
+# If subshell wasn't called, the parent shell doesn't exit
+echo "No update required. Parent shell continues running."
 
 
 

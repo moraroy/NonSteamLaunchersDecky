@@ -1488,13 +1488,47 @@
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
       const [isAutoScanDisabled, setIsAutoScanDisabled] = React.useState(false);
-      React.useState(false); // Track if an update is in progress
+      const [isUpdating, setIsUpdating] = React.useState(false); // Track if an update is in progress
       const handleScanClick = async () => {
           setIsLoading(true); // Set loading state to true
           setIsAutoScanDisabled(true); // Disable the auto-scan toggle
           await scan(() => setIsManualScanComplete(true)); // Perform the scan action and set completion state
           setIsLoading(false); // Set loading state to false
           setIsAutoScanDisabled(false); // Re-enable the auto-scan toggle
+      };
+      // Handle update button click
+      const handleUpdateClick = async () => {
+          setIsUpdating(true); // Set updating state
+          setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
+          try {
+              // Notify the user that the update has started
+              const result = await serverAPI.callPluginMethod("install", {
+                  selected_options: '',
+                  install_chrome: false,
+                  separate_app_ids: false,
+                  start_fresh: false,
+                  update_proton_ge: false,
+                  nslgamesaves: false,
+                  note: false,
+                  up: true,
+              });
+              if (result) {
+                  setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
+                  notify.toast("Update complete", "The plugin has been updated successfully.");
+                  // After the install call completes, reload the page
+                  window.location.reload(); // This will force a full reload of the page
+              }
+              else {
+                  setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
+                  notify.toast("Update failed", "There was an issue with the update.");
+              }
+          }
+          catch (error) {
+              console.error('Error calling install method on server-side plugin:', error);
+              setProgress({ percent: 0, status: 'Update failed', description: 'An error occurred during the update.' });
+              notify.toast("Update failed", "An error occurred during the update.");
+          }
+          setIsUpdating(false); // Reset updating state
       };
       React.useEffect(() => {
           if (isManualScanComplete) {
@@ -1541,7 +1575,8 @@
                                       wordWrap: "break-word",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis"
-                                  } }, note.formatted_note))))))))))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                                  } }, note.formatted_note)))))))))),
+                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update Plugin')))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",

@@ -67,18 +67,32 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   // Handle update button click
   const handleUpdateClick = async () => {
     setIsUpdating(true); // Set updating state
+    setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
     try {
       // Notify the user that the update has started
-      notify.toast("Updating plugin", "Please wait while the plugin updates.");
+      const result = await serverAPI.callPluginMethod("install", {
+        selected_options: '',
+        install_chrome: false,
+        separate_app_ids: false,
+        start_fresh: false,
+        update_proton_ge: false,
+        nslgamesaves: false,
+        note: false,
+        up: true,
+      });
 
-      const result = await serverAPI.callPluginMethod("update", {});
       if (result) {
+        setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
         notify.toast("Update complete", "The plugin has been updated successfully.");
+        // After the install call completes, reload the page
+        window.location.reload(); // This will force a full reload of the page
       } else {
+        setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
         notify.toast("Update failed", "There was an issue with the update.");
       }
     } catch (error) {
-      console.error('Error calling Update method on server-side plugin:', error);
+      console.error('Error calling install method on server-side plugin:', error);
+      setProgress({ percent: 0, status: 'Update failed', description: 'An error occurred during the update.' });
       notify.toast("Update failed", "An error occurred during the update.");
     }
     setIsUpdating(false); // Reset updating state
@@ -141,6 +155,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                 </ul>
               </div>
             </div>
+            {/* Add the update button here */}
+            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update Plugin'}
+            </ButtonItem>
           </div>
         </PanelSectionRow>
       ) : (
