@@ -138,7 +138,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               wordWrap: "break-word",  // Word wrap
             }}
           >
-            <div>A new update is available! :) Pressing update will restart Steam.</div>
+            <div>New update found! :) Pressing update will restart Steam.</div>
 
             <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
               {isUpdating ? 'Updating...' : 'Update'}

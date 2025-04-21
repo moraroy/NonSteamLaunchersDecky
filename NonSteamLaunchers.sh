@@ -170,7 +170,7 @@ for arg in "${args[@]}"; do
 
     echo "Plugin installed."
 
-    pkill -f "NonSteamLaunchers.*main.py"
+    #pkill -f "NonSteamLaunchers.*main.py"
 
     echo "Hot reload triggered for NonSteamLaunchers plugin."
     exit 0

@@ -582,6 +582,7 @@
                   update_proton_ge: false,
                   nslgamesaves: false,
                   note: false,
+                  up: false,
               });
               if (result) {
                   setProgress({ percent: endPercent, status: `${operation} Selection ${index + 1} of ${total}`, description: `${launcher}` });
@@ -802,6 +803,7 @@
                   update_proton_ge: false,
                   nslgamesaves: false,
                   note: false,
+                  up: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'NSL has been wiped. Remember to delete your shortcuts!', description: '' });
@@ -846,6 +848,7 @@
                   update_proton_ge: true,
                   nslgamesaves: false,
                   note: false,
+                  up: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Proton GE updated successfully.', description: '' });
@@ -902,6 +905,7 @@
                   update_proton_ge: false,
                   nslgamesaves: true,
                   note: false,
+                  up: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Game saves restored successfully!', description: '' });
@@ -1423,6 +1427,7 @@
                   update_proton_ge: false,
                   nslgamesaves: false,
                   note: true,
+                  up: false,
               });
               if (result) {
                   setProgress({ percent: 100, status: 'Notes sent successfully!', description: '' });
@@ -1561,7 +1566,7 @@
                       overflow: "hidden",
                       wordWrap: "break-word", // Word wrap
                   } },
-                  window.SP_REACT.createElement("div", null, "A new update is available! :) Pressing update will restart Steam."),
+                  window.SP_REACT.createElement("div", null, "New update found! :) Pressing update will restart Steam."),
                   window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
                       window.SP_REACT.createElement("div", null,

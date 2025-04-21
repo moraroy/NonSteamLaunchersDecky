@@ -119,6 +119,7 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
         update_proton_ge: false,
         nslgamesaves: false,
         note: false,
+        up: false,
       });
 
       if (result) {

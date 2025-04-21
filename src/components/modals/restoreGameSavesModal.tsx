@@ -31,6 +31,7 @@ export const RestoreGameSavesModal: VFC<RestoreGameSavesModalProps> = ({ closeMo
         update_proton_ge: false,
         nslgamesaves: true,
         note: false,
+        up: false,
       });
 
       if (result) {

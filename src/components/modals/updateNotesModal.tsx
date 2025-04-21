@@ -23,6 +23,7 @@ export const UpdateNotesModal: VFC<UpdateNotesModalProps> = ({ closeModal, serve
                 update_proton_ge: false,
                 nslgamesaves: false,
                 note: true,
+                up: false,
             });
             if (result) {
                 setProgress({ percent: 100, status: 'Notes sent successfully!', description: '' });

@@ -23,6 +23,7 @@ export const UpdateRestartModal: VFC<UpdateRestartModalProps> = ({ closeModal, s
                 update_proton_ge: true,
                 nslgamesaves: false,
                 note: false,
+                up: false,
             });
             if (result) {
                 setProgress({ percent: 100, status: 'Proton GE updated successfully.', description: '' });
