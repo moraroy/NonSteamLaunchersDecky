@@ -385,7 +385,7 @@ class Plugin:
             env_vars = {}
 
             try:
-                # Check if the env_vars file exists    
+                # Check if the env_vars file exists
                 if not os.path.exists(env_vars_path):
                     await ws.send_json({"installedLaunchers": []})
                     await ws.close()
@@ -449,13 +449,13 @@ class Plugin:
 
 
 
+
+
     async def _migration(self):
         decky_plugin.logger.info("Starting migration process")
 
         # Get the path to the Decky user's home directory
         decky_user_home = decky_plugin.DECKY_USER_HOME
-
-
 
         # Define the paths for the service file, symlink, NSLGameScanner.py, and the env_vars file
         service_file = os.path.join(decky_user_home, '.config/systemd/user/nslgamescanner.service')
@@ -490,22 +490,82 @@ class Plugin:
         env_vars_to_add = [
             f'export logged_in_home={decky_user_home}',
             'export chromedirectory="/usr/bin/flatpak"',
-            'export chrome_startdir="/usr/bin"'
+            'export chrome_startdir="/usr/bin"',
         ]
 
         # Read the existing env_vars file to check for duplicates
         with open(env_vars_file, 'r') as file:
-            existing_lines = file.readlines()
+            existing_lines = [line.strip() for line in file.readlines()]  # Remove trailing whitespace/newlines
 
         # Check if the environment variable lines already exist in the file
         for env_var in env_vars_to_add:
-            if not any(env_var in line for line in existing_lines):
-                with open(env_vars_file, 'a') as file:
-                    file.write(f"{env_var}\n")
-                decky_plugin.logger.info(f"Added {env_var} to {env_vars_file}")
-            else:
-                decky_plugin.logger.info(f"{env_var} already exists in {env_vars_file}")
+            env_var_clean = env_var.strip()  # Clean up leading/trailing spaces
 
+            # Check if the environment variable already exists in the file
+            if not any(env_var_clean == line.strip() for line in existing_lines):
+                with open(env_vars_file, 'a') as file:
+                    file.write(f"{env_var_clean}\n")
+                decky_plugin.logger.info(f"Added {env_var_clean} to {env_vars_file}")
+            else:
+                decky_plugin.logger.info(f"{env_var_clean} already exists in {env_vars_file}")
+
+        # Now process the Steam ID from loginusers.vdf
+        paths = [
+            os.path.join(decky_user_home, ".steam/root/config/loginusers.vdf"),
+            os.path.join(decky_user_home, ".local/share/Steam/config/loginusers.vdf")
+        ]
+
+        # Find the first existing file
+        file_path = next((p for p in paths if os.path.isfile(p)), None)
+
+        if file_path:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+
+                max_timestamp = 0
+                current_user = ""
+                current_steamid = ""
+
+                for steamid, block in users:
+                    account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
+                    timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+
+                    if account_match and timestamp_match:
+                        account = account_match.group(1)
+                        timestamp = int(timestamp_match.group(1))
+
+                        if timestamp > max_timestamp:
+                            max_timestamp = timestamp
+                            current_user = account
+                            current_steamid = steamid
+
+                if current_user:
+                    decky_plugin.logger.info(f"SteamID: {current_steamid}")
+                    steamid3 = int(current_steamid) - 76561197960265728
+                    userdata_path = os.path.join(decky_user_home, f".steam/root/userdata/{steamid3}")
+
+                    if os.path.isdir(userdata_path):
+                        decky_plugin.logger.info(f"Found userdata folder for user with SteamID {current_steamid}: {userdata_path}")
+
+                        # Before writing steamid3, check if it already exists
+                        if f'export steamid3={steamid3}' not in existing_lines:
+                            with open(env_vars_file, "a") as file:
+                                file.write(f'export steamid3={steamid3}\n')
+                            decky_plugin.logger.info(f'Set steamid3="{steamid3}" in {env_vars_file}')
+                        else:
+                            decky_plugin.logger.info(f"steamid3={steamid3} already exists in {env_vars_file}")
+                    else:
+                        decky_plugin.logger.info(f"Could not find userdata folder for user with SteamID {current_steamid}")
+                else:
+                    decky_plugin.logger.info("No valid users found in the file.")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error processing the loginusers.vdf file: {e}")
+        else:
+            decky_plugin.logger.info("Could not find loginusers.vdf file")
+#End of Env_vars first run
 
 
 

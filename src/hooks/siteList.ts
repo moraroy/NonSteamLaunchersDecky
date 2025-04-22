@@ -275,7 +275,7 @@ export const sitesList = [
   {
     name: 'oneplay',
     label: 'OnePlay',
-    URL: 'https://app.airgpu.com',
+    URL: 'https://www.oneplay.in/dashboard/home',
     streaming: true,
     enabled: false,
     urlimage: 'https://sm.ign.com/t/ign_in/screenshot/default/oneplay_vzqc.1280.jpg'
@@ -283,7 +283,7 @@ export const sitesList = [
   {
     name: 'airGPU',
     label: 'AirGPU',
-    URL: 'https://www.oneplay.in/dashboard/home',
+    URL: 'https://app.airgpu.com',
     streaming: true,
     enabled: false,
     urlimage: 'https://miro.medium.com/v2/resize:fit:784/1*bddIlLtmPp1o2jIIROYmVg@2x.jpeg'
@@ -335,14 +335,6 @@ export const sitesList = [
     streaming: true,
     enabled: false,
     urlimage: 'https://cdn2.steamgriddb.com/thumb/4bbddbaea593148384a27a8dcf498d30.jpg'
-  },
-  {
-    name: 'tubi',
-    label: 'Tubi',
-    URL: 'https://tubitv.com',
-    streaming: true,
-    enabled: false,
-    urlimage: 'https://cdn2.steamgriddb.com/thumb/225608983dc66adb163c3a64b6b42f91.jpg'
   },
   {
     name: 'disneyPlus',

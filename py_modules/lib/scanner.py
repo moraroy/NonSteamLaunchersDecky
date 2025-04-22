@@ -163,10 +163,14 @@ def scan():
 
     return decky_shortcuts
 
-
 def addCustomSite(customSiteJSON):
     global decky_shortcuts
     decky_shortcuts = {}
+
+    # Always refresh env_vars before initializing
+    env_vars = refresh_env_vars()
+    initialiseVariables(env_vars)
+
     customSites = json.loads(customSiteJSON)
     decky_plugin.logger.info(customSites)
     refresh_env_vars()
@@ -177,6 +181,8 @@ def addCustomSite(customSiteJSON):
         chromelaunch_options = f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome --file-forwarding com.google.Chrome @@u @@ --window-size=1280,800 --force-device-scale-factor=1.00 --device-scale-factor=1.00 --start-fullscreen https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
         create_new_entry(env_vars.get('chromedirectory'), customSiteName, chromelaunch_options, env_vars.get('chrome_startdir'), None)
     return decky_shortcuts
+
+
 
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
@@ -211,6 +217,13 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                        (s.get('LaunchOptions') == launch_options or (not s.get('LaunchOptions') and not launch_options)):
                         decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
                         return True
+
+                    if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
+                       (s.get('exe') and s.get('exe').strip('\"') == '/app/bin/chrome') and \
+                       s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
+                        decky_plugin.logger.info(f"Existing website shortcut found for {display_name}. Skipping creation.")
+                        return True
+
             except Exception as e:
                 decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
     else:

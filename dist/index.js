@@ -325,7 +325,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
           window.SP_REACT.createElement("div", null,
               window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered. Before installing, toggle Auto Scan \"on\" for these."),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered."),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, sites.map(({ siteName, siteURL }, index) => window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
                       window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}` },
                           window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "Name", value: siteName, placeholder: "The name you want to appear in the shortcut for your site.", onChange: (e) => onNameChange(siteName, e) }),
@@ -773,7 +773,7 @@
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
           window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
               window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection. Before installing, toggle Auto Scan \"on\" for these."),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
                   window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
                       window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
@@ -1277,7 +1277,7 @@
       {
           name: 'oneplay',
           label: 'OnePlay',
-          URL: 'https://app.airgpu.com',
+          URL: 'https://www.oneplay.in/dashboard/home',
           streaming: true,
           enabled: false,
           urlimage: 'https://sm.ign.com/t/ign_in/screenshot/default/oneplay_vzqc.1280.jpg'
@@ -1285,7 +1285,7 @@
       {
           name: 'airGPU',
           label: 'AirGPU',
-          URL: 'https://www.oneplay.in/dashboard/home',
+          URL: 'https://app.airgpu.com',
           streaming: true,
           enabled: false,
           urlimage: 'https://miro.medium.com/v2/resize:fit:784/1*bddIlLtmPp1o2jIIROYmVg@2x.jpeg'
@@ -1337,14 +1337,6 @@
           streaming: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/4bbddbaea593148384a27a8dcf498d30.jpg'
-      },
-      {
-          name: 'tubi',
-          label: 'Tubi',
-          URL: 'https://tubitv.com',
-          streaming: true,
-          enabled: false,
-          urlimage: 'https://cdn2.steamgriddb.com/thumb/225608983dc66adb163c3a64b6b42f91.jpg'
       },
       {
           name: 'disneyPlus',
