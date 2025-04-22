@@ -167,19 +167,40 @@ def addCustomSite(customSiteJSON):
     global decky_shortcuts
     decky_shortcuts = {}
 
-    # Always refresh env_vars before initializing
-    env_vars = refresh_env_vars()
-    initialiseVariables(env_vars)
-
     customSites = json.loads(customSiteJSON)
-    decky_plugin.logger.info(customSites)
-    refresh_env_vars()
+    new_shortcuts = []  # Temporary storage for new shortcuts
     for site in customSites:
         customSiteName = site['siteName']
         customSiteURL = site['siteURL'].strip()
         cleanSiteURL = customSiteURL.replace('http://', '').replace('https://', '').replace('www.', '')
-        chromelaunch_options = f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome --file-forwarding com.google.Chrome @@u @@ --window-size=1280,800 --force-device-scale-factor=1.00 --device-scale-factor=1.00 --start-fullscreen https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
-        create_new_entry(env_vars.get('chromedirectory'), customSiteName, chromelaunch_options, env_vars.get('chrome_startdir'), None)
+
+        chromelaunch_options = (
+            f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome '
+            f'--file-forwarding com.google.Chrome @@u @@ '
+            f'--window-size=1280,800 --force-device-scale-factor=1.00 '
+            f'--device-scale-factor=1.00 --start-fullscreen '
+            f'https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
+        )
+
+        new_shortcuts.append({
+            'name': customSiteName,
+            'url': cleanSiteURL,
+            'options': chromelaunch_options
+        })
+        
+    env_vars = refresh_env_vars()
+    initialiseVariables(env_vars)
+    
+    for site in new_shortcuts:
+        create_new_entry(
+            env_vars.get('chromedirectory'),
+            site['name'],
+            site['options'],
+            env_vars.get('chrome_startdir'),
+            None
+        )
+
+    # Return the updated decky_shortcuts
     return decky_shortcuts
 
 
