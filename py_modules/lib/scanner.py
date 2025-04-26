@@ -26,139 +26,116 @@ from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
-
-
-# Refresh environment variables
-env_vars = refresh_env_vars()
-
-def initialiseVariables(env_vars):
-    # Variables from NonSteamLaunchers.sh
-    global steamid3
-    steamid3 = env_vars.get('steamid3')
-    global logged_in_home
-    logged_in_home = env_vars.get('logged_in_home')
-    global compat_tool_name
-    compat_tool_name = env_vars.get('compat_tool_name')
-    global controller_config_path
-    controller_config_path = env_vars.get('controller_config_path')
-
-    #Scanner Variables
-    global epic_games_launcher
-    epic_games_launcher = env_vars.get('epic_games_launcher', '')
-    global ubisoft_connect_launcher
-    ubisoft_connect_launcher = env_vars.get('ubisoft_connect_launcher', '')
-    global ea_app_launcher
-    ea_app_launcher = env_vars.get('ea_app_launcher', '')
-    global gog_galaxy_launcher
-    gog_galaxy_launcher = env_vars.get('gog_galaxy_launcher', '')
-    global bnet_launcher
-    bnet_launcher = env_vars.get('bnet_launcher', '')
-    global amazon_launcher
-    amazon_launcher = env_vars.get('amazon_launcher', '')
-    global itchio_launcher
-    itchio_launcher = env_vars.get('itchio_launcher', '')
-    global legacy_launcher
-    legacy_launcher = env_vars.get('legacy_launcher', '')
-    global vkplay_launcher
-    vkplay_launcher = env_vars.get('vkplay_launcher', '')
-    global hoyoplay_launcher
-    hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
-    global gamejolt_launcher
-    gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
-    global minecraft_launcher
-    minecraft_launcher = env_vars.get('minecraft_launcher', '')
-
-    #Variables of the Launchers
-    # Define the path of the Launchers
-    global epicshortcutdirectory
-    epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
-    global gogshortcutdirectory
-    gogshortcutdirectory = env_vars.get('gogshortcutdirectory')
-    global uplayshortcutdirectory
-    uplayshortcutdirectory = env_vars.get('uplayshortcutdirectory')
-    global battlenetshortcutdirectory
-    battlenetshortcutdirectory = env_vars.get('battlenetshortcutdirectory')
-    global eaappshortcutdirectory
-    eaappshortcutdirectory = env_vars.get('eaappshortcutdirectory')
-    global amazonshortcutdirectory
-    amazonshortcutdirectory = env_vars.get('amazonshortcutdirectory')
-    global itchioshortcutdirectory
-    itchioshortcutdirectory = env_vars.get('itchioshortcutdirectory')
-    global legacyshortcutdirectory
-    legacyshortcutdirectory = env_vars.get('legacyshortcutdirectory')
-    global humbleshortcutdirectory
-    humbleshortcutdirectory = env_vars.get('humbleshortcutdirectory')
-    global indieshortcutdirectory
-    indieshortcutdirectory = env_vars.get('indieshortcutdirectory')
-    global rockstarshortcutdirectory
-    rockstarshortcutdirectory = env_vars.get('rockstarshortcutdirectory')
-    global glyphshortcutdirectory
-    glyphshortcutdirectory = env_vars.get('glyphshortcutdirectory')
-    global minecraftshortcutdirectory
-    minecraftshortcutdirectory = env_vars.get('minecraftshortcutdirectory')
-    global psplusshortcutdirectory
-    psplusshortcutdirectory = env_vars.get('psplusshortcutdirectory')
-    global vkplayshortcutdirectory
-    vkplayshortcutdirectory = env_vars.get('vkplayshortcutdirectory')
-    global hoyoplayshortcutdirectory
-    hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutdirectory')
-    global gamejoltshortcutdirectory
-    gamejoltshortcutdirectory = env_vars.get('gamejoltshortcutdirectory')
-    global artixgameshortcutdirectory
-    artixgameshortcutdirectory = env_vars.get('artixgameshortcutdirectory')
-    global arcshortcutdirectory
-    arcshortcutdirectory = env_vars.get('arcshortcutdirectory')
-    global poketcgshortcutdirectory
-    poketcgshortcutdirectory = env_vars.get('poketcgshortcutdirectory')
-    global antstreamshortcutdirectory
-    antstreamshortcutdirectory = env_vars.get('antstreamshortcutdirectory')
-    global vfunshortcutdirectory
-    vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
-    global temposhortcutdirectory
-    temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
-
-
-
-
-
-    
-    global repaireaappshortcutdirectory
-    repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
-    #Streaming
-    global chromedirectory
-    chromedirectory = env_vars.get('chromedirectory')
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 #Vars
 proxy_url = 'https://nonsteamlaunchers.onrender.com/api'
 decky_shortcuts = {}
 
+# Initial environment variables refresh
+env_vars = refresh_env_vars()
+
+def initialiseVariables(env_vars):
+    global steamid3, logged_in_home, compat_tool_name, controller_config_path
+    global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
+    global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
+    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
+    global minecraft_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
+    global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
+    global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
+    global indieshortcutdirectory, rockstarshortcutdirectory, glyphshortcutdirectory
+    global minecraftshortcutdirectory, psplusshortcutdirectory, vkplayshortcutdirectory
+    global hoyoplayshortcutdirectory, gamejoltshortcutdirectory, artixgameshortcutdirectory
+    global arcshortcutdirectory, poketcgshortcutdirectory, antstreamshortcutdirectory
+    global vfunshortcutdirectory, temposhortcutdirectory, repaireaappshortcutdirectory, chromedirectory
+
+    steamid3 = env_vars.get('steamid3')
+    logged_in_home = env_vars.get('logged_in_home')
+    compat_tool_name = env_vars.get('compat_tool_name')
+    controller_config_path = env_vars.get('controller_config_path')
+
+    epic_games_launcher = env_vars.get('epic_games_launcher', '')
+    ubisoft_connect_launcher = env_vars.get('ubisoft_connect_launcher', '')
+    ea_app_launcher = env_vars.get('ea_app_launcher', '')
+    gog_galaxy_launcher = env_vars.get('gog_galaxy_launcher', '')
+    bnet_launcher = env_vars.get('bnet_launcher', '')
+    amazon_launcher = env_vars.get('amazon_launcher', '')
+    itchio_launcher = env_vars.get('itchio_launcher', '')
+    legacy_launcher = env_vars.get('legacy_launcher', '')
+    vkplay_launcher = env_vars.get('vkplay_launcher', '')
+    hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
+    gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
+    minecraft_launcher = env_vars.get('minecraft_launcher', '')
+
+    epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
+    gogshortcutdirectory = env_vars.get('gogshortcutdirectory')
+    uplayshortcutdirectory = env_vars.get('uplayshortcutdirectory')
+    battlenetshortcutdirectory = env_vars.get('battlenetshortcutdirectory')
+    eaappshortcutdirectory = env_vars.get('eaappshortcutdirectory')
+    amazonshortcutdirectory = env_vars.get('amazonshortcutdirectory')
+    itchioshortcutdirectory = env_vars.get('itchioshortcutdirectory')
+    legacyshortcutdirectory = env_vars.get('legacyshortcutdirectory')
+    humbleshortcutdirectory = env_vars.get('humbleshortcutdirectory')
+    indieshortcutdirectory = env_vars.get('indieshortcutdirectory')
+    rockstarshortcutdirectory = env_vars.get('rockstarshortcutdirectory')
+    glyphshortcutdirectory = env_vars.get('glyphshortcutdirectory')
+    minecraftshortcutdirectory = env_vars.get('minecraftshortcutdirectory')
+    psplusshortcutdirectory = env_vars.get('psplusshortcutdirectory')
+    vkplayshortcutdirectory = env_vars.get('vkplayshortcutdirectory')
+    hoyoplayshortcutdirectory = env_vars.get('hoyoplayshortcutdirectory')
+    gamejoltshortcutdirectory = env_vars.get('gamejoltshortcutdirectory')
+    artixgameshortcutdirectory = env_vars.get('artixgameshortcutdirectory')
+    arcshortcutdirectory = env_vars.get('arcshortcutdirectory')
+    poketcgshortcutdirectory = env_vars.get('poketcgshortcutdirectory')
+    antstreamshortcutdirectory = env_vars.get('antstreamshortcutdirectory')
+    vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
+    temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
+
+    repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
+    chromedirectory = env_vars.get('chromedirectory')
+
+
+
+# Scanner function with threading
 def scan():
-    global decky_shortcuts
-    global env_vars
+    global decky_shortcuts, env_vars
     decky_shortcuts = {}
 
-    # Refresh env_vars using the refresh_env_vars function
+    # Refresh env_vars once at the start
     env_vars = refresh_env_vars()
     if env_vars:
         initialiseVariables(env_vars)
         add_launchers()
-        epic_games_scanner(logged_in_home, epic_games_launcher, create_new_entry)
-        ubisoft_scanner(logged_in_home, ubisoft_connect_launcher, create_new_entry)
-        ea_scanner(logged_in_home, ea_app_launcher, create_new_entry)
-        gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry)
-        battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry)
-        amazon_scanner(logged_in_home, amazon_launcher, create_new_entry)
-        itchio_games_scanner(logged_in_home, itchio_launcher, create_new_entry)
-        legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry)
-        vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry)
-        hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry)
-        gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry)
-        minecraft_scanner(logged_in_home, minecraft_launcher, create_new_entry)
-        rpw_scanner(logged_in_home, create_new_entry)
 
-        # Call chrome_scanner to process the Chrome Bookmarks
-        chrome_scanner(logged_in_home, create_new_entry)
-        # After all scanners, write the shortcuts to the file
+        # List all scanners with parameters for threading
+        scanners = [
+            (epic_games_scanner, logged_in_home, epic_games_launcher, create_new_entry),
+            (ubisoft_scanner, logged_in_home, ubisoft_connect_launcher, create_new_entry),
+            (ea_scanner, logged_in_home, ea_app_launcher, create_new_entry),
+            (gog_scanner, logged_in_home, gog_galaxy_launcher, create_new_entry),
+            (battle_net_scanner, logged_in_home, bnet_launcher, create_new_entry),
+            (amazon_scanner, logged_in_home, amazon_launcher, create_new_entry),
+            (itchio_games_scanner, logged_in_home, itchio_launcher, create_new_entry),
+            (legacy_games_scanner, logged_in_home, legacy_launcher, create_new_entry),
+            (vkplay_scanner, logged_in_home, vkplay_launcher, create_new_entry),
+            (hoyoplay_scanner, logged_in_home, hoyoplay_launcher, create_new_entry),
+            (gamejolt_scanner, logged_in_home, gamejolt_launcher, create_new_entry),
+            (minecraft_scanner, logged_in_home, minecraft_launcher, create_new_entry),
+            (rpw_scanner, logged_in_home, create_new_entry),
+            (chrome_scanner, logged_in_home, create_new_entry)
+        ]
+
+        # Use ThreadPoolExecutor to limit to 2 threads
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_to_scanner = {executor.submit(scanner[0], *scanner[1:]): scanner[0] for scanner in scanners}
+
+            for future in as_completed(future_to_scanner):
+                scanner_func = future_to_scanner[future]
+                try:
+                    future.result()  # Block until the result is ready
+                except Exception as e:
+                    print(f"Error in {scanner_func.__name__}: {e}")
+
         write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin)
 
     return decky_shortcuts
@@ -187,10 +164,11 @@ def addCustomSite(customSiteJSON):
             'url': cleanSiteURL,
             'options': chromelaunch_options
         })
-        
+
+    # Refresh env_vars once
     env_vars = refresh_env_vars()
     initialiseVariables(env_vars)
-    
+
     for site in new_shortcuts:
         create_new_entry(
             env_vars.get('chromedirectory'),
@@ -200,7 +178,6 @@ def addCustomSite(customSiteJSON):
             None
         )
 
-    # Return the updated decky_shortcuts
     return decky_shortcuts
 
 
@@ -445,38 +422,25 @@ def update_game_details(games_to_check):
     # Load the existing game data
     existing_data = load_game_data()
 
-    # List of app names to exclude from API requests
-    excluded_apps = [
-        "Epic Games",
-        "GOG Galaxy",
-        "Ubisoft Connect",
-        "Battle.net",
-        "EA App",
-        "Amazon Games",
-        "itch.io",
-        "Legacy Games",
-        "Humble Bundle",
-        "IndieGala Client",
-        "Rockstar Games Launcher",
-        "Glyph",
-        "Minecraft Launcher",
-        "Playstation Plus",
-        "VK Play",
-        "HoYoPlay",
-        "Game Jolt Client",
-        "Artix Game Launcher",
-        "ARC Launcher",
-        "Pokémon Trading Card Game Live",
-        "Antstream Arcade",
-        "VFUN Launcher",
-        "Tempo Launcher",
-        "Repair EA App"
-    ]
+    # Dynamically build the list of app names to exclude from API requests
+    excluded_apps = []
+    try:
+        with open(f"{DECKY_PLUGIN_DIR}/src/hooks/siteList.ts", 'r', encoding='utf-8') as f:
+            content = f.read()
+            excluded_apps = re.findall(r"label:\s*'([^']+)'", content)
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to read siteList.ts for excluded apps: {e}")
+        excluded_apps = []
+
+    # Always include "Repair EA App"
+    if "Repair EA App" not in excluded_apps:
+        excluded_apps.append("Repair EA App")
 
     # Iterate through the list of games to check and update game details
     for game_name in games_to_check:
         # Skip the API call for excluded app names
-        if game_name in excluded_apps:
+        if game_name.lower() in (label.lower() for label in excluded_apps):
+
             decky_plugin.logger.info(f"Skipping API call for {game_name} as it is in the exclusion list.")
             continue  # Skip this iteration and move to the next game
 
@@ -511,7 +475,7 @@ def update_game_details(games_to_check):
         decky_plugin.logger.info(f"Updated {descriptions_file_path} with new game details (if applicable).")
     else:
         decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
-#End of Descriptions file logic
+# End of Descriptions file logic
 
 
 

@@ -65,7 +65,7 @@ export const sitesList = [
   },
   {
     name: 'humbleGames',
-    label: 'Humble Games',
+    label: 'Humble Bundle',
     URL: '',
     streaming: false,
     enabled: false,

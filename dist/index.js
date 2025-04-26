@@ -692,7 +692,7 @@
   const StreamingInstallModal = ({ closeModal, streamingOptions, serverAPI }) => {
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const [options, setOptions] = React.useState(streamingOptions);
-      const [currentStreamingSite, setCurrentStreamingSite] = React.useState(null);
+      const [currentStreamingSites, setCurrentStreamingSites] = React.useState([]); // Track multiple sites
       // Pagination state
       const [currentPage, setCurrentPage] = React.useState(1);
       const itemsPerPage = 7;
@@ -710,14 +710,14 @@
               };
           });
           if (selectedStreamingSites.length > 0) {
-              const total = (options.filter(option => option.enabled && option.streaming).length);
-              const startPercent = 0;
+              const total = selectedStreamingSites.length;
               setProgress({
-                  percent: startPercent,
-                  status: `Installing ${selectedStreamingSites.length} Streaming Sites`,
+                  percent: 0,
+                  status: `Installing ${total} Streaming Sites`,
                   description: `${selectedStreamingSites.map(site => site.siteName).join(', ')}`
               });
-              setCurrentStreamingSite(options.find(option => option.enabled && option.streaming) || null);
+              // Set the sites to be installed
+              setCurrentStreamingSites(options.filter(option => option.enabled && option.streaming));
               await installSite(selectedStreamingSites, serverAPI, { setProgress }, total);
           }
       };
@@ -737,7 +737,7 @@
       };
       const cancelOperation = () => {
           setProgress({ percent: 0, status: '', description: '' });
-          setCurrentStreamingSite(null);
+          setCurrentStreamingSites([]); // Reset the current sites array
       };
       // Pagination functions
       const nextPage = () => {
@@ -760,29 +760,27 @@
           pointerEvents: 'none',
           transition: 'opacity 1s ease-in-out'
       };
-      return ((progress.status != '' && progress.percent < 100) ?
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Streaming Sites"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
-                  "Selected options: ",
-                  options.filter(option => option.enabled).map(option => option.label).join(', ')),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
-                  window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
-                  currentStreamingSite && (window.SP_REACT.createElement("img", { src: currentStreamingSite.urlimage, alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } })),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection."),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
-                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
-                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= streamingOptions.length }, "Next")),
-                  currentSites.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
-              window.SP_REACT.createElement("p", null),
-              window.SP_REACT.createElement(deckyFrontendLib.Focusable, { style: { display: "flex", alignItems: "center", gap: "10px" } },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) }, "Install"),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: "small" } }, "Note: NSL will attempt to install Google Chrome. Be sure that Google Chrome is installed from the Discover Store in Desktop Mode first or from SteamOS."))));
+      return ((progress.status !== '' && progress.percent < 100) ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Streaming Sites"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
+              "Selected options: ",
+              options.filter(option => option.enabled).map(option => option.label).join(', ')),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
+              currentStreamingSites.length > 0 && (window.SP_REACT.createElement("img", { src: currentStreamingSites[currentStreamingSites.length - 1]?.urlimage, alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } })),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back")))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection."),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= streamingOptions.length }, "Next")),
+              currentSites.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
+          window.SP_REACT.createElement("p", null),
+          window.SP_REACT.createElement(deckyFrontendLib.Focusable, { style: { display: "flex", alignItems: "center", gap: "10px" } },
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) }, "Install"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: "small" } }, "Note: NSL will attempt to install Google Chrome. Be sure that Google Chrome is installed from the Discover Store in Desktop Mode first or from SteamOS.")))));
   };
 
   /**
@@ -1067,7 +1065,7 @@
       },
       {
           name: 'humbleGames',
-          label: 'Humble Games',
+          label: 'Humble Bundle',
           URL: '',
           streaming: false,
           enabled: false,

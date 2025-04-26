@@ -3,9 +3,10 @@ import platform
 import decky_plugin
 import logging
 import vdf
+from decky_plugin import DECKY_USER_HOME
 
 # Path to the env_vars file for Linux
-env_vars_path = f"{os.environ['HOME']}/.config/systemd/user/env_vars"
+env_vars_path = f"{DECKY_USER_HOME}/.config/systemd/user/env_vars"
 env_vars = {}
 
 def check_and_set_path(env_vars, key, path):
@@ -21,7 +22,7 @@ def refresh_env_vars():
         decky_plugin.logger.info("Running on Windows")
         # Define paths for Windows
         paths = {
-            'epicshortcutdirectory': "C:\\Program Files (x86)\\Epic Games\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe",
+            'epicshortcutdirectory': "C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe",
             'epicstartingdir': "C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32",
             'gogshortcutdirectory': "C:\\Program Files (x86)\\GOG Galaxy\\GalaxyClient.exe",
             'gogstartingdir': "C:\\Program Files (x86)\\GOG Galaxy",
@@ -94,12 +95,7 @@ def refresh_env_vars():
         decky_plugin.logger.info(f"Steam ID3: {env_vars['steamid3']}")
 
         # Miscellaneous Variables
-        env_vars['logged_in_home'] = os.path.expanduser("~")
-        #env_vars['chromedirectory'] = "C:\\Path\\To\\Chrome\\chrome.exe"
-        #env_vars['chrome_startdir'] = "C:\\Path\\To\\Chrome"
-        #decky_plugin.logger.info(f"Logged in home: {env_vars['logged_in_home']}")
-        #decky_plugin.logger.info(f"Chrome directory: {env_vars['chromedirectory']}")
-        #decky_plugin.logger.info(f"Chrome startdir: {env_vars['chrome_startdir']}")
+        env_vars['logged_in_home'] = DECKY_USER_HOME
     else:
         decky_plugin.logger.info("Running on Linux or other OS")
 
