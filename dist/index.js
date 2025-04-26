@@ -756,7 +756,7 @@
           if (currentStreamingSites.length > 0) {
               const interval = setInterval(() => {
                   setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
-              }, 2000); // Change image every 2 seconds
+              }, 7000); // Change image every 7 seconds
               return () => clearInterval(interval); // Clean up the interval on unmount
           }
       }, [currentStreamingSites]);
