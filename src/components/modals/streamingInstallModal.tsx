@@ -10,7 +10,7 @@ import {
   Focusable,
   DialogButton
 } from "decky-frontend-lib";
-import { VFC, useState } from "react";
+import { VFC, useState, useEffect } from "react";
 import { Sites, installSite } from "../../hooks/installSites";
 
 type StreamingInstallModalProps = {
@@ -101,15 +101,31 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
     }
   };
 
+  // Add the image cycling effect
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentStreamingSites.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
+      }, 2000); // Change image every 2 seconds
+      
+      return () => clearInterval(interval); // Clean up the interval on unmount
+    }
+  }, [currentStreamingSites]);
+
   const fadeStyle = {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 1,
+    opacity: 0.5,
     pointerEvents: 'none',
-    transition: 'opacity 1s ease-in-out'
+    transition: 'background-image 1s ease-in-out',
+    backgroundImage: `url(${currentStreamingSites[currentImageIndex]?.urlimage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center'
   };
 
   return (
@@ -130,11 +146,7 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
             indeterminate={true}
           />
           {currentStreamingSites.length > 0 && (
-            <img 
-              src={currentStreamingSites[currentStreamingSites.length - 1]?.urlimage} 
-              alt="Overlay" 
-              style={{ ...fadeStyle, opacity: 0.5 }} 
-            />
+            <div style={fadeStyle} />
           )}
           <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
         </DialogBody>

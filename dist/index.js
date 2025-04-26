@@ -750,15 +750,28 @@
               setCurrentPage(prevPage => prevPage - 1);
           }
       };
+      // Add the image cycling effect
+      const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+      React.useEffect(() => {
+          if (currentStreamingSites.length > 0) {
+              const interval = setInterval(() => {
+                  setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
+              }, 2000); // Change image every 2 seconds
+              return () => clearInterval(interval); // Clean up the interval on unmount
+          }
+      }, [currentStreamingSites]);
       const fadeStyle = {
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
           height: '100%',
-          opacity: 1,
+          opacity: 0.5,
           pointerEvents: 'none',
-          transition: 'opacity 1s ease-in-out'
+          transition: 'background-image 1s ease-in-out',
+          backgroundImage: `url(${currentStreamingSites[currentImageIndex]?.urlimage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
       };
       return ((progress.status !== '' && progress.percent < 100) ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
           window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Streaming Sites"),
@@ -768,7 +781,7 @@
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
               window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
-              currentStreamingSites.length > 0 && (window.SP_REACT.createElement("img", { src: currentStreamingSites[currentStreamingSites.length - 1]?.urlimage, alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } })),
+              currentStreamingSites.length > 0 && (window.SP_REACT.createElement("div", { style: fadeStyle })),
               window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back")))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
           window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection."),
