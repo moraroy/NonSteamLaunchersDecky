@@ -2,6 +2,9 @@
 import os
 import json
 import re
+import ssl
+import requests
+import certifi
 import decky_plugin
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 import platform
@@ -134,7 +137,7 @@ def scan():
                 try:
                     future.result()  # Block until the result is ready
                 except Exception as e:
-                    print(f"Error in {scanner_func.__name__}: {e}")
+                    decky_plugin.logger.error(f"Error in {scanner_func.__name__}: {e}")
 
         write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin)
 
@@ -429,7 +432,7 @@ def update_game_details(games_to_check):
             content = f.read()
             excluded_apps = re.findall(r"label:\s*'([^']+)'", content)
     except Exception as e:
-        decky_plugin.logger.error(f"Failed to read siteList.ts for excluded apps: {e}")
+        #decky_plugin.logger.error(f"Failed to read siteList.ts for excluded apps: {e}")
         excluded_apps = []
 
     # Always include "Repair EA App"
@@ -441,7 +444,7 @@ def update_game_details(games_to_check):
         # Skip the API call for excluded app names
         if game_name.lower() in (label.lower() for label in excluded_apps):
 
-            decky_plugin.logger.info(f"Skipping API call for {game_name} as it is in the exclusion list.")
+            #decky_plugin.logger.info(f"Skipping API call for {game_name} as it is in the exclusion list.")
             continue  # Skip this iteration and move to the next game
 
         # Check if the game already exists in the data
@@ -454,7 +457,7 @@ def update_game_details(games_to_check):
 
         # If game details are missing, fetch details
         if not game_exists_in_data(existing_data, game_name):
-            decky_plugin.logger.info(f"Fetching details for {game_name} as details were missing...")
+            #decky_plugin.logger.info(f"Fetching details for {game_name} as details were missing...")
             game_details = get_game_details(game_name)
 
             # Check if game details were fetched successfully
@@ -476,6 +479,139 @@ def update_game_details(games_to_check):
     else:
         decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
 # End of Descriptions file logic
+
+
+# Boot video files
+def get_movies(game_name):
+    # Dynamically build the list of app names to exclude from API requests
+    excluded_apps = []
+    try:
+        with open(f"{DECKY_PLUGIN_DIR}/src/hooks/siteList.ts", 'r', encoding='utf-8') as f:
+            content = f.read()
+            excluded_apps = re.findall(r"label:\s*'([^']+)'", content)
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to read siteList.ts for excluded apps: {e}")
+        excluded_apps = []
+
+    OVERRIDE_PATH = os.path.expanduser(f'{DECKY_USER_HOME}/.steam/root/config/uioverrides/movies')
+    REQUEST_RETRIES = 5
+
+    def sanitize_filename(filename):
+        return re.sub(r'[<>:"/\\|?*]', '_', filename)
+
+    def download_video(video, target_dir):
+        """Download video if it does not already exist."""
+        sanitized_name = sanitize_filename(video['name'])
+        file_path = os.path.join(target_dir, f"{sanitized_name}.webm")
+
+        if os.path.exists(file_path):
+            decky_plugin.logger.info(f"Skipping {file_path}, already exists.")
+            return
+
+        os.makedirs(target_dir, exist_ok=True)
+
+        download_url = video.get('download_url')
+        if download_url:
+            try:
+                response = requests.get(download_url)
+                if response.status_code == 200:
+                    with open(file_path, 'wb') as f:
+                        f.write(response.content)
+                    decky_plugin.logger.info(f"Downloaded {file_path}")
+                else:
+                    decky_plugin.logger.error(f"Failed to download {file_path}, status code: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                decky_plugin.logger.error(f"Download failed for {file_path}: {e}")
+        else:
+            decky_plugin.logger.info("No download URL found for video.")
+
+    #decky_plugin.logger.info(f"🎮 Fetching boot video for: {game_name}")
+    try:
+        # Check if the game_name is in the excluded list and skip if so
+        if game_name.lower() in [app.lower() for app in excluded_apps]:
+            #decky_plugin.logger.info(f"Skipping boot video for {game_name}, as it's in the excluded apps list.")
+            return  # Skip downloading this video
+
+        for _ in range(REQUEST_RETRIES):
+            try:
+                response = requests.get('https://steamdeckrepo.com/api/posts/all', verify=certifi.where())
+                if response.status_code == 200:
+                    data = response.json().get('posts', [])
+                    break
+                elif response.status_code == 429:
+                    raise Exception('Rate limit exceeded, try again in a minute')
+                else:
+                    decky_plugin.logger.error(f'steamdeckrepo fetch failed, status={response.status_code}')
+            except requests.exceptions.RequestException as e:
+                decky_plugin.logger.error(f"Request failed: {e}")
+        else:
+            raise Exception(f'Retry attempts exceeded')
+
+        # Use the game_name directly instead of splitting it into words
+        search_terms = [game_name.lower()]
+
+        # Attempt to find a matching boot video for the full game name
+        for term in search_terms:
+            filtered_videos = sorted(
+                (
+                    {
+                        'id': entry['id'],
+                        'name': entry['title'],
+                        'preview_video': entry['video'],
+                        'download_url': f'https://steamdeckrepo.com/post/download/{entry["id"]}',
+                        'target': 'boot',
+                        'likes': entry['likes'],
+                    }
+                    for entry in data
+                    if term in entry['title'].lower() and
+                    entry['type'] == 'boot_video'
+                ),
+                key=lambda x: x['likes'], reverse=True
+            )
+
+            if filtered_videos:
+                video = filtered_videos[0]
+                decky_plugin.logger.info(f"🎬 Downloading boot video: {video['name']}")
+                download_video(video, OVERRIDE_PATH)
+                return  # Exit after downloading the first matching video
+
+        # If no video was found, check if the game_name has more than one word and use the first two words
+        if len(game_name.split()) > 1:
+            first_two_words = ' '.join(game_name.split()[:2]).lower()
+            decky_plugin.logger.info(f"🔍 No video found for full game name. Trying first two words: {first_two_words}")
+
+            filtered_videos = sorted(
+                (
+                    {
+                        'id': entry['id'],
+                        'name': entry['title'],
+                        'preview_video': entry['video'],
+                        'download_url': f'https://steamdeckrepo.com/post/download/{entry["id"]}',
+                        'target': 'boot',
+                        'likes': entry['likes'],
+                    }
+                    for entry in data
+                    if first_two_words in entry['title'].lower() and
+                    entry['type'] == 'boot_video'
+                ),
+                key=lambda x: x['likes'], reverse=True
+            )
+
+            if filtered_videos:
+                video = filtered_videos[0]
+                decky_plugin.logger.info(f"🎬 Downloading boot video using first two words: {video['name']}")
+                download_video(video, OVERRIDE_PATH)
+                return  # Exit after downloading the first matching video
+
+        # If no video was found at all
+        decky_plugin.logger.info(f"No top boot video found for {game_name}.")
+
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to fetch steamdeckrepo: {e}")
+
+
+#End of Boot Videos
+
 
 
 
@@ -552,6 +688,11 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     }
     decky_shortcuts[appname] = decky_entry
     decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
+
+    get_movies(appname)
+
+
+
 
 
 
