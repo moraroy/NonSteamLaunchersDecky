@@ -1017,7 +1017,7 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
 # Set the URL to download the GameJolt Launcher file from
-gamejolt_url="https://download1652.mediafire.com/mzoty4dbmnagGikRUqK9uWSBBWCQxWr8Huf53X7W5FYaGVW5VKFmyqT6t3CElxXD4dnKxsZb1n7aOeBxsFk2Gc0lvI8qmIZ7lIh31tSE5dUwVKc_pUiIfbpZjM8lke5aPXQBsd787ibzNEEtEe8l4vvDnqTM674ZL5AqVxkf5ySzlE0/3qq9rj7bnknr5g6/gamejoltclientsetup.exe"
+gamejolt_url="https://tinyurl.com/4ae5c9kw"
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
@@ -2339,11 +2339,11 @@ if [[ $options == *"Epic Games"* ]]; then
         # Download and run Epic Online Services installer
         eos_dir="${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
         eos_file="${eos_dir}/EpicOnlineServicesInstaller.exe"
-        eos_url="https://tinyurl.com/bdzjhbyz"
+        eos_url="https://tinyurl.com/33255n65"
 
         echo "Downloading Epic Online Services installer..."
         mkdir -p "$eos_dir"
-        curl -L -o "$eos_file" "$eos_url"
+        wget -L -O "$eos_file" "$eos_url"
 
         echo "Running Epic Online Services installer with Proton..."
         "$STEAM_RUNTIME" "$proton_dir/proton" run "$eos_file"
