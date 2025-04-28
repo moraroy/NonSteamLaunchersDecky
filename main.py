@@ -631,29 +631,34 @@ class Plugin:
             decky_plugin.logger.warning("Flatpak not found, skipping backup process")
 
 #install chrome
+
         # Set the LD_LIBRARY_PATH to ensure correct OpenSSL libraries are used
         env_vars = {**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
 
         # Check if Google Chrome is already installed and get the installation details
         check_chrome_command = "flatpak list | grep com.google.Chrome"
+        result_check_chrome = subprocess.run(
+            check_chrome_command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env_vars
+        )
 
-
-        # Run the command with the correct environment variable
-        result_check_chrome = subprocess.run(check_chrome_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars)
-
-        # Decode the result to check if Chrome is installed
         result_output = result_check_chrome.stdout.decode().strip()
 
-        # If Chrome is installed, get its details
         if result_output:
             decky_plugin.logger.info(f"Google Chrome is already installed: {result_output}")
             return  # Skip installation if Chrome is already installed
 
         # Check if the Flathub repository exists
         check_flathub_command = "flatpak remote-list | grep flathub &> /dev/null"
-        result_check_flathub = subprocess.run(check_flathub_command, shell=True, env=env_vars)
+        result_check_flathub = subprocess.run(
+            check_flathub_command,
+            shell=True,
+            env=env_vars
+        )
 
-        # If Flathub repository is not found, add it
         if result_check_flathub.returncode != 0:
             decky_plugin.logger.info("Flathub repository not found. Adding Flathub repository.")
             add_flathub_command = "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
@@ -662,31 +667,46 @@ class Plugin:
         # Install Google Chrome for the user
         decky_plugin.logger.info("Google Chrome is not installed. Proceeding with installation.")
         flatpak_install_command = "flatpak install --user flathub com.google.Chrome -y"
-
         result_install = subprocess.run(
             flatpak_install_command,
             shell=True,
-            stdout=subprocess.PIPE,  # Capture standard output
-            stderr=subprocess.PIPE,  # Capture standard error
-            env=env_vars  # Adjust environment variables as needed
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env_vars
         )
 
-        # Check if the installation was successful
         if result_install.returncode == 0:
             decky_plugin.logger.info("Google Chrome installed successfully!")
+
+            # Run the flatpak override command
+            override_command = "flatpak --user override --filesystem=/run/udev:ro com.google.Chrome"
+            result_override = subprocess.run(
+                override_command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env_vars
+            )
+
+            if result_override.returncode == 0:
+                decky_plugin.logger.info("Flatpak override applied successfully.")
+            else:
+                decky_plugin.logger.error("Failed to apply Flatpak override.")
+                decky_plugin.logger.error(f"Error Output: {result_override.stderr.decode()}")
+
         else:
             decky_plugin.logger.error("Installation failed.")
-            # Log the error output for troubleshooting
             decky_plugin.logger.error(f"Error Output: {result_install.stderr.decode()}")
             decky_plugin.logger.error(f"Standard Output: {result_install.stdout.decode()}")
             decky_plugin.logger.error(f"Exit Code: {result_install.returncode}")
-            # Additional check on possible common issues
+
             if "no permission" in result_install.stderr.decode().lower():
                 decky_plugin.logger.error("It seems like there might be a permissions issue. Please check your user permissions.")
             elif "cannot find" in result_install.stderr.decode().lower():
                 decky_plugin.logger.error("There might be an issue with the Flatpak repository or package name. Please check if the repository is added correctly.")
             else:
                 decky_plugin.logger.error("An unknown error occurred during installation.")
+
 
 #end of install chrome
 
