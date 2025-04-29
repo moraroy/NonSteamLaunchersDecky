@@ -1017,7 +1017,7 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
 # Set the URL to download the GameJolt Launcher file from
-gamejolt_url="https://tinyurl.com/4ae5c9kw"
+gamejolt_url="https://tinyurl.com/3z8wpv2v"
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
@@ -2339,7 +2339,7 @@ if [[ $options == *"Epic Games"* ]]; then
         # Download and run Epic Online Services installer
         eos_dir="${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
         eos_file="${eos_dir}/EpicOnlineServicesInstaller.exe"
-        eos_url="https://tinyurl.com/33255n65"
+        eos_url="https://tinyurl.com/mt8bce8k"
 
         echo "Downloading Epic Online Services installer..."
         mkdir -p "$eos_dir"
