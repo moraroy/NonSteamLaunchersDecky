@@ -25,6 +25,7 @@ from scanners.vkplay_scanner import vkplay_scanner
 from scanners.hoyoplay_scanner import hoyoplay_scanner
 from scanners.gamejolt_scanner import gamejolt_scanner
 from scanners.minecraft_scanner import minecraft_scanner
+from scanners.indie_scanner import indie_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from get_env_vars import refresh_env_vars
@@ -38,12 +39,13 @@ decky_shortcuts = {}
 # Initial environment variables refresh
 env_vars = refresh_env_vars()
 
+
 def initialiseVariables(env_vars):
     global steamid3, logged_in_home, compat_tool_name, controller_config_path
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
     global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
-    global minecraft_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
+    global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
     global indieshortcutdirectory, rockstarshortcutdirectory, glyphshortcutdirectory
@@ -69,6 +71,7 @@ def initialiseVariables(env_vars):
     hoyoplay_launcher = env_vars.get('hoyoplay_launcher', '')
     gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
     minecraft_launcher = env_vars.get('minecraft_launcher', '')
+    indie_launcher = env_vars.get('indie_launcher', '')
 
     epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
     gogshortcutdirectory = env_vars.get('gogshortcutdirectory')
@@ -124,6 +127,7 @@ def scan():
             (hoyoplay_scanner, logged_in_home, hoyoplay_launcher, create_new_entry),
             (gamejolt_scanner, logged_in_home, gamejolt_launcher, create_new_entry),
             (minecraft_scanner, logged_in_home, minecraft_launcher, create_new_entry),
+            (indie_scanner, logged_in_home, indie_launcher, create_new_entry),
             (rpw_scanner, logged_in_home, create_new_entry),
             (chrome_scanner, logged_in_home, create_new_entry)
         ]
@@ -753,6 +757,7 @@ def get_sgdb_art(game_id, launcher):
         "Artix Game Launcher": "5264320",
         "Minecraft Launcher": "5302646",
         "Google Chrome": "37126",
+        "IndieGala Client": "5317258",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
