@@ -377,6 +377,54 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/786929ce1b2e187510aca9b04a0f7254.jpg'
   },
   {
+    name: 'youtubetv',
+    label: 'Youtube TV',
+    URL: 'https://youtube.com/tv',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/dcd0d3f52fb67634fabc703a77a67adf.jpg'
+  },
+  {
+    name: 'youtubetvop',
+    label: 'Youtube TV On PC - Chrome Extention',
+    URL: 'https://chromewebstore.google.com/detail/youtube-tv-on-pc/jldjbkccldgbegjpggphaeikombjmnkh',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://lh3.googleusercontent.com/jfMbVQOIE7EDFxu-ra7Y46FDOH2nfI43FSryGSbEbroeCH6R6BSKwE8Kv1VXS95T4NrBKjDCW6sWd5zQNT--XF8PBw=s800-w800-h500'
+  },
+  {
+    name: 'youtubetesb',
+    label: 'SponsorBlock for YouTube - Chrome Extention',
+    URL: 'https://chromewebstore.google.com/detail/sponsorblock-for-youtube/mnjggcdmjocbbbhaepdhchncahnbgone?hl=en',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://lh3.googleusercontent.com/5DLjcuawqvkoKXDfF0c3xBrKjbb_7yQTrlIFcAYyYN8F8AX-96zWrgLo7oCPitwIYJRTJhvJFrh6GCfxOH3T_rPq9w=s1280-w1280-h800'
+  },
+  {
+    name: 'tampermonkey',
+    label: 'Tampermonkey - Chrome Extention',
+    URL: 'https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://img.youtube.com/vi/8tyjJD65zws/hqdefault.jpg'
+  },
+  {
+    name: 'ublockorigin',
+    label: 'uBlock Origin Lite - Chrome Extention',
+    URL: 'https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://lh3.googleusercontent.com/-N63B4vtE95U5gL54hJGsNbeWiIKZRLBRKi8BlIeXHLXP8rLuMAQ7zmHmUD4AVpS-lu2ObY_VFgvhaAsLWK9aG70be0=s800-w800-h500'
+  },
+  {
+    name: 'adblock',
+    label: 'AdBlock - Chrome Extention',
+    URL: 'https://chromewebstore.google.com/detail/adblock-%E2%80%94-block-ads-acros/gighmmpiobklfepjocnamgkkbiglidom?hl=en-US',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://lh3.googleusercontent.com/tLNJkVOBBNQ_Ux1_9bjgkPn66WJfZNRpzcnJdDMA1bW2FYN0qWqJro81KxtdYjcpSlJohQMJUR4RHPKSjbLV1i-iLQ=s800-w800-h500'
+  },
+  {
     name: 'crunchyroll',
     label: 'Crunchyroll',
     URL: 'https://www.crunchyroll.com',
