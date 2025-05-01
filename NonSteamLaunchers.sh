@@ -2197,7 +2197,7 @@ function install_launcher {
         if [ "$launcher_name" != "GOG Galaxy" ] && [ "$launcher_name" != "Battle.net" ]; then
             wait
         fi
-        #pkill -f wineserver
+        pkill -f wineserver
     fi
 }
 # Install Epic Games Launcher
