@@ -27,9 +27,9 @@ download_dir=$(eval echo ~$user)/Downloads/NonSteamLaunchersInstallation
 log_file=$(eval echo ~$user)/Downloads/NonSteamLaunchers-install.log
 
 
-#some cleaning
-find ${logged_in_home}/.local/share/Steam/steamapps/compatdata/ -maxdepth 1 -type d -empty -delete
-find ${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/ -maxdepth 1 -type f -name "*.tmp" -delete
+
+
+
 
 
 # Function to display a Zenity message
@@ -181,6 +181,62 @@ done
 
 
 
+#Cleaning
+# Define the path to the compatdata directory
+compatdata_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
+
+# Define the NonSteamLaunchers directory path for cleaning .tmp files
+non_steam_launchers_dir="${compatdata_dir}/NonSteamLaunchers/pfx/drive_c/"
+
+# Define an array of folder names
+folder_names=("NonSteamLaunchers" "EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher")
+
+# Cleaning up empty directories in compatdata (maxdepth 1 to avoid subdirectories)
+echo "Cleaning up empty directories in $compatdata_dir..."
+find "${compatdata_dir}" -maxdepth 1 -type d -empty -delete
+echo "Empty directories cleaned up."
+
+# Cleaning up .tmp files in the NonSteamLaunchers directory
+echo "Cleaning up .tmp files in $non_steam_launchers_dir..."
+find "${non_steam_launchers_dir}" -maxdepth 1 -type f -name "*.tmp" -delete
+echo ".tmp files cleaned up."
+
+# Loop through each folder name for symlink checking and deletion
+for folder in "${folder_names[@]}"; do
+  SYMLINK="$compatdata_dir/$folder"
+
+  # Check if it's a symlink and if the target is broken
+  if [ -L "$SYMLINK" ] && [ ! -e "$(readlink "$SYMLINK")" ]; then
+    echo "The symlink $SYMLINK is broken. Deleting it..."
+
+    # Delete the broken symlink
+    rm "$SYMLINK"
+    echo "Symlink $SYMLINK deleted successfully."
+  else
+    echo "The symlink $SYMLINK is either not a symlink or not broken. No action taken."
+  fi
+
+  # Check if the folder exists and clean up any .tmp files in it if applicable
+  TARGET_DIR="$compatdata_dir/$folder/pfx/drive_c/"
+  if [ -d "$TARGET_DIR" ]; then
+    echo "Cleaning up .tmp files in $TARGET_DIR..."
+    find "$TARGET_DIR" -maxdepth 1 -type f -name "*.tmp" -delete
+    echo ".tmp files cleaned up in $TARGET_DIR."
+  else
+    echo "No valid directory found for $folder at $TARGET_DIR. No .tmp cleanup needed."
+  fi
+done
+
+echo "Cleanup completed!"
+
+
+
+
+
+
+
+
+
 
 
 
@@ -193,7 +249,7 @@ fi
 exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.1.4
+version=v4.1.6
 #NSL DECKY VERSION (NO RCE)
 
 
@@ -1868,18 +1924,24 @@ function install_gog2 {
 # Battle.net specific installation steps
 function install_battlenet {
     # Terminate any existing Battle.net processes before starting installation
-    terminate_processes "Battle.net.exe" #"BlizzardError.exe"
+    #terminate_processes "Battle.net.exe" #"BlizzardError.exe"
+    proton_dir="${logged_in_home}/.local/share/Steam/steamapps/common/Proton - Experimental"
 
     # Start the first installation in the background
     echo "Starting first installation of Battle.net"
     "$STEAM_RUNTIME" "$proton_dir/proton" run "$battle_file" Battle.net-Setup.exe --lang=enUS --installpath="C:\Program Files (x86)\Battle.net" &
     first_install_pid=$!
 
-    # After first installation, kill wineserver to clean up
-    pkill wineserver
-    sleep 1
+    # Wait for the installation process to finish
+    wait $first_install_pid
 
+    # Optional: kill wineserver after installation is completely done
+    #pkill wineserver
+    echo "Battle.net installation complete."
+
+    sleep 1
 }
+
 
 # Amazon Games specific installation steps
 function install_amazon {
@@ -2159,8 +2221,7 @@ function install_launcher {
                 "$STEAM_RUNTIME" "$proton_dir/proton" run "$exe_file" /silent &
                 install_gog2
             elif [ "$launcher_name" = "Battle.net" ]; then
-                proton_dir="${logged_in_home}/.local/share/Steam/steamapps/common/Proton - Experimental"
-                "$STEAM_RUNTIME" "$proton_dir/proton" run "$battle_file" Battle.net-Setup.exe --lang=enUS --installpath="C:\Program Files (x86)\Battle.net" &
+
                 install_battlenet
             elif [ "$launcher_name" = "Amazon Games" ]; then
                 "$STEAM_RUNTIME" "$proton_dir/proton" run "$amazon_file" &
@@ -2403,7 +2464,6 @@ echo "Ludusavi installation script completed"
 # Ensure Ludusavi is installed before proceeding
 if ! flatpak list | grep com.github.mtkennerly.ludusavi &> /dev/null; then
     echo "Ludusavi installation failed. Exiting script."
-    exit 1
 fi
 
 
