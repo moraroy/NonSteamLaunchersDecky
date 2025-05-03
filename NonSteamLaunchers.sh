@@ -1932,7 +1932,21 @@ function install_gog2 {
 function install_battlenet {
     # Terminate any existing Battle.net processes before starting installation
     #terminate_processes "Battle.net.exe" #"BlizzardError.exe"
-    custom_dir="${logged_in_home}/.local/share/Steam/steamapps/common/Proton - Experimental"
+
+    custom_dir=$(find ~/.steam ~/.local ~/.var /run/media/$USER /mnt /media /opt -type d -iname "Proton - Experimental" 2>/dev/null | while read -r dir; do
+    if [[ -f "$dir/proton" ]]; then
+        echo "$dir"
+        break
+    fi
+    done)
+
+    if [[ -z "$custom_dir" ]]; then
+    echo "Proton Experimental not found with a 'proton' file."
+    else
+    echo "Found Proton Experimental at: $custom_dir"
+    fi
+
+    #custom_dir="${logged_in_home}/.local/share/Steam/steamapps/common/Proton - Experimental"
 
     # Start the first installation
     echo "Starting first installation of Battle.net"
