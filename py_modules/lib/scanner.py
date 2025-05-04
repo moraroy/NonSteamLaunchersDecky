@@ -216,10 +216,16 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                     stripped_exe_path = exe_path.strip('\"') if exe_path else exe_path
                     stripped_start_dir = start_dir.strip('\"') if start_dir else start_dir
 
+
+                    # Non-Chrome shortcut check: We remove the launch options comparison for non-Chrome shortcuts
                     if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
                        (s.get('exe') and s.get('exe').strip('\"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('\"') == stripped_exe_path) and \
-                       s.get('StartDir') and s.get('StartDir').strip('\"') == stripped_start_dir and \
-                       (s.get('LaunchOptions') == launch_options or (not s.get('LaunchOptions') and not launch_options)):
+                       s.get('StartDir') and s.get('StartDir').strip('\"') == stripped_start_dir:
+
+                        # Check if the launch options are different (for non-Chrome, no comparison is done, so add a warning here)
+                        if s.get('LaunchOptions') != launch_options:
+                            decky_plugin.logger.warning(f"Launch options for {display_name} differ from the default. This could be due to the user manually modifying the launch options. Will skip creation")
+
                         decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
                         return True
 
