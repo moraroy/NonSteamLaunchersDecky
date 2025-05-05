@@ -2987,148 +2987,108 @@ fi
 
 
 
+
+
 # Send Notes
 if [[ $options == *"❤️"* ]]; then
-    show_message "Sending any #nsl notes to the community!<3"
+    echo "Sending any #nsl notes to the community!<3"
 
-    search_directory="${logged_in_home}/.steam/root/userdata/${steamid3}/"
-    echo "Searching directory: $search_directory"
-
-    remote_dir=$(find "$search_directory" -type f -name 'notes*' -exec dirname {} \; | sort -u | tail -n 1)
-
-    # Check if a matching remote directory was found
-    if [[ -z "$remote_dir" ]]; then
-        echo "Error: No matching remote directory found."
-        exit 1
+    if [[ -n "$steamid3" ]]; then
+        remote_dir="${logged_in_home}/.steam/root/userdata/${steamid3}/2371090/remote"
+        echo "Searching directory: $remote_dir"
+        mkdir -p "$remote_dir"
+        echo "Directory $remote_dir is ready."
     else
-        echo "Found matching remote directory: $remote_dir"
+        echo "Error: steamid3 variable is not set."
+        return
     fi
 
-    # Path for the new "NSL Notes" folder
     nsl_notes_folder="$remote_dir/NSL Notes"
-    echo "NSL Notes folder path: $nsl_notes_folder"
-
-    # Create the "NSL Notes" folder if it doesn't exist
-    echo "Creating NSL Notes folder if it doesn't exist..."
     mkdir -p "$nsl_notes_folder" > /dev/null 2>&1
-    echo "NSL Notes folder created."
+    echo "NSL Notes folder created at $nsl_notes_folder"
 
-    # Output JSON file
     output_file="$nsl_notes_folder/nsl_notes_cache.json"
-    echo "Output file will be: $output_file"
+    echo "Output file: $output_file"
 
-    # Initialize an empty array for collected data
-    collected_notes="[]"
+    collected_notes=""
     note_count=0
-    echo "Initializing collection of notes..."
 
-    # Check if the file exists
-    if [[ -f "$output_file" ]]; then
-        # Read the existing data from the file (which should be a valid JSON array)
-        collected_notes=$(<"$output_file")
-    else
-        # If the file doesn't exist, start with an empty array
-        collected_notes="[]"
-    fi
-
-    # Loop through all files matching the pattern "notes_shortcut_*"
     echo "Processing notes_shortcut_* files..."
     for note_file in "$remote_dir"/notes_shortcut_*; do
-        [[ -f "$note_file" ]] || continue  # Skip if it's not a regular file
+        [[ -f "$note_file" ]] || continue
 
         echo "Processing file: $note_file"
-
-        # Read the content of the current file all at once
         data=$(<"$note_file")
 
-        # Parse the JSON structure and iterate over "notes" array
-        note_count_in_file=$(echo "$data" | jq '.notes | length')
+        # Basic check for "notes" keyword
+        if ! echo "$data" | grep -q '"notes"'; then
+            echo "Invalid JSON or missing 'notes' in $note_file. Skipping."
+            continue
+        fi
 
-        echo "Found $note_count_in_file notes in file $note_file."
+        # Extract each note object
+        notes_raw=$(echo "$data" | sed -n '/"notes"[[:space:]]*:[[:space:]]*\[/,/\]/{ /{/!d; /}/!d; p }' | sed 's/^[[:space:]]*{//;s/}[[:space:]]*$//')
 
-        for i in $(seq 0 $((note_count_in_file - 1))); do
-            echo "Processing note $i..."
-
-            # Extract data for each note
-            id=$(echo "$data" | jq -r ".notes[$i].id")
-            shortcut_name=$(echo "$data" | jq -r ".notes[$i].shortcut_name")
-            ordinal=0  # Ordinal is always 0
-            time_created=$(echo "$data" | jq -r ".notes[$i].time_created")
-            time_modified=$(echo "$data" | jq -r ".notes[$i].time_modified")
-            title=$(echo "$data" | jq -r ".notes[$i].title")
-            content=$(echo "$data" | jq -r ".notes[$i].content")
-
-            echo "Processing note with ID: $id, Title: $title"
-
-            # Skip if ID contains the word "note"
-            [[ "$id" == *"note"* ]] && continue
-
-            # Process only the entries with #nsl in the title
+        IFS=$'\n'
+        for note_json in $(echo "$notes_raw" | awk 'BEGIN{RS="},"} {print $0 "}"}'); do
+            title=$(echo "$note_json" | grep -o '"title"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"//;s/"$//')
             [[ "$title" =~ "#nsl" ]] || continue
 
-            # Clean the content by removing #nsl and HTML tags
-            cleaned_content=$(echo "$content" | sed 's/#nsl//g' | sed 's/<[^>]*>//g')
+            id=$(echo "$note_json" | grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"//;s/"$//')
+            shortcut_name=$(echo "$note_json" | grep -o '"shortcut_name"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"//;s/"$//')
+            time_created=$(echo "$note_json" | grep -o '"time_created"[[:space:]]*:[[:space:]]*[0-9]*' | sed 's/.*: *//')
+            time_modified=$(echo "$note_json" | grep -o '"time_modified"[[:space:]]*:[[:space:]]*[0-9]*' | sed 's/.*: *//')
+            content=$(echo "$note_json" | grep -o '"content"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*: *"//;s/"$//')
 
-            # Decode HTML entities (such as &amp; to &)
-            cleaned_content=$(echo "$cleaned_content" | sed -e 's/&amp;/\&/g' -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&quot;/"/g' -e 's/&apos;/\'\''/g')
+            cleaned_content=$(echo "$content" | sed 's/#nsl//g' | sed 's/<[^>]*>//g' |
+                sed -e 's/&amp;/\&/g' -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&quot;/"/g' -e "s/&apos;/'/g")
 
-            # Get just the file name (without the full path)
             file_name=$(basename "$note_file")
 
-            # Ensure Time Created and Time Modified are treated as integers
-            time_created_int=$(echo "$time_created" | sed 's/^0*//')  # Remove leading zeros if any
-            time_modified_int=$(echo "$time_modified" | sed 's/^0*//')  # Remove leading zeros if any
+            # Construct JSON object manually
+            note_json_entry="{\"ID\":\"$id\",\"Shortcut Name\":\"$shortcut_name\",\"Time Created\":$time_created,\"Time Modified\":$time_modified,\"Title\":\"$title\",\"Content\":\"$cleaned_content\",\"File Name\":\"$file_name\"}"
 
-            # Add data to the collected_notes array (as a valid JSON object)
-            collected_notes=$(echo "$collected_notes" | jq ". += [{
-                \"ID\": \"$id\",
-                \"Shortcut Name\": \"$shortcut_name\",
-                \"Ordinal\": $ordinal,
-                \"Time Created\": $time_created_int,
-                \"Time Modified\": $time_modified_int,
-                \"Title\": \"$title\",
-                \"Content\": \"$cleaned_content\",
-                \"File Name\": \"$file_name\"
-            }]")
+            if [[ -n "$collected_notes" ]]; then
+                collected_notes="$collected_notes,$note_json_entry"
+            else
+                collected_notes="$note_json_entry"
+            fi
 
-            # Increment the note count
             note_count=$((note_count + 1))
         done
     done
 
-    # Write the updated collected_notes array to the output file (appending properly formatted JSON)
-    echo "Writing collected notes to output file: $output_file"
-    echo "$collected_notes" > "$output_file" 2>/dev/null
+    final_json="[$collected_notes]"
 
-    # Send the collected data to the API
-    echo "Sending collected data to API..."
+    echo "Writing $note_count collected notes to $output_file..."
+    echo "$final_json" > "$output_file" 2>/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo "Error writing to $output_file"
+    fi
+
+    echo "Sending collected notes to API..."
     url="https://nslnotes.onrender.com/api/notes/"
-    response=$(curl -s -w "%{http_code}" -o /dev/null -X POST -H "Content-Type: application/json" -d "$collected_notes" "$url")
+    response=$(curl -s -w "%{http_code}" -o /dev/null -X POST -H "Content-Type: application/json" -d "$final_json" "$url")
 
-    # Check if the request was successful
     if [[ "$response" == "200" ]]; then
         echo "$note_count notes successfully sent to the API."
     else
         echo "Failed to send data to the API. Status code: $response"
     fi
 
-    show_message "#nsl notes have been sent :) looking for new ones!<3"
+    echo "#nsl notes have been sent :) looking for new ones!<3"
 fi
 
 
 
 
 
-
-
-
-#recieve noooooooooooootes
-# Paths
+#receive notes
 proton_dir=$(find -L "${logged_in_home}/.steam/root/compatibilitytools.d" -maxdepth 1 -type d -name "GE-Proton*" | sort -V | tail -n1)
 CSV_FILE="$proton_dir/protonfixes/umu-database.csv"
 echo "$CSV_FILE"
 shortcuts_file="${logged_in_home}/.config/systemd/user/shortcuts"
-output_dir="$remote_dir"
+output_dir="${logged_in_home}/.steam/root/userdata/${steamid3}/2371090/remote"
 descriptions_file="${logged_in_home}/.config/systemd/user/descriptions.json"
 
 # Function to get the current Unix timestamp
@@ -3187,8 +3147,7 @@ update_notes_in_file() {
     local api_response="$3"  # All notes are passed in at once
 
     # Sanitize the game name (replace spaces with underscores, etc.)
-    sanitized_game_name="$game_name"
-    sanitized_game_name="${sanitized_game_name// /_}"
+    sanitized_game_name="${game_name// /_}"
     sanitized_game_name="${sanitized_game_name//[^a-zA-Z0-9]/_}"
 
     # URL encode the sanitized game name
@@ -3207,8 +3166,8 @@ update_notes_in_file() {
     nsl_content=""
 
     # Loop through the filtered notes for this game
-    for note in $(echo "$filtered_notes" | jq -r '@base64'); do
-        # Decode the note
+    while IFS= read -r note; do
+        # Decode the note from base64
         note_decoded=$(echo "$note" | base64 --decode)
 
         # Extract the relevant information for each note
@@ -3221,7 +3180,7 @@ update_notes_in_file() {
 
         # Construct the content block for this note
         nsl_content+=$"[p][i]A note called \"$user\" says,[/i][/p][p][b]$content_cleaned[/b][/p][p]$time_created[/p][p][/p]"
-    done
+    done <<< "$(echo "$filtered_notes" | jq -r '@base64')"
 
     # Generate the current timestamp
     local current_time=$(get_current_timestamp)
@@ -3260,10 +3219,14 @@ update_notes_in_file() {
         # Find the description for the current game
         game_description=$(echo "$descriptions" | jq -r ".[] | select(.game_name == \"$game_name\") | .about_the_game")
 
-        # If a description is found, create a description note
-        if [[ -n "$game_description" ]]; then
-            local note_3=$(jq -n --arg shortcut_name "$game_name" --argjson time_created "$current_time" --arg game_description "$game_description" \
-                '{"id":"note3675","shortcut_name":$shortcut_name,"ordinal":0,"time_created":$time_created,"time_modified":$time_created,"title":"Game Description","content":$game_description}')
+        # Use a default description if none is found
+        if [[ -z "$game_description" ]]; then
+            game_description="No description found in the JSON file."
+        fi
+
+        #create a description note
+        local note_3=$(jq -n --arg shortcut_name "$game_name" --argjson time_created "$current_time" --arg game_description "$game_description" \
+            '{"id":"note3675","shortcut_name":$shortcut_name,"ordinal":0,"time_created":$time_created,"time_modified":$time_created,"title":"Game Description","content":$game_description}')
 
             # Check if the file exists and is valid
             if [[ -f "$file_path" ]]; then
@@ -3294,9 +3257,6 @@ update_notes_in_file() {
                     return 1  # Exit if the file creation fails
                 fi
             fi
-        else
-            echo "No description found for $game_name"
-        fi
     done
 }
 
@@ -3347,11 +3307,8 @@ for game_name in "${games[@]}"; do
     update_notes_in_file "$file_path" "$game_name" "$api_response"
 done
 
-echo "Script execution complete."
-show_message "Notes have been recieved!"
-#noooooooooooooooootes
-
-
+echo "Notes execution complete."
+echo "Notes have been recieved!"
 
 
 
