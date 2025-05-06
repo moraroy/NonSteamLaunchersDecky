@@ -781,9 +781,23 @@ class Plugin:
         env['DISPLAY'] = ':0'
         env['XAUTHORITY'] = os.path.join(os.environ['HOME'], '.Xauthority')
 
-        # Run the command in a new xterm window
-        xterm_command = f"xterm -e {command}"
-        process = Popen(xterm_command, shell=True, env=env)
+        # Check if xterm exists before attempting to use it
+        try:
+            xterm_check = subprocess.run(['which', 'xterm'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if xterm_check.returncode == 0:
+                # xterm is found, use it
+                xterm_command = f"xterm -e {command}"
+                decky_plugin.logger.info(f"xterm found. Running command in xterm: {xterm_command}")
+                process = Popen(xterm_command, shell=True, env=env)
+            else:
+                # xterm not found, fall back to subprocess directly
+                decky_plugin.logger.info("xterm not found. Falling back to subprocess.")
+                process = Popen(command, shell=True, env=env)
+        except Exception as e:
+            decky_plugin.logger.error(f"Error checking xterm: {e}")
+            # Fall back to subprocess directly if there is an error in checking xterm
+            decky_plugin.logger.info("Error checking xterm, falling back to subprocess.")
+            process = Popen(command, shell=True, env=env)
 
         # Wait for the script to complete and get the exit code
         exit_code = process.wait()
