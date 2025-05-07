@@ -397,6 +397,7 @@ def decode_html_entities(text):
     text = text.replace("\u00a0", " ")
     text = text.replace("\u2013", "-")
     text = text.replace("\u2019", "'")
+    text = text.replace("\u2122", "™")
     return text
 
 # Function to write game details to descriptions.json (only if it's not already present)
@@ -483,8 +484,8 @@ def update_game_details(games_to_check):
 
     # Only write back to descriptions.json if new data was added
     if existing_data != load_game_data():  # Check if data was changed
-        with open(descriptions_file_path, 'w') as file:
-            json.dump(existing_data, file, indent=4)
+        with open(descriptions_file_path, 'w', encoding='utf-8') as file:
+            json.dump(existing_data, file, indent=4, ensure_ascii=False)
         decky_plugin.logger.info(f"Updated {descriptions_file_path} with new game details (if applicable).")
     else:
         decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
