@@ -1529,13 +1529,27 @@
       const { settings, setAutoScan } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
-          "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
-          "Wow! You look amazing today...is that a new haircut?",
-          "Why couldn't Ubisoft access the servers?... Cuz it couldnt 'Connect'.",
-          "I hope you have a blessed day today!", "Just wanted to say, I love you to the sysmoon and back.", "Whats further? Half Life 3 or Gog Galaxy?",
-          "I went on a date with a linux jedi once... it didnt work out cuz they kept kept trying to force compatability.",
-          "You installed another launcher? ...pff, when are you going to learn bro?", "So how are we wasting our time today?",
-          "“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.” - John 3:16"
+        "Welcome back, commander.",
+        "Systems nominal. Let’s get gaming.",
+        "Your backlog misses you.",
+        "Ah, a familiar face. Launching excellence.",
+        "Initializing vibes... 100% cozy.",
+        "You're the boss—I'm just the launcher.",
+        "Powered up and ready to roll.",
+        "You're here! Time to make pixels proud.",
+        "Permission to engage, granted.",
+        "Another day, another achievement unlocked.",
+        "You bring the skills, I bring the shortcuts.",
+        "Your games await, noble traveler.",
+        "All engines go. Fun is now in session.",
+        "Summoning the good bits. Please wait...",
+        "Hello again, maestro of mayhem.",
+        "It’s a great day to ignore your responsibilities.",
+        "Who needs a social life when you have this library?",
+        "Your Steam Deck called—it missed you.",
+        "Time to make your GPU earn its keep.",
+        "Your entertainment concierge at your service.",
+        "Reticulating splines..."
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
