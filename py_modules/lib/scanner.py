@@ -28,6 +28,7 @@ from scanners.minecraft_scanner import minecraft_scanner
 from scanners.indie_scanner import indie_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
+from scanners.waydroid_scanner import waydroid_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -129,7 +130,8 @@ def scan():
             (minecraft_scanner, logged_in_home, minecraft_launcher, create_new_entry),
             (indie_scanner, logged_in_home, indie_launcher, create_new_entry),
             (rpw_scanner, logged_in_home, create_new_entry),
-            (chrome_scanner, logged_in_home, create_new_entry)
+            (chrome_scanner, logged_in_home, create_new_entry),
+            (waydroid_scanner, logged_in_home, create_new_entry),
         ]
 
         # Use ThreadPoolExecutor to limit to 2 threads
@@ -245,7 +247,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 # Add or update the proton compatibility settings
 def add_compat_tool(launchoptions):
-    if 'chrome' in launchoptions or '--appid 0' in launchoptions:
+    if 'chrome' in launchoptions or '--appid 0' in launchoptions or 'jp.' in launchoptions or 'com.' in launchoptions:
         return False
     else:
         return compat_tool_name
@@ -765,6 +767,7 @@ def get_sgdb_art(game_id, launcher):
         "Minecraft Launcher": "5302646",
         "Google Chrome": "37126",
         "IndieGala Client": "5317258",
+        "Waydroid": "5441196",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
