@@ -247,10 +247,14 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 # Add or update the proton compatibility settings
 def add_compat_tool(launchoptions):
-    if 'chrome' in launchoptions or '--appid 0' in launchoptions or 'jp.' in launchoptions or 'com.' in launchoptions or 'online.' in launchoptions:
+    steam_compat_marker = 'STEAM_COMPAT_DATA_PATH'
+
+    if 'chrome' in launchoptions or '--appid 0' in launchoptions:
         return False
-    else:
-        return compat_tool_name
+    elif any(x in launchoptions for x in ['jp.', 'com.', 'online.']):
+        if steam_compat_marker not in launchoptions:
+            return False
+    return compat_tool_name
 
 
 
