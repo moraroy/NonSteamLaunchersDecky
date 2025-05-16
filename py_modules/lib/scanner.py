@@ -247,7 +247,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 # Add or update the proton compatibility settings
 def add_compat_tool(launchoptions):
-    if 'chrome' in launchoptions or '--appid 0' in launchoptions or 'jp.' in launchoptions or 'com.' in launchoptions:
+    if 'chrome' in launchoptions or '--appid 0' in launchoptions or 'jp.' in launchoptions or 'com.' in launchoptions or 'online.' in launchoptions:
         return False
     else:
         return compat_tool_name
