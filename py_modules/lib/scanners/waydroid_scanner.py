@@ -60,8 +60,8 @@ def waydroid_scanner(logged_in_home, create_new_entry):
             create_new_entry(
                 f'"{exe_path}"',
                 display_name,
-                app_name,
-                f'"{start_dir}"',
+                f'"{app_name}"',
+                start_dir,
                 "Waydroid"
             )
 
