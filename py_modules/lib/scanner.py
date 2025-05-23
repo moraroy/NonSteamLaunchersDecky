@@ -382,16 +382,18 @@ def load_game_data():
 def game_exists_in_data(existing_data, game_name):
     return any(game['game_name'] == game_name for game in existing_data)
 
-# Function to fetch game details from the API
 def get_game_details(game_name):
     url = f"https://nonsteamlaunchers.onrender.com/api/details/{game_name}"
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        return response.json()  # Return game details as a dictionary
-    else:
-        decky_plugin.logger.error(f"Error: Unable to retrieve data for {game_name}. Status code {response.status_code}")
-        return None  # Return None when API fails to fetch game details
+    try:
+        response = requests.get(url, timeout=10)  # Optional: set a timeout
+        if response.status_code == 200:
+            return response.json()
+        else:
+            decky_plugin.logger.error(f"Error: Unable to retrieve data for {game_name}. Status code {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        decky_plugin.logger.error(f"Request failed for {game_name}: {e}")
+        return None
 
 # Function to strip HTML tags from a string
 def strip_html_tags(text):
@@ -840,14 +842,14 @@ def get_game_id(game_name):
             decky_plugin.logger.info("No game ID found")
             return "default_game_id"  # Return a default value when no games are found
         except requests.exceptions.RequestException as e:
-            decky_plugin.logger.info(f"Error searching for game ID (attempt {attempt + 1}): {e}")
+            decky_plugin.logger.error(f"Error searching for game ID (attempt {attempt + 1}): {e}")
             if "502 Server Error: Bad Gateway" in str(e) and attempt < retry_attempts:
                 # Retry after a short delay
                 delay_time = 2  # 2 seconds delay for retry
                 decky_plugin.logger.info(f"Retrying search for game ID after {delay_time}s...")
                 time.sleep(delay_time)  # Retry after 2 seconds
             else:
-                decky_plugin.logger.info(f"Error searching for game ID: {e}")
+                decky_plugin.logger.error(f"Error searching for game ID: {e}")
                 return "default_game_id"  # Return default game ID if the error is not related to server issues
 
     # If all retry attempts fail, return the default game ID
