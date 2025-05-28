@@ -112,6 +112,10 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
                 #decky_plugin.logger.info("Handling 'aqua' as 'unknowm'")
                 #game_key = "unknown"
 
+            elif game_key == "aris":
+                decky_plugin.logger.info("Handling 'aris' as 'Aris'")
+                game_key = "Aris"
+
             game_name = flavor_mapping.get(game_key, "unknown")
 
             if game_name == "unknown":

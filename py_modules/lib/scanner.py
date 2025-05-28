@@ -303,6 +303,9 @@ def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
 
 
 #Manifest File Logic
+
+steam_applist_cache = None
+
 def get_steam_store_appid(steam_store_game_name):
     search_url = f"{proxy_url}/search/{steam_store_game_name}"
     try:
@@ -312,11 +315,33 @@ def get_steam_store_appid(steam_store_game_name):
         if 'data' in data and data['data']:
             steam_store_appid = data['data'][0].get('steam_store_appid')
             if steam_store_appid:
+                decky_plugin.logger.info(f"Found App ID for {steam_store_game_name} via primary source: {steam_store_appid}")
                 return steam_store_appid
-        return None
-
     except requests.exceptions.RequestException as e:
-        return None
+        decky_plugin.logger.warning(f"Primary store App ID lookup failed for {steam_store_game_name}: {e}")
+
+    # Fallback using Steam AppList (cached)
+    global steam_applist_cache
+    if steam_applist_cache is None:
+        try:
+            STEAM_BASE_URL = "https://api.steampowered.com"
+            app_list_url = f"{STEAM_BASE_URL}/ISteamApps/GetAppList/v2/"
+            response = requests.get(app_list_url)
+            response.raise_for_status()
+            steam_applist_cache = response.json()['applist']['apps']
+            decky_plugin.logger.info("Cached Steam app list from Steam API.")
+        except requests.exceptions.RequestException as e:
+            decky_plugin.logger.error(f"Steam AppList fallback failed for {steam_store_game_name}: {e}")
+            return None
+
+    for app in steam_applist_cache:
+        if steam_store_game_name.lower() in app['name'].lower():
+            decky_plugin.logger.info(f"Found App ID for {steam_store_game_name} via cached Steam AppList: {app['appid']}")
+            return app['appid']
+
+    decky_plugin.logger.warning(f"No App ID found for {steam_store_game_name} in cached Steam AppList.")
+    return None
+
 
 
 def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_name):
