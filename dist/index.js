@@ -1181,6 +1181,14 @@
           urlimage: 'https://cdn.tempogames.com/wp-content/uploads/2020/02/article-tempo-raise2.jpg'
       },
       {
+          name: 'nvidiaGeForcenow',
+          label: 'NVIDIA GeForce NOW',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/b2619bbe281deeefea3675dfed719fd7.jpg'
+      },
+      {
           name: 'remotePlayWhatever',
           label: 'RemotePlayWhatever',
           URL: '',

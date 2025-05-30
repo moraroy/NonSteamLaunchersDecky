@@ -29,6 +29,7 @@ from scanners.indie_scanner import indie_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
+from scanners.flatpak_scanner import flatpak_scanner
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -132,6 +133,7 @@ def scan():
             (rpw_scanner, logged_in_home, create_new_entry),
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
+            (flatpak_scanner, logged_in_home, create_new_entry),
         ]
 
         # Use ThreadPoolExecutor to limit to 2 threads
@@ -799,6 +801,7 @@ def get_sgdb_art(game_id, launcher):
         "Google Chrome": "37126",
         "IndieGala Client": "5317258",
         "Waydroid": "5441196",
+        "GeForce Now": "5258450",
     }
 
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
