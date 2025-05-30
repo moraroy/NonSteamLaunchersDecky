@@ -375,7 +375,7 @@ class Plugin:
                 {"name": 'antstreamArcade', "env_var": 'antstream_launcher', "label": 'Antstream Arcade'},
 
                 # exception
-                {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"}
+                {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"},
                 {"name": 'nvidiaGeForcenow', "env_var": None, "label": 'NVIDIA GeForce NOW', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.nvidia.geforcenow/x86_64/master/active/files/bin/GeForceNOW"},
 
             ]
