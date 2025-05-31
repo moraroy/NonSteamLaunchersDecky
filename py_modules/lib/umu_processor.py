@@ -3,19 +3,65 @@ import csv
 import os
 import re
 import decky_plugin
+from decky_plugin import DECKY_USER_HOME
 
 CSV_URL = "https://raw.githubusercontent.com/Open-Wine-Components/umu-database/main/umu-database.csv"
 
-# Global variable to store CSV data
+# Global variable to store parsed CSV data
 csv_data = []
 
-def fetch_and_parse_csv():
+def fetch_and_parse_csv(compat_tool_name=None):
     global csv_data
-    response = requests.get(CSV_URL)
-    response.raise_for_status()
-    csv_data = [row for row in csv.DictReader(response.text.splitlines())]
-    decky_plugin.logger.info("Successfully fetched and parsed CSV data.")
+
+    def parse_csv_lines(lines):
+        return [row for row in csv.DictReader(lines)]
+
+    try:
+        response = requests.get(CSV_URL, timeout=5)
+        response.raise_for_status()
+        csv_data = parse_csv_lines(response.text.splitlines())
+        decky_plugin.logger.info("Successfully fetched and parsed remote CSV.")
+    except Exception as e:
+        decky_plugin.logger.warning(f"Failed to fetch remote CSV: {e}")
+
+        if compat_tool_name is None:
+            # Try to auto-detect the latest UMU folder
+            dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
+            pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
+            umu_folders = [
+                (tuple(map(int, (m.group(1) + '.' + (m.group(2) or '0')).split('.'))), name)
+                for name in os.listdir(dir_path)
+                if (m := pattern.match(name)) and os.path.isdir(os.path.join(dir_path, name))
+            ]
+            if umu_folders:
+                compat_tool_name = max(umu_folders)[1]
+            else:
+                decky_plugin.logger.error("No valid UMU compatibility tool folders found.")
+                csv_data = []
+                return csv_data
+
+        fallback_path = os.path.join(
+            DECKY_USER_HOME,
+            ".steam", "root", "compatibilitytools.d",
+            compat_tool_name,
+            "protonfixes",
+            "umu-database.csv"
+        )
+
+        if os.path.exists(fallback_path):
+            try:
+                with open(fallback_path, "r", encoding="utf-8") as f:
+                    csv_data = parse_csv_lines(f.readlines())
+                decky_plugin.logger.info("Loaded fallback local CSV.")
+            except Exception as fallback_error:
+                decky_plugin.logger.error(f"Failed to parse local fallback CSV: {fallback_error}")
+                csv_data = []
+        else:
+            decky_plugin.logger.error("No local fallback CSV found.")
+            csv_data = []
+
     return csv_data
+
 
 def list_all_entries():
     global csv_data

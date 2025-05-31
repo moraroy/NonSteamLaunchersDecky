@@ -660,6 +660,35 @@ def get_movies(game_name):
 
 
 
+#Fallback Artwork
+def get_steam_fallback_artwork(steam_store_appid, art_type):
+    # Map logical art types to possible Steam CDN files
+    art_type_map = {
+        "icon": ["icon.png", "icon.ico"],
+        "logo": ["logo_2x.png"],
+        "hero": ["library_hero_2x.jpg", "library_hero.jpg"],
+        "grid": ["library_600x900_2x.jpg", "library_600x900.jpg"],
+        "widegrid": ["header_2x.jpg", "header.jpg"],
+    }
+
+    file_candidates = art_type_map.get(art_type)
+    if not file_candidates:
+        return None
+
+    base_url = f"https://shared.steamstatic.com/store_item_assets/steam/apps/{steam_store_appid}/"
+    for file in file_candidates:
+        url = base_url + file
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            if response.status_code == 200:
+                return b64encode(response.content).decode("utf-8")
+        except requests.RequestException as e:
+            decky_plugin.logger.info(f"Failed to fetch fallback {art_type} from {url}: {e}")
+            continue
+    return None
+
+#End of fallback artwork
 
 
 #Create a shortcut
@@ -715,6 +744,26 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     if steam_store_appid:
         decky_plugin.logger.info(f"Found Steam App ID for {appname}: {steam_store_appid}")
         create_steam_store_app_manifest_file(steam_store_appid, appname)
+
+        #Fallback Artwork
+        if not gridp64:
+            decky_plugin.logger.info(f"Using fallback grid artwork for {appname}")
+            gridp64 = get_steam_fallback_artwork(steam_store_appid, "grid")
+        if not grid64:
+            decky_plugin.logger.info(f"Using fallback widegrid artwork for {appname}")
+            grid64 = get_steam_fallback_artwork(steam_store_appid, "widegrid")
+        if not hero64:
+            decky_plugin.logger.info(f"Using fallback hero artwork for {appname}")
+            hero64 = get_steam_fallback_artwork(steam_store_appid, "hero")
+        if not logo64:
+            decky_plugin.logger.info(f"Using fallback logo artwork for {appname}")
+            logo64 = get_steam_fallback_artwork(steam_store_appid, "logo")
+        if not icon:
+            decky_plugin.logger.info(f"Using fallback icon artwork for {appname}")
+            icon = get_steam_fallback_artwork(steam_store_appid, "icon")
+            if not icon:
+                decky_plugin.logger.warning(f"Fallback artwork for {appname} failed — no icon found.")
+        #End of Fallback Artwork
 
     # Create a new entry for the Steam shortcut
     compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
