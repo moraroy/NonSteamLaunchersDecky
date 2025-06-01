@@ -940,25 +940,19 @@
               window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Restoring your game save backups..."),
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
                   window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
-                  window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal, style: { width: '25px' } }, "Cancel"))) :
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { style: { width: '600px' } },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restore Game Save Backups"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix."),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }))) :
+          window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restore Game Save Backups", strDescription: window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
+                  window.SP_REACT.createElement("div", { style: { fontSize: '14px', marginBottom: '8px' } }, "This feature will restore all your game save backups all at once, currently only for the default NonSteamLaunchers prefix."),
+                  window.SP_REACT.createElement("div", { style: { fontSize: '14px', marginBottom: '8px' } },
                       window.SP_REACT.createElement("strong", null, "Ensure all necessary launchers are installed, but do not download the games,"),
                       " as this will avoid local conflicts. Only continue if you have wiped everything using Start Fresh and you know for a fact that your game saves are backed up at /home/deck/NSLGameSaves."),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "Some games don't have local save backups:"),
-                  window.SP_REACT.createElement("ul", null,
-                      window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "NSL uses Ludusavi to backup and restore your local game saves."),
-                      window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "Some launchers handle local and cloud saves themselves so this will vary on a game to game basis."),
-                      window.SP_REACT.createElement("li", { style: { fontSize: '12px', wordWrap: 'break-word' } }, "Ludusavi may need manual configuration here if more paths are needed: /home/deck/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/config.yaml")),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: '14px' } }, "Press restore when ready.")),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
-                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestoreClick }, "Restore Game Saves"),
-                      window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel")))));
+                  window.SP_REACT.createElement("div", { style: { fontSize: '14px', marginBottom: '8px' } },
+                      "Some games don't have local save backups:",
+                      window.SP_REACT.createElement("ul", { style: { paddingLeft: '16px' } },
+                          window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "NSL uses Ludusavi to backup and restore your local game saves."),
+                          window.SP_REACT.createElement("li", { style: { fontSize: '12px' } }, "Some launchers handle local and cloud saves themselves so this will vary on a game to game basis."),
+                          window.SP_REACT.createElement("li", { style: { fontSize: '12px', wordWrap: 'break-word' } }, "Ludusavi may need manual configuration here if more paths are needed: /home/deck/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/config.yaml"))),
+                  window.SP_REACT.createElement("div", { style: { fontSize: '14px' } }, "Press restore when ready.")), strOKButtonText: "Restore Game Saves", strCancelButtonText: "Cancel", onOK: handleRestoreClick, onCancel: closeModal }));
   };
 
   const useUpdateInfo = () => {
