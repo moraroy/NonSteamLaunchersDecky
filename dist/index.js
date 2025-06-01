@@ -887,19 +887,7 @@
           window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Updating Proton GE to the latest version. Please wait..."),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
               window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
-              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restart Steam"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Updating Proton GE requires a restart of Steam for the changes to take effect. Would you like to restart Steam now?"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: () => setShowRestartModal(false) }, "Back"),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestartSteam }, "Restart"))))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Update Proton GE"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Would you like to update Proton GE to the latest version?"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleUpdateProtonGEClick }, "Update")))))));
+              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Updating Proton GE requires a restart of Steam for the changes to take effect. Would you like to restart Steam now?", strOKButtonText: "Restart", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Update Proton GE", strDescription: "Would you like to update Proton GE to the latest version?", strOKButtonText: "Update", strCancelButtonText: "Cancel", onOK: handleUpdateProtonGEClick, onCancel: closeModal }))));
   };
 
   const RestoreGameSavesModal = ({ closeModal, serverAPI }) => {

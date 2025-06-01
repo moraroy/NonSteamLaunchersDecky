@@ -1,4 +1,4 @@
-import { DialogHeader, DialogBodyText, DialogBody, DialogButton, ModalRoot, SteamSpinner, ProgressBarWithInfo } from "decky-frontend-lib";
+import { DialogHeader, DialogBodyText, DialogBody, ConfirmModal, ModalRoot, SteamSpinner, ProgressBarWithInfo } from "decky-frontend-lib";
 import { useState, VFC } from "react";
 import { notify } from "../../hooks/notify";
 
@@ -65,29 +65,23 @@ export const UpdateRestartModal: VFC<UpdateRestartModalProps> = ({ closeModal, s
                     </DialogBody>
                 </ModalRoot>
             ) : showRestartModal ? (
-                <ModalRoot>
-                    <DialogHeader>Restart Steam</DialogHeader>
-                    <DialogBodyText>
-                        Updating Proton GE requires a restart of Steam for the changes to take effect. Would you like to restart Steam now?
-                    </DialogBodyText>
-                    <DialogBody>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <DialogButton onClick={() => setShowRestartModal(false)}>Back</DialogButton>
-                            <DialogButton onClick={handleRestartSteam}>Restart</DialogButton>
-                        </div>
-                    </DialogBody>
-                </ModalRoot>
+                <ConfirmModal
+                    strTitle="Restart Steam"
+                    strDescription="Updating Proton GE requires a restart of Steam for the changes to take effect. Would you like to restart Steam now?"
+                    strOKButtonText="Restart"
+                    strCancelButtonText="Back"
+                    onOK={handleRestartSteam}
+                    onCancel={() => setShowRestartModal(false)}
+                />
             ) : (
-                <ModalRoot>
-                    <DialogHeader>Update Proton GE</DialogHeader>
-                    <DialogBodyText>Would you like to update Proton GE to the latest version?</DialogBodyText>
-                    <DialogBody>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <DialogButton onClick={closeModal}>Cancel</DialogButton>
-                            <DialogButton onClick={handleUpdateProtonGEClick}>Update</DialogButton>
-                        </div>
-                    </DialogBody>
-                </ModalRoot>
+                <ConfirmModal
+                    strTitle="Update Proton GE"
+                    strDescription="Would you like to update Proton GE to the latest version?"
+                    strOKButtonText="Update"
+                    strCancelButtonText="Cancel"
+                    onOK={handleUpdateProtonGEClick}
+                    onCancel={closeModal}
+                />
             )}
         </>
     );
