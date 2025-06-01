@@ -1496,19 +1496,7 @@
           window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Please wait while your notes are being sent to the community..."),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
               window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
-              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Restart Steam"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: () => setShowRestartModal(false) }, "Back"),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleRestartSteam }, "Restart Steam"))))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Send Your Note!"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the \"#nsl\" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the \"NSL Community Notes\" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-              window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between' } },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: closeModal }, "Cancel"),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: handleSendNotesClick }, "Send Notes")))))));
+              window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
   const initialOptions = sitesList;

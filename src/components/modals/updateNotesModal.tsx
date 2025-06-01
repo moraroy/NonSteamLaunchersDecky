@@ -1,4 +1,12 @@
-import { DialogHeader, DialogBodyText, DialogBody, DialogButton, ModalRoot, SteamSpinner, ProgressBarWithInfo } from "decky-frontend-lib";
+import {
+    DialogHeader,
+    DialogBodyText,
+    DialogBody,
+    ConfirmModal,
+    ModalRoot,
+    SteamSpinner,
+    ProgressBarWithInfo
+} from "decky-frontend-lib";
 import { useState, VFC } from "react";
 import { notify } from "../../hooks/notify";
 
@@ -65,31 +73,23 @@ export const UpdateNotesModal: VFC<UpdateNotesModalProps> = ({ closeModal, serve
                     </DialogBody>
                 </ModalRoot>
             ) : showRestartModal ? (
-                <ModalRoot>
-                    <DialogHeader>Restart Steam</DialogHeader>
-                    <DialogBodyText>
-                        Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?
-                    </DialogBodyText>
-                    <DialogBody>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <DialogButton onClick={() => setShowRestartModal(false)}>Back</DialogButton>
-                            <DialogButton onClick={handleRestartSteam}>Restart Steam</DialogButton>
-                        </div>
-                    </DialogBody>
-                </ModalRoot>
+                <ConfirmModal
+                    strTitle="Restart Steam"
+                    strDescription="Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?"
+                    strOKButtonText="Restart Steam"
+                    strCancelButtonText="Back"
+                    onOK={handleRestartSteam}
+                    onCancel={() => setShowRestartModal(false)}
+                />
             ) : (
-                <ModalRoot>
-                    <DialogHeader>Send Your Note!</DialogHeader>
-                    <DialogBodyText>
-                        Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?
-                    </DialogBodyText>
-                    <DialogBody>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <DialogButton onClick={closeModal}>Cancel</DialogButton>
-                            <DialogButton onClick={handleSendNotesClick}>Send Notes</DialogButton>
-                        </div>
-                    </DialogBody>
-                </ModalRoot>
+                <ConfirmModal
+                    strTitle="Send Your Note!"
+                    strDescription={`Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`}
+                    strOKButtonText="Send Notes"
+                    strCancelButtonText="Cancel"
+                    onOK={handleSendNotesClick}
+                    onCancel={closeModal}
+                />
             )}
         </>
     );
