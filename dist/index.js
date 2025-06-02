@@ -767,8 +767,7 @@
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
                   window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
                   window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true }),
-                  currentStreamingSites.length > 0 && (window.SP_REACT.createElement("div", { style: fadeStyle })),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))));
+                  currentStreamingSites.length > 0 && (window.SP_REACT.createElement("div", { style: fadeStyle })))));
       }
       // Main selection modal
       return (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strOKButtonText: "Install", strCancelButtonText: "Cancel", bOKDisabled: options.every(option => !option.enabled), onOK: handleInstallClick, strTitle: "Install Game/Media Streaming Sites" },

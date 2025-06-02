@@ -135,7 +135,6 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
           {currentStreamingSites.length > 0 && (
             <div style={fadeStyle} />
           )}
-          <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
         </DialogBody>
       </ConfirmModal>
     );
