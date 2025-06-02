@@ -1,7 +1,6 @@
 import {
-  ModalRoot,
+  ConfirmModal,
   ToggleField,
-  DialogHeader,
   DialogBodyText,
   DialogBody,
   ServerAPI,
@@ -16,53 +15,44 @@ import { Sites, installSite } from "../../hooks/installSites";
 type StreamingInstallModalProps = {
   closeModal?: () => void,
   streamingOptions: {
-      name: string;
-      label: string;
-      URL: string;
-      streaming: boolean;
-      enabled: boolean;
-      urlimage: string; // Add this line
+    name: string;
+    label: string;
+    URL: string;
+    streaming: boolean;
+    enabled: boolean;
+    urlimage: string;
   }[],
   serverAPI: ServerAPI
 };
 
-/**
- * The modal for selecting streaming sites.
- */
 export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeModal, streamingOptions, serverAPI }) => {
 
   const [progress, setProgress] = useState({ percent: 0, status: '', description: '' });
   const [options, setOptions] = useState(streamingOptions);
-  const [currentStreamingSites, setCurrentStreamingSites] = useState<typeof streamingOptions[0][]>([]); // Track multiple sites
+  const [currentStreamingSites, setCurrentStreamingSites] = useState<typeof streamingOptions[0][]>([]);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
-
   const indexOfLastSite = currentPage * itemsPerPage;
   const indexOfFirstSite = indexOfLastSite - itemsPerPage;
   const currentSites = streamingOptions.slice(indexOfFirstSite, indexOfLastSite);
 
   const handleInstallClick = async () => {
-    console.log('handleInstallClick called');
     const selectedStreamingSites: Sites = options
-        .filter(option => option.enabled && option.streaming)
-        .map(option => {
-          return {
-            siteName: option.label,
-            siteURL: option.URL
-          }   
-        });
-    
+      .filter(option => option.enabled && option.streaming)
+      .map(option => ({
+        siteName: option.label,
+        siteURL: option.URL
+      }));
+
     if (selectedStreamingSites.length > 0) {
       const total = selectedStreamingSites.length;
-      setProgress({ 
-        percent: 0, 
-        status: `Installing ${total} Streaming Sites`, 
-        description: `${selectedStreamingSites.map(site => site.siteName).join(', ')}` 
+      setProgress({
+        percent: 0,
+        status: `Installing ${total} Streaming Sites`,
+        description: selectedStreamingSites.map(site => site.siteName).join(', ')
       });
 
-      // Set the sites to be installed
       setCurrentStreamingSites(options.filter(option => option.enabled && option.streaming));
 
       await installSite(selectedStreamingSites, serverAPI, { setProgress }, total);
@@ -72,23 +62,18 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
   const handleToggle = (changeName: string, changeValue: boolean) => {
     const newOptions = options.map(option => {
       if (option.name === changeName) {
-        return {
-          ...option,
-          enabled: changeValue,
-        };
-      } else {
-        return option;
+        return { ...option, enabled: changeValue };
       }
+      return option;
     });
     setOptions(newOptions);
   };
 
   const cancelOperation = () => {
     setProgress({ percent: 0, status: '', description: '' });
-    setCurrentStreamingSites([]); // Reset the current sites array
+    setCurrentStreamingSites([]);
   };
 
-  // Pagination functions
   const nextPage = () => {
     if (currentPage * itemsPerPage < streamingOptions.length) {
       setCurrentPage(prevPage => prevPage + 1);
@@ -101,16 +86,13 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
     }
   };
 
-  // Add the image cycling effect
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
   useEffect(() => {
     if (currentStreamingSites.length > 0) {
       const interval = setInterval(() => {
         setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
-      }, 7000); // Change image every 7 seconds
-      
-      return () => clearInterval(interval); // Clean up the interval on unmount
+      }, 7000);
+      return () => clearInterval(interval);
     }
   }, [currentStreamingSites]);
 
@@ -128,13 +110,18 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
     backgroundPosition: 'center'
   };
 
-  return (
-    (progress.status !== '' && progress.percent < 100) ? (
-      <ModalRoot>
-        <DialogHeader>
-          Installing Streaming Sites
-        </DialogHeader>
-        <DialogBodyText>Selected options: {options.filter(option => option.enabled).map(option => option.label).join(', ')}</DialogBodyText>
+  // While installing
+  if (progress.status !== '' && progress.percent < 100) {
+    return (
+      <ConfirmModal
+        strTitle="Installing Streaming Sites"
+        onCancel={cancelOperation}
+        onEscKeypress={cancelOperation}
+        bOKDisabled={true}
+      >
+        <DialogBodyText>
+          Selected options: {options.filter(option => option.enabled).map(option => option.label).join(', ')}
+        </DialogBodyText>
         <DialogBody>
           <SteamSpinner />
           <ProgressBarWithInfo
@@ -150,43 +137,48 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
           )}
           <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
         </DialogBody>
-      </ModalRoot>
-    ) : (
-      <ModalRoot onCancel={closeModal}>
-        <DialogHeader>
-          Install Game/Media Streaming Sites
-        </DialogHeader>
-        <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection.</DialogBodyText>
-        <DialogBody>
+      </ConfirmModal>
+    );
+  }
 
-          {/* Pagination controls moved above the selection list */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
-            <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= streamingOptions.length}>Next</DialogButton>
-          </div>
+  // Main selection modal
+  return (
+    <ConfirmModal
+      bAllowFullSize
+      onCancel={closeModal}
+      onEscKeypress={closeModal}
+      strOKButtonText="Install"
+      strCancelButtonText="Cancel"
+      bOKDisabled={options.every(option => !option.enabled)}
+      onOK={handleInstallClick}
+      strTitle="Install Game/Media Streaming Sites"
+    >
+      <DialogBodyText>
+        NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection.
+      </DialogBodyText>
+      <DialogBody>
 
-          {currentSites.map(({ name, label }) => (
-            <ToggleField
-              label={label}
-              checked={options.find(option => option.name === name)?.enabled ? true : false}
-              onChange={(value) => handleToggle(name, value)}
-            />
-          ))}
-        </DialogBody>
-        <p></p>
-        <Focusable style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <DialogButton
-            style={{ width: "fit-content" }}
-            onClick={handleInstallClick}
-            disabled={options.every(option => option.enabled === false)}
-          >
-            Install
-          </DialogButton>
+        <Focusable style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
+          <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= streamingOptions.length}>Next</DialogButton>
+        </Focusable>
+
+        {currentSites.map(({ name, label }) => (
+          <ToggleField
+            key={name}
+            label={label}
+            checked={options.find(option => option.name === name)?.enabled || false}
+            onChange={(value) => handleToggle(name, value)}
+          />
+        ))}
+
+        <Focusable style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
           <DialogBodyText style={{ fontSize: "small" }}>
             Note: NSL will attempt to install Google Chrome. Be sure that Google Chrome is installed from the Discover Store in Desktop Mode first or from SteamOS.
           </DialogBodyText>
         </Focusable>
-      </ModalRoot>
-    )
+
+      </DialogBody>
+    </ConfirmModal>
   );
 };
