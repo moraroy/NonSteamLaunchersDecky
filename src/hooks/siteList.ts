@@ -363,7 +363,7 @@ export const sitesList = [
   { 
     name: 'plex',
     label: 'Plex',
-    URL: 'https://www.plex.tv',
+    URL: 'https://app.plex.tv/desktop/#!',
     streaming: true,
     enabled: false,
     urlimage: 'https://cdn2.steamgriddb.com/thumb/7c8db737a231930514b03b61dda48c60.jpg'
@@ -391,6 +391,30 @@ export const sitesList = [
     streaming: true,
     enabled: false,
     urlimage: 'https://cdn2.steamgriddb.com/thumb/dcd0d3f52fb67634fabc703a77a67adf.jpg'
+  },
+  {
+    name: 'crunchyroll',
+    label: 'Crunchyroll',
+    URL: 'https://www.crunchyroll.com',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/b51869faee0c2357dc5c2c34e4229a80.jpg'
+  },
+  {
+    name: 'appletv+',
+    label: 'Apple TV+',
+    URL: 'https://tv.apple.com',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/305aefb84d348c156953f7a3d4aa3e04.jpg'
+  },
+  { 
+    name: 'twitch',
+    label: 'Twitch',
+    URL: 'https://www.twitch.tv',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/72f0b767094fe8e24d620a2273bd0839.jpg'
   },
   {
     name: 'youtubetvop',
@@ -432,28 +456,4 @@ export const sitesList = [
     enabled: false,
     urlimage: 'https://lh3.googleusercontent.com/tLNJkVOBBNQ_Ux1_9bjgkPn66WJfZNRpzcnJdDMA1bW2FYN0qWqJro81KxtdYjcpSlJohQMJUR4RHPKSjbLV1i-iLQ=s800-w800-h500'
   },
-  {
-    name: 'crunchyroll',
-    label: 'Crunchyroll',
-    URL: 'https://www.crunchyroll.com',
-    streaming: true,
-    enabled: false,
-    urlimage: 'https://cdn2.steamgriddb.com/thumb/b51869faee0c2357dc5c2c34e4229a80.jpg'
-  },
-  {
-    name: 'appletv+',
-    label: 'Apple TV+',
-    URL: 'https://tv.apple.com',
-    streaming: true,
-    enabled: false,
-    urlimage: 'https://cdn2.steamgriddb.com/thumb/305aefb84d348c156953f7a3d4aa3e04.jpg'
-  },
-  { 
-    name: 'twitch',
-    label: 'Twitch',
-    URL: 'https://www.twitch.tv',
-    streaming: true,
-    enabled: false,
-    urlimage: 'https://cdn2.steamgriddb.com/thumb/72f0b767094fe8e24d620a2273bd0839.jpg'
-  }
 ]
