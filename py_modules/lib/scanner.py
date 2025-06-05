@@ -690,7 +690,7 @@ def get_steam_fallback_artwork(steam_store_appid, art_type):
     # Map logical art types to possible Steam CDN files
     art_type_map = {
         "icon": ["icon.png", "icon.ico"],
-        "logo": ["logo_2x.png"],
+        "logo": ["logo_2x.png", "logo.png"],
         "hero": ["library_hero_2x.jpg", "library_hero.jpg"],
         "grid": ["library_600x900_2x.jpg", "library_600x900.jpg"],
         "widegrid": ["header_2x.jpg", "header.jpg"],
@@ -698,21 +698,26 @@ def get_steam_fallback_artwork(steam_store_appid, art_type):
 
     file_candidates = art_type_map.get(art_type)
     if not file_candidates:
+        decky_plugin.logger.warning(f"No file candidates found for art type '{art_type}'")
         return None
 
     base_url = f"https://shared.steamstatic.com/store_item_assets/steam/apps/{steam_store_appid}/"
+
     for file in file_candidates:
         url = base_url + file
+        decky_plugin.logger.info(f"Trying to fetch {art_type} from {url}")
         try:
             response = requests.get(url, stream=True)
-            response.raise_for_status()
             if response.status_code == 200:
+                decky_plugin.logger.info(f"Successfully fetched {art_type} from {url}")
                 return b64encode(response.content).decode("utf-8")
+            else:
+                decky_plugin.logger.info(f"Received status {response.status_code} for {art_type} from {url}")
         except requests.RequestException as e:
-            decky_plugin.logger.info(f"Failed to fetch fallback {art_type} from {url}: {e}")
-            continue
-    return None
+            decky_plugin.logger.warning(f"Exception while fetching {art_type} from {url}: {e}")
 
+    decky_plugin.logger.warning(f"All attempts to fetch {art_type} for app ID {steam_store_appid} failed.")
+    return None
 #End of fallback artwork
 
 
