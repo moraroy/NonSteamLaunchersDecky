@@ -9,6 +9,8 @@ import decky_plugin
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 import platform
 import time
+import subprocess
+import base64
 from base64 import b64encode
 import externals.requests as requests
 import externals.vdf as vdf
@@ -37,6 +39,27 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 #Vars
 proxy_url = 'https://nonsteamlaunchers.onrender.com/api'
 decky_shortcuts = {}
+
+
+launcher_icons = {
+    "Epic Games": "5255885",
+    "Amazon Games": "5255884",
+    "GOG Galaxy": "34605",
+    "Battle.net": "5248250",
+    "EA App": "5306742",
+    "itch.io": "5259585",
+    "Legacy Games": "5438208",
+    "Ubisoft Connect": "5270094",
+    "VK Play": "5418177",
+    "HoYoPlay": "5454020",
+    "Game Jolt Client": "5299692",
+    "Artix Game Launcher": "5264320",
+    "Minecraft Launcher": "5302646",
+    "Google Chrome": "37126",
+    "IndieGala Client": "5317258",
+    "Waydroid": "5441196",
+    "GeForce Now": "5258450",
+}
 
 # Initial environment variables refresh
 env_vars = refresh_env_vars()
@@ -660,6 +683,8 @@ def get_movies(game_name):
 
 
 
+
+
 #Fallback Artwork
 def get_steam_fallback_artwork(steam_store_appid, art_type):
     # Map logical art types to possible Steam CDN files
@@ -691,10 +716,73 @@ def get_steam_fallback_artwork(steam_store_appid, art_type):
 #End of fallback artwork
 
 
+
+
+
+#Check Local Artwork Files
+def get_local_tagged_artwork(appname, steamid3, logged_in_home):
+    grid_dir = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid"
+    artwork = {
+        'Icon': None,
+        'Logo': None,
+        'Hero': None,
+        'Grid': None,
+        'WideGrid': None
+    }
+
+    decky_plugin.logger.info(f"Looking for local tagged artwork for '{appname}' in {grid_dir}")
+
+    try:
+        files = os.listdir(grid_dir)
+    except FileNotFoundError:
+        decky_plugin.logger.warning(f"Grid directory not found: {grid_dir}")
+        return artwork
+    except Exception as e:
+        decky_plugin.logger.error(f"Error accessing grid directory {grid_dir}: {e}")
+        return artwork
+
+    for filename in files:
+        file_path = os.path.join(grid_dir, filename)
+        try:
+            # Run getfattr to get the user.xdg.tags attribute
+            result = subprocess.run(
+                ["getfattr", "-n", "user.xdg.tags", "--only-values", file_path],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode != 0:
+                # No attribute or error
+                continue
+
+            tag = result.stdout.strip()
+            if tag == appname:
+                decky_plugin.logger.info(f"Found tagged file for {appname}: {file_path}")
+                with open(file_path, 'rb') as f:
+                    encoded = base64.b64encode(f.read()).decode('utf-8')
+                if "-icon" in filename:
+                    artwork['Icon'] = encoded
+                elif "_logo" in filename:
+                    artwork['Logo'] = encoded
+                elif "_hero" in filename:
+                    artwork['Hero'] = encoded
+                elif "p." in filename:
+                    artwork['Grid'] = encoded
+                else:
+                    artwork['WideGrid'] = encoded
+        except Exception as e:
+            decky_plugin.logger.error(f"Unexpected error processing {file_path}: {e}")
+
+    return artwork
+#End of Checking Local Artwork files
+
+
+
+
 #Create a shortcut
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     global decky_shortcuts
-    # Check if the necessary fields are provided
+
     if not exe or not appname or not startingdir:
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
         return
@@ -706,46 +794,65 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
 
     if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
         return
-    # Modify the shortcut for UMU if on Linux
+
     umu = False
     if platform.system() != "Windows":
         exe, startingdir, launchoptions = modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name)
-        # Check if the modified shortcut is a UMU shortcut
         if '/bin/umu-run' in exe:
             umu = True
             if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
                 return
 
-    # Format the executable path and start directory
-    if platform.system() == "Windows":
-        formatted_exe = f'"{exe}"'
-        formatted_start_dir = f'"{startingdir}"'
-    else:
-        formatted_exe = exe
-        formatted_start_dir = startingdir
-
-    # Format the launch options
+    formatted_exe = f'"{exe}"' if platform.system() == "Windows" else exe
+    formatted_start_dir = f'"{startingdir}"' if platform.system() == "Windows" else startingdir
     formatted_launch_options = launchoptions
 
-    # Initialize artwork variables
     icon, logo64, hero64, gridp64, grid64, launcher_icon = None, None, None, None, None, None
 
-    # Skip artwork fetching for specific shortcuts
+    local_art = get_local_tagged_artwork(appname, steamid3, logged_in_home)
+    icon = local_art['Icon']
+    logo64 = local_art['Logo']
+    hero64 = local_art['Hero']
+    gridp64 = local_art['Grid']
+    grid64 = local_art['WideGrid']
+
     if appname not in ["NonSteamLaunchers", "Repair EA App", "RemotePlayWhatever"]:
-        # Get artwork
         game_id = get_game_id(appname)
         decky_plugin.logger.info(f"Game ID for {appname}: {game_id}")
+
         if game_id is not None and game_id != "default_game_id":
-            icon, logo64, hero64, gridp64, grid64, launcher_icon = get_sgdb_art(game_id, launcher)
+            missing_any_art = any(x is None for x in [icon, logo64, hero64, gridp64, grid64])
+
+            if missing_any_art:
+                decky_plugin.logger.info(f"Some artwork missing, selectively fetching from SGDB for {appname}")
+
+                sgdb_icon = download_artwork(game_id, "icons") if not icon else None
+                sgdb_logo64 = download_artwork(game_id, "logos") if not logo64 else None
+                sgdb_hero64 = download_artwork(game_id, "heroes") if not hero64 else None
+                sgdb_gridp64 = download_artwork(game_id, "grids", "600x900") if not gridp64 else None
+                sgdb_grid64 = download_artwork(game_id, "grids", "920x430") if not grid64 else None
+
+                launcher_icon = None
+                launcher_id = launcher_icons.get(launcher)
+                if launcher_id:
+                    launcher_icon = download_artwork(launcher_id, "icons")
+
+                icon = icon or sgdb_icon or launcher_icon
+                logo64 = logo64 or sgdb_logo64
+                hero64 = hero64 or sgdb_hero64
+                gridp64 = gridp64 or sgdb_gridp64
+                grid64 = grid64 or sgdb_grid64
         else:
             decky_plugin.logger.info(f"No valid game ID found for {appname}. Skipping artwork download.")
 
     steam_store_appid = get_steam_store_appid(appname)
-    if steam_store_appid:
+    needs_fallback = any(x is None for x in [icon, logo64, hero64, gridp64, grid64])
+
+    if steam_store_appid and needs_fallback:
+        decky_plugin.logger.info(f"Some artwork missing for {appname}. Checking fallback sources...")
         decky_plugin.logger.info(f"Found Steam App ID for {appname}: {steam_store_appid}")
         create_steam_store_app_manifest_file(steam_store_appid, appname)
 
-        #Fallback Artwork
         if not gridp64:
             decky_plugin.logger.info(f"Using fallback grid artwork for {appname}")
             gridp64 = get_steam_fallback_artwork(steam_store_appid, "grid")
@@ -763,10 +870,9 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
             icon = get_steam_fallback_artwork(steam_store_appid, "icon")
             if not icon:
                 decky_plugin.logger.warning(f"Fallback artwork for {appname} failed — no icon found.")
-        #End of Fallback Artwork
 
-    # Create a new entry for the Steam shortcut
     compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
+
     decky_entry = {
         'appname': appname,
         'exe': formatted_exe,
@@ -777,10 +883,11 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         'Grid': gridp64,
         'Hero': hero64,
         'Logo': logo64,
-        'Icon': icon,  # Use the game icon if available
-        'LauncherIcon': launcher_icon,  # Add launcher icon
-        'Launcher': launcher,  # Add launcher information
+        'Icon': icon,
+        'LauncherIcon': launcher_icon,
+        'Launcher': launcher,
     }
+
     decky_shortcuts[appname] = decky_entry
     decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
 
@@ -832,30 +939,8 @@ def get_sgdb_art(game_id, launcher):
     decky_plugin.logger.info("Downloading grids artwork of size 920x430...")
     grid64 = download_artwork(game_id, "grids", "920x430")
 
-    # Fetch launcher icon based on the launcher type for (scanner icon notiifications in the front end)
-    launcher_icons = {
-        "Epic Games": "5255885",
-        "Amazon Games": "5255884",
-        "GOG Galaxy": "34605",
-        "Battle.net": "5248250",
-        "EA App": "5306742",
-        "itch.io": "5259585",
-        "Legacy Games": "5438208",
-        "Ubisoft Connect": "5270094",
-        "VK Play": "5418177",
-        "HoYoPlay": "5454020",
-        "Game Jolt Client": "5299692",
-        "Artix Game Launcher": "5264320",
-        "Minecraft Launcher": "5302646",
-        "Google Chrome": "37126",
-        "IndieGala Client": "5317258",
-        "Waydroid": "5441196",
-        "GeForce Now": "5258450",
-    }
-
     launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
 
-    # Use the game icon if available, otherwise use the launcher icon
     if not icon:
         icon = launcher_icon
 
