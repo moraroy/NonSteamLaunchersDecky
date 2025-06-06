@@ -28,6 +28,8 @@ from scanners.hoyoplay_scanner import hoyoplay_scanner
 from scanners.gamejolt_scanner import gamejolt_scanner
 from scanners.minecraft_scanner import minecraft_scanner
 from scanners.indie_scanner import indie_scanner
+from scanners.humble_scanner import humble_scanner
+from scanners.stove_scanner import stove_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
@@ -59,6 +61,8 @@ launcher_icons = {
     "IndieGala Client": "5317258",
     "Waydroid": "5441196",
     "GeForce Now": "5258450",
+    "STOVE Client": "5443968",
+    "Humble Bundle": "5333415",
 }
 
 # Initial environment variables refresh
@@ -70,6 +74,7 @@ def initialiseVariables(env_vars):
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
     global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
+    global humble_launcher, stove_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
@@ -84,6 +89,7 @@ def initialiseVariables(env_vars):
     compat_tool_name = env_vars.get('compat_tool_name')
     controller_config_path = env_vars.get('controller_config_path')
 
+    #scanner Variables
     epic_games_launcher = env_vars.get('epic_games_launcher', '')
     ubisoft_connect_launcher = env_vars.get('ubisoft_connect_launcher', '')
     ea_app_launcher = env_vars.get('ea_app_launcher', '')
@@ -97,6 +103,8 @@ def initialiseVariables(env_vars):
     gamejolt_launcher = env_vars.get('gamejolt_launcher', '')
     minecraft_launcher = env_vars.get('minecraft_launcher', '')
     indie_launcher = env_vars.get('indie_launcher', '')
+    humble_launcher = env_vars.get('humble_launcher', '')
+    stove_launcher = env_vars.get('stove_launcher', '')
 
     epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
     gogshortcutdirectory = env_vars.get('gogshortcutdirectory')
@@ -153,6 +161,8 @@ def scan():
             (gamejolt_scanner, logged_in_home, gamejolt_launcher, create_new_entry),
             (minecraft_scanner, logged_in_home, minecraft_launcher, create_new_entry),
             (indie_scanner, logged_in_home, indie_launcher, create_new_entry),
+            (humble_scanner, logged_in_home, humble_launcher, create_new_entry),
+            (stove_scanner, logged_in_home, stove_launcher, create_new_entry),    
             (rpw_scanner, logged_in_home, create_new_entry),
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
