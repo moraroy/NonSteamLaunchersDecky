@@ -2400,7 +2400,7 @@ function install_launcher {
         # Download file
         if [ ! -f "$file_name" ]; then
             echo "Downloading ${file_name}"
-            wget $file_url -O $file_name
+            curl -L $file_url -o $file_name
         fi
 
         # Execute the pre-installation command, if provided
