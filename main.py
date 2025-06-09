@@ -22,6 +22,8 @@ import subprocess
 import shutil
 import json
 import requests
+import vdf
+from py_modules.lib.scanner import scan
 from collections import defaultdict
 from datetime import datetime
 from aiohttp import web
@@ -43,6 +45,55 @@ def camel_to_title(s):
     # Convert the first character of each word to uppercase and join the words with spaces
     return ' '.join(word.capitalize() for word in words)
 
+
+def get_steamid3(DECKY_USER_HOME):
+    paths = [
+        os.path.join(DECKY_USER_HOME, ".steam/root/config/loginusers.vdf"),
+        os.path.join(DECKY_USER_HOME, ".local/share/Steam/config/loginusers.vdf")
+    ]
+
+    # Find the first existing file
+    file_path = next((p for p in paths if os.path.isfile(p)), None)
+
+    if file_path:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+
+            max_timestamp = 0
+            current_user = ""
+            current_steamid = ""
+
+            for steamid, block in users:
+                account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
+                timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+
+                if account_match and timestamp_match:
+                    account = account_match.group(1)
+                    timestamp = int(timestamp_match.group(1))
+
+                    if timestamp > max_timestamp:
+                        max_timestamp = timestamp
+                        current_user = account
+                        current_steamid = steamid
+
+            if current_user:
+                return int(current_steamid) - 76561197960265728
+
+        except Exception:
+            pass
+
+    return None
+
+steamid3 = get_steamid3(DECKY_USER_HOME)
+
+# Constants for file paths
+SCAN_RESULTS_PATH = f"{DECKY_USER_HOME}/.config/systemd/user/scan_results.json"
+STEAM_SHORTCUTS_VDF = f"{DECKY_USER_HOME}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
+
+
 class Plugin:
     scan_lock = asyncio.Lock()
     update_cache = {}
@@ -53,6 +104,8 @@ class Plugin:
         decky_user_home = decky_plugin.DECKY_USER_HOME
         defaultSettings = {"autoscan": False, "customSites": ""}
 
+
+        #Fetching Update Status
         # Function to fetch GitHub commit history for patch notes
         async def fetch_patch_notes():
             owner = "moraroy"  # Repository owner
@@ -189,6 +242,93 @@ class Plugin:
             finally:
                 await ws.close()
                 return ws
+            #End of Fetchng update status
+
+
+
+
+
+
+
+
+        #Check if appname is uninstalled
+        async def enrich_and_cleanup_scan(ws):
+            decky_shortcuts = scan()
+            if not decky_shortcuts:
+                decky_plugin.logger.info("No shortcuts found during scan.")
+                return
+
+            try:
+                with open(STEAM_SHORTCUTS_VDF, 'rb') as f:
+                    steam_data = vdf.binary_load(f)
+                steam_shortcuts = steam_data.get("shortcuts", steam_data)
+            except Exception as e:
+                decky_plugin.logger.error(f"Failed to read Steam shortcuts.vdf: {e}")
+                steam_shortcuts = {}
+
+            steam_lookup = {}
+            for _, shortcut in steam_shortcuts.items():
+                exe = shortcut.get('exe', '').lower()
+                startdir = shortcut.get('StartDir', '').lower()
+                appid = str(shortcut.get('appid', ''))
+                if exe and startdir and appid:
+                    steam_lookup[(exe, startdir)] = appid
+
+            enriched = {}
+            for appname, shortcut in decky_shortcuts.items():
+                exe = shortcut.get('exe', '').lower()
+                startdir = shortcut.get('StartDir', '').lower()
+                appid = steam_lookup.get((exe, startdir))
+                if appid:
+                    shortcut['appid'] = appid
+                else:
+                    decky_plugin.logger.warning(f"AppID not found for '{appname}'")
+                enriched[appname] = shortcut
+
+            shortcuts_with_appid = {k: v for k, v in enriched.items() if v.get('appid')}
+
+            if not shortcuts_with_appid:
+                decky_plugin.logger.warning("No shortcuts with appid found; skipping save/uninstall.")
+                return
+
+            # Load previous scan
+            try:
+                with open(SCAN_RESULTS_PATH, 'r', encoding='utf-8') as f:
+                    prev_scan = json.load(f)
+            except FileNotFoundError:
+                prev_scan = {}
+            except Exception as e:
+                decky_plugin.logger.error(f"Error loading previous scan file: {e}")
+                prev_scan = {}
+
+            prev_appids = {str(v.get('appid')) for v in prev_scan.values() if v.get('appid')}
+            current_appids = {str(v.get('appid')) for v in shortcuts_with_appid.values() if v.get('appid')}
+            removed_appids = prev_appids - current_appids
+
+            for appid in removed_appids:
+                decky_plugin.logger.info(f"Uninstalling missing shortcut appid: {appid}")
+                try:
+                    subprocess.Popen(f"xdg-open steam://uninstall/{appid}", shell=True)
+                except Exception as e:
+                    decky_plugin.logger.error(f"Failed to uninstall {appid}: {e}")
+
+            try:
+                with open(SCAN_RESULTS_PATH, 'w', encoding='utf-8') as f:
+                    json.dump(shortcuts_with_appid, f, indent=2)
+                decky_plugin.logger.info(f"Saved enriched appname/appid dict to {SCAN_RESULTS_PATH}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Failed to save scan results: {e}")
+
+            for game in shortcuts_with_appid.values():
+                if ws.closed:
+                    decky_plugin.logger.info("WebSocket closed, stopping send.")
+                    break
+                await ws.send_json(game)
+            #End of Checking if apname is uninstalled
+
+
+
+
 
 
         async def handleAutoScan(request):
