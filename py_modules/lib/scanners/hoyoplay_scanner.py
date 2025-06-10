@@ -1,6 +1,7 @@
 import decky_plugin
 import os
 import json
+from scanners.game_tracker import track_game
 
 def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
 
@@ -66,3 +67,5 @@ def hoyoplay_scanner(logged_in_home, hoyoplay_launcher, create_new_entry):
                     continue
 
                 create_new_entry(exe_path, display_name, launch_options, start_dir, "HoYoPlay")
+                track_game(display_name, "HoYoPlay")
+

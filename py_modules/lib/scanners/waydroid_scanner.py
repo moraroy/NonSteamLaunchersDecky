@@ -2,6 +2,7 @@ import os
 import shutil
 import configparser
 import decky_plugin
+from scanners.game_tracker import track_game
 
 def waydroid_scanner(logged_in_home, create_new_entry):
     # Check for Waydroid
@@ -64,6 +65,7 @@ def waydroid_scanner(logged_in_home, create_new_entry):
                 start_dir,
                 "Waydroid"
             )
+            track_game(display_name, "Waydroid")
 
         except Exception as e:
             decky_plugin.logger.info(f"Failed to process {file_name}: {e}")

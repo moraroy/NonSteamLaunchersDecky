@@ -2,6 +2,8 @@ import os
 import sqlite3
 import decky_plugin
 import platform
+from scanners.game_tracker import track_game
+
 
 # Amazon Games Scanner
 
@@ -44,5 +46,6 @@ def amazon_scanner(logged_in_home, amazon_launcher, create_new_entry):
                 launch_options = f"STEAM_COMPAT_DATA_PATH=\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{amazon_launcher}/\" %command% -'amazon-games://play/{game['id']}'"
             
             create_new_entry(exe_path, display_name, launch_options, start_dir, "Amazon Games")
+            track_game(display_name, "Amazon Games")
 
 # End of Amazon Games Scanner

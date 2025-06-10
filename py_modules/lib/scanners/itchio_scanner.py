@@ -4,6 +4,7 @@ import json
 import sqlite3
 import decky_plugin
 import platform
+from scanners.game_tracker import track_game
 
 
 def convert_unix_to_windows_path(unix_path):
@@ -66,6 +67,7 @@ def itchio_games_scanner(logged_in_home, itchio_launcher, create_new_entry):
             start_dir = "\"" + base_path_linux + "\""
             launchoptions = "STEAM_COMPAT_DATA_PATH=\"" + logged_in_home + "/.local/share/Steam/steamapps/compatdata/" + itchio_launcher + "/\" %command%"
         create_new_entry(exe_path, game_title, launchoptions, start_dir, "itch.io")
+        track_game(game_title, "itch.io")
 
     conn.close()
 

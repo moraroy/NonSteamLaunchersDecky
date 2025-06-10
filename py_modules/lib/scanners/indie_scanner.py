@@ -1,6 +1,7 @@
 import json
 import os
 import decky_plugin
+from scanners.game_tracker import track_game
 
 def indie_scanner(logged_in_home, indie_launcher, create_new_entry):
     real_indie_launcher_path = os.path.realpath(
@@ -97,3 +98,4 @@ def indie_scanner(logged_in_home, indie_launcher, create_new_entry):
         start_dir = os.path.dirname(game_path)
         launchoptions = f'STEAM_COMPAT_DATA_PATH="{logged_in_home}/.local/share/Steam/steamapps/compatdata/{indie_launcher}/" %command%'
         create_new_entry(f"\"{game_path}\"", game_name, launchoptions, f"\"{start_dir}\"", "IndieGala Client")
+        track_game(game_name, "IndieGala Client")

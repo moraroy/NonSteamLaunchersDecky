@@ -2,6 +2,8 @@ import os
 import json
 import decky_plugin
 import platform
+from scanners.game_tracker import track_game
+
 
 # Define your mapping
 flavor_mapping = {
@@ -151,6 +153,7 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
 
             decky_plugin.logger.info(f"Creating new entry for {game_name} with exe_path: {exe_path}")
             create_new_entry(exe_path, game_name, launch_options, start_dir, "Battle.net")
+            track_game(game_name, "Battle.net")
 
     decky_plugin.logger.info("Battle.net Games Scanner completed.")
 

@@ -2,6 +2,7 @@ import os
 import platform
 import externals.xml.etree.ElementTree as ET
 import decky_plugin
+from scanners.game_tracker import track_game
 
 # EA App Game Scanner
 
@@ -63,3 +64,4 @@ def ea_scanner(logged_in_home, ea_app_launcher, create_new_entry):
                 start_dir = f'"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{ea_app_launcher}/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop/"'
 
             create_new_entry(exe_path, game, launch_options, start_dir, "EA App")
+            track_game(game, "EA App")

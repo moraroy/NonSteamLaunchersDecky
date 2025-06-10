@@ -4,6 +4,7 @@ import json
 import platform
 import configparser
 import externals.xml.etree.ElementTree as ET
+from scanners.game_tracker import track_game
 
 def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
     # Set up paths based on the platform (Windows or others)
@@ -154,5 +155,6 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
 
                 # Create new entry for the game
                 create_new_entry(exe_path, display_name, launch_options, start_dir, "VK Play")
+                track_game(display_name, "VK Play")
     else:
         decky_plugin.logger.info("VK Play data not found. Skipping scanning for installed games.")

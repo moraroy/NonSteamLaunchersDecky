@@ -34,6 +34,8 @@ from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
 from scanners.flatpak_scanner import flatpak_scanner
+
+from scanners.game_tracker import load_master_list, track_game, finalize_game_tracking
 from get_env_vars import refresh_env_vars
 from umu_processor import modify_shortcut_for_umu
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -137,6 +139,11 @@ def initialiseVariables(env_vars):
 
 # Scanner function with threading
 def scan():
+    load_master_list()
+    from scanners.game_tracker import clear_current_scan
+    clear_current_scan()
+
+
     global decky_shortcuts, env_vars
     decky_shortcuts = {}
 
@@ -180,7 +187,8 @@ def scan():
                 except Exception as e:
                     decky_plugin.logger.error(f"Error in {scanner_func.__name__}: {e}")
 
-        write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin)
+        finalize_game_tracking()
+
 
     return decky_shortcuts
 
@@ -293,47 +301,6 @@ def add_compat_tool(launchoptions):
 
 
 
-
-#shortcuts file
-def write_shortcuts_to_file(decky_shortcuts, DECKY_USER_HOME, decky_plugin):
-    # Define the path for the new file
-    new_file_path = f'{DECKY_USER_HOME}/.config/systemd/user/shortcuts'
-
-    # Define the extensions to skip
-    skip_extensions = {'.exe', '.sh', '.bat', '.msi', '.app', '.apk', '.url', '.desktop'}
-
-    # Initialize a set to store the unique app names
-    existing_shortcuts = set()
-
-    # Check if the shortcuts file exists
-    if not os.path.exists(new_file_path):
-        decky_plugin.logger.info(f"Shortcuts file not found: {new_file_path}. Creating file...")
-        with open(new_file_path, 'w') as f:
-            pass  # Create an empty file
-
-    # Read the existing shortcuts from the file and add them to the set
-    with open(new_file_path, 'r') as f:
-        for line in f:
-            existing_shortcuts.add(line.strip())  # Add existing shortcuts to the set
-
-        # Iterate over all appnames and check for duplicates before adding
-        new_shortcuts = []
-        for appname in decky_shortcuts:
-            # If appname doesn't end with a skip extension and is not already in existing_shortcuts, add it
-            if appname and not any(appname.endswith(ext) for ext in skip_extensions) and appname not in existing_shortcuts:
-                new_shortcuts.append(appname)  # Collect the new shortcuts to append
-                existing_shortcuts.add(appname)  # Add to the existing shortcuts set to avoid future duplicates
-
-        # Only append new shortcuts to the file
-        if new_shortcuts:
-            with open(new_file_path, 'a') as f:
-                for name in new_shortcuts:
-                    f.write(f"{name}\n")  # Write only the appname (raw)
-
-            decky_plugin.logger.info(f"New shortcuts added to {new_file_path}.")
-        else:
-            decky_plugin.logger.info("No new shortcuts to add.")
-#End of Shortcuts file
 
 
 
@@ -803,6 +770,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         return
 
     update_game_details([appname])
+
 
     if launchoptions is None:
         launchoptions = ''

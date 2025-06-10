@@ -2,6 +2,7 @@ import os
 import json
 import decky_plugin
 from urllib.parse import quote
+from scanners.game_tracker import track_game
 
 def chrome_scanner(logged_in_home, create_new_entry):
     # Path to the Chrome Bookmarks file
@@ -90,6 +91,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 chrome_startdir,
                 "Google Chrome"
             )
+            track_game(game_name, "Google Chrome")
 
     except FileNotFoundError:
         decky_plugin.logger.info("Chrome Bookmarks not found. Skipping scanning for Bookmarks.")

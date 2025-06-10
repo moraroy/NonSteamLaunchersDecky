@@ -2,6 +2,7 @@ import json
 import os
 import glob
 import decky_plugin
+from scanners.game_tracker import track_game
 
 def stove_scanner(logged_in_home, stove_launcher, create_new_entry):
     # STOVE Client Scanner
@@ -54,6 +55,7 @@ def stove_scanner(logged_in_home, stove_launcher, create_new_entry):
                 f'"{os.path.dirname(stove_launcher_path)}"',
                 "STOVE Client"
             )
+            track_game(game_title, "STOVE Client")
 
         except Exception as e:
             decky_plugin.logger.info(f"Error reading manifest {manifest_path}: {e}")

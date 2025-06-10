@@ -1,6 +1,7 @@
 import json
 import os
 import decky_plugin
+from scanners.game_tracker import track_game
 
 def humble_scanner(logged_in_home, humble_launcher, create_new_entry):
     # Humble Games Collection Scanner (Humble Bundle, Humble Games, Humble Games Collection)
@@ -57,3 +58,4 @@ def humble_scanner(logged_in_home, humble_launcher, create_new_entry):
                 launch_options = f'STEAM_COMPAT_DATA_PATH="{proton_prefix}" %command%'
 
                 create_new_entry(f'"{linux_exe_path}"', game_name, launch_options, f'"{start_dir}"', "Humble Bundle")
+                track_game(game_name, "Humble Bundle")
