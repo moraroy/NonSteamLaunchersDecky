@@ -49,4 +49,3 @@ def flatpak_scanner(logged_in_home, create_new_entry):
         start_dir,
         "GeForce NOW"
     )
-    track_game(display_name, "GeForce NOW")
