@@ -1415,10 +1415,59 @@ fi
 
 # Function to handle PlayStation Plus uninstallation
 handle_uninstall_psplus() {
+    reg_paths=(
+        "$logged_in_home/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/system.reg"
+        "$logged_in_home/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher/pfx/system.reg"
+    )
+
     psplus_uninstaller="MsiExec.exe"
-    psplus_uninstaller_options="/X{3DE02040-3CB7-4D4A-950E-773F04FC4DE8} /quiet"
+    psplus_uninstaller_options=""
+
+    in_psplus_section=false
+
+    for reg_file in "${reg_paths[@]}"; do
+        [ -f "$reg_file" ] || continue
+
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Detect start of a new uninstall section
+            if [[ "$line" =~ ^\[(.*)\\Uninstall\\\{[0-9A-Fa-f\-]+\}\] ]]; then
+                in_psplus_section=false
+                continue
+            fi
+
+            # Check if this section is PlayStation Plus
+            if [[ "$line" == *'"DisplayName"="PlayStation Plus"'* ]]; then
+                in_psplus_section=true
+                continue
+            fi
+
+            # Extract uninstall string if in PS Plus section
+            if $in_psplus_section && [[ "$line" == *'"UninstallString"=str(2):'* ]]; then
+                uninstall_string="${line#*str(2):\"}"
+                uninstall_string="${uninstall_string%\"}"
+
+                # Remove leading "MsiExec.exe " from uninstall string to get only options
+                psplus_uninstaller_options="${uninstall_string#MsiExec.exe }"
+
+                # Append /quiet if not already present
+                if [[ "$psplus_uninstaller_options" != *"/quiet"* ]]; then
+                    psplus_uninstaller_options="$psplus_uninstaller_options /quiet"
+                fi
+
+                break 2
+            fi
+        done < "$reg_file"
+    done
+
+    if [ -z "$psplus_uninstaller_options" ]; then
+        echo "PlayStation Plus uninstaller not found."
+        return 1
+    fi
+
+    # Call the common uninstall handler with executable and options separated properly
     handle_uninstall_common "$1" "$psplus_uninstaller" "$psplus_uninstaller_options" "PlayStation Plus"
 }
+
 
 # Uninstall PlayStation Plus
 if [[ $uninstall_options == *"Uninstall PlayStation Plus"* ]]; then
@@ -2353,6 +2402,32 @@ function install_hoyo {
 
 
 
+install_psplus() {
+    local url="https://aka.ms/highdpimfc2013x86enu"
+    local installer="vcredist_x86.exe"
+
+    echo "Attempting to download $installer..."
+
+    if curl -fLo "$installer" "$url"; then
+        echo "Download successful. Running $installer silently..."
+
+        # Start the installer with Proton and capture PID
+        "$STEAM_RUNTIME" "$proton_dir/proton" run "$installer"  /q /norestart &
+        local pid=$!
+
+        echo "Installer PID: $pid. Waiting for it to complete..."
+        wait $pid
+
+        local exit_code=$?
+        if [ $exit_code -eq 0 ]; then
+            echo "$installer finished successfully."
+        else
+            echo "$installer exited with error code $exit_code."
+        fi
+    else
+        echo "Download failed. Skipping installation."
+    fi
+}
 
 
 
@@ -2493,7 +2568,7 @@ install_launcher "Glyph Launcher" "GlyphLauncher" "$glyph_file" "$glyph_url" "$g
 install_launcher "Minecraft Launcher" "MinecraftLauncher" "$minecraft_file" "$minecraft_url" "MsiExec.exe /i "$minecraft_file" /q" "82" "" ""
 
 # Install Playstation Plus Launcher
-install_launcher "Playstation Plus" "PlaystationPlusLauncher" "$psplus_file" "$psplus_url" "$psplus_file /q" "83" "" ""
+install_launcher "Playstation Plus" "PlaystationPlusLauncher" "$psplus_file" "$psplus_url" "$psplus_file /q" "83" "install_psplus" "" true
 
 # Install VK Play
 install_launcher "VK Play" "VKPlayLauncher" "$vkplay_file" "$vkplay_url" "$vkplay_file" "84" "" "install_vkplay" true

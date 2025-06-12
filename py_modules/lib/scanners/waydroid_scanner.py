@@ -23,7 +23,10 @@ def waydroid_scanner(logged_in_home, create_new_entry):
         "waydroid.org.lineageos.jelly.desktop",
         "waydroid.com.android.camera2.desktop",
         "waydroid.com.android.deskclock.desktop",
-        "waydroid.org.lineageos.recorder.desktop"
+        "waydroid.org.lineageos.recorder.desktop",
+        "waydroid.com.google.android.apps.messaging.desktop",
+        "waydroid.com.google.android.contacts.desktop",
+        "waydroid.org.lineageos.aperture.desktop",
     }
 
     exe_path = os.path.join(logged_in_home, "Android_Waydroid/Android_Waydroid_Cage.sh")
