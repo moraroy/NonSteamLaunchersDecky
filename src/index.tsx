@@ -221,7 +221,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
       <PanelSection title="Game Scanner">
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
-          NSL can automatically detect and add shortcuts for the games you install in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
+          NSL can automatically detect and add or remove shortcuts for the games you install/uninstall in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
         
         {/* Moved description of supported launchers */}

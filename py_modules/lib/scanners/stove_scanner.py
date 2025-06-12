@@ -1,6 +1,5 @@
 import json
 import os
-import glob
 import decky_plugin
 from scanners.game_tracker import track_game
 
@@ -27,8 +26,14 @@ def stove_scanner(logged_in_home, stove_launcher, create_new_entry):
         decky_plugin.logger.info(f"Games directory not found at {linux_games_dir}")
         return
 
-    search_pattern = os.path.join(linux_games_dir, "*/combinedata_manifest/GameManifest_*.upf")
-    manifest_files = glob.glob(search_pattern)
+    manifest_files = []
+    for entry in os.listdir(linux_games_dir):
+        subdir = os.path.join(linux_games_dir, entry)
+        combinedata_dir = os.path.join(subdir, "combinedata_manifest")
+        if os.path.isdir(combinedata_dir):
+            for filename in os.listdir(combinedata_dir):
+                if filename.startswith("GameManifest_") and filename.endswith(".upf"):
+                    manifest_files.append(os.path.join(combinedata_dir, filename))
 
     if not manifest_files:
         decky_plugin.logger.info("No game manifest files found")
