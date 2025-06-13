@@ -189,10 +189,12 @@ def scan():
                 except Exception as e:
                     decky_plugin.logger.error(f"Error in {scanner_func.__name__}: {e}")
 
-        finalize_game_tracking()
+
+        removed_apps = finalize_game_tracking()
 
 
-    return decky_shortcuts
+
+    return decky_shortcuts, removed_apps
 
 def addCustomSite(customSiteJSON):
     global decky_shortcuts

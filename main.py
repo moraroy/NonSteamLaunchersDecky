@@ -205,8 +205,11 @@ class Plugin:
                     while self.settings.getSetting('settings', defaultSettings)['autoscan']:
                         current_time = asyncio.get_event_loop().time()
                         if current_time - last_scan_time >= debounce_interval:
-                            decky_shortcuts = scan()
+                            decky_shortcuts, removed_apps = scan()
                             last_scan_time = current_time
+
+                            if removed_apps:
+                                await ws.send_json({"removed_games": removed_apps})
 
                             if not decky_shortcuts:
                                 decky_plugin.logger.info(f"No shortcuts to send")
@@ -238,7 +241,10 @@ class Plugin:
             decky_plugin.logger.info(f"Called Manual Scan")
             try:
                 async with self.scan_lock:
-                    decky_shortcuts = scan()
+                    decky_shortcuts, removed_apps = scan()
+                    if removed_apps:
+                        await ws.send_json({"removed_games": removed_apps})
+
                     if not decky_shortcuts:
                         decky_plugin.logger.info(f"No shortcuts to send")
                     else:

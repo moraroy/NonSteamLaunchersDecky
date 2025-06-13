@@ -222,6 +222,7 @@ def finalize_game_tracking():
             uninstall_removed_apps(apps, appid_map)
     else:
         decky_plugin.logger.info("No newly removed apps detected.")
+    return removed_apps
 
 
 # Optional helper for debugging shortcut contents:

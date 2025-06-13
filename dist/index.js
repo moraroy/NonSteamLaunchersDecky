@@ -386,6 +386,17 @@
                       console.log('Manual scan completed');
                       onComplete(); // Trigger the completion callback
                   }
+                  else if ('removed_games' in message) {
+                      console.log('Removed games received:', message.removed_games);
+                      // Count total removed games across all platforms
+                      let totalRemoved = 0;
+                      for (const platform in message.removed_games) {
+                          totalRemoved += message.removed_games[platform].length;
+                      }
+                      if (totalRemoved > 0) {
+                          notify.toast("Library Update", `${totalRemoved} game${totalRemoved !== 1 ? 's' : ''} have been removed from your library!`);
+                      }
+                  }
                   else {
                       await onMessage(message); // Process each game entry one at a time
                   }
