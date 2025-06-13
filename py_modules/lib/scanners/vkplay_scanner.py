@@ -4,6 +4,7 @@ import json
 import platform
 import configparser
 import externals.xml.etree.ElementTree as ET
+import time
 from scanners.game_tracker import track_game
 
 def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
@@ -88,6 +89,7 @@ def vkplay_scanner(logged_in_home, vkplay_launcher, create_new_entry):
         valid_xml_files = []
 
         for file_name in all_files:
+            time.sleep(0.1)
             if file_name.endswith(".json"):
                 continue  # Skip JSON files
 

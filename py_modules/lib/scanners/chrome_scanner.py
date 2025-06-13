@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import decky_plugin
 from urllib.parse import quote
 from scanners.game_tracker import track_game
@@ -69,6 +70,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
         all_urls = geforce_now_urls + xbox_urls + luna_urls
 
         for platform_name, game_name, url in all_urls:
+            time.sleep(0.1)
             decky_plugin.logger.info(f"{platform_name}: {game_name} - {url}")
 
             # Encode URL to prevent issues with special characters

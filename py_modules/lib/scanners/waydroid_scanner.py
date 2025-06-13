@@ -2,6 +2,7 @@ import os
 import shutil
 import configparser
 import decky_plugin
+import time
 from scanners.game_tracker import track_game
 
 def waydroid_scanner(logged_in_home, create_new_entry):
@@ -37,6 +38,7 @@ def waydroid_scanner(logged_in_home, create_new_entry):
         return
 
     for file_name in os.listdir(applications_dir):
+        time.sleep(0.1)
         if not file_name.endswith(".desktop") or file_name in ignored_files:
             continue
 

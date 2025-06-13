@@ -2,6 +2,7 @@ import os
 import sqlite3
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 
@@ -35,6 +36,7 @@ def amazon_scanner(logged_in_home, amazon_launcher, create_new_entry):
     amazon_games = get_amazon_games(sqllite_path, launcher_path)
     if amazon_games:
         for game in amazon_games:
+            time.sleep(0.1)
             display_name = game['title']
             if platform.system() == "Windows":
                 exe_path = convert_unix_to_windows_path(f"{logged_in_home}/AppData/Local/Amazon Games/App/Amazon Games.exe")

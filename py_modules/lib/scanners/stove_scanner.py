@@ -1,6 +1,7 @@
 import json
 import os
 import decky_plugin
+import time
 from scanners.game_tracker import track_game
 
 def stove_scanner(logged_in_home, stove_launcher, create_new_entry):
@@ -40,6 +41,7 @@ def stove_scanner(logged_in_home, stove_launcher, create_new_entry):
         return
 
     for manifest_path in manifest_files:
+        time.sleep(0.1)
         try:
             with open(manifest_path, "r", encoding="utf-8") as mf:
                 game_data = json.load(mf)

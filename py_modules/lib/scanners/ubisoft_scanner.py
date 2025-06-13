@@ -2,6 +2,7 @@ import os
 import re
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 
@@ -93,5 +94,6 @@ def ubisoft_scanner(logged_in_home, ubisoft_connect_launcher, create_new_entry):
                 start_dir = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{ubisoft_connect_launcher}/pfx/drive_c/Program Files (x86)/Ubisoft/Ubisoft Game Launcher/\""
             create_new_entry(exe_path, game, launch_options, start_dir, "Ubisoft Connect")
             track_game(game, "Ubisoft Connect")
+            time.sleep(0.1)
 
 # End of Ubisoft Game Scanner

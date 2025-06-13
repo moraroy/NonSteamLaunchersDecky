@@ -2,6 +2,7 @@ import os
 import json
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 
@@ -93,6 +94,7 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
 
     if game_dict:
         for game_key, game_info in game_dict.items():
+            time.sleep(0.1)
             decky_plugin.logger.info(f"Processing game: {game_key}")
 
             if game_key == "prometheus":

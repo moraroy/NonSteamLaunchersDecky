@@ -2,6 +2,7 @@ import os
 import re
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 # Gog Galaxy Scanner
@@ -152,5 +153,6 @@ def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
             start_dir = start_dir_template
             create_new_entry(exe_path, game, launch_options, start_dir, "GOG Galaxy")
             track_game(game, "GOG Galaxy")
+            time.sleep(0.1)
 
 # End of Gog Galaxy Scanner

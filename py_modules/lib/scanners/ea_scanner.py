@@ -1,5 +1,6 @@
 import os
 import platform
+import time
 import externals.xml.etree.ElementTree as ET
 import decky_plugin
 from scanners.game_tracker import track_game
@@ -54,6 +55,7 @@ def ea_scanner(logged_in_home, ea_app_launcher, create_new_entry):
         game_dict = get_ea_app_game_info(installed_games, game_directory_path)
 
         for game, ea_ids in game_dict.items():
+            time.sleep(0.1)
             if platform.system() == "Windows":
                 launch_options = f"origin2://game/launch?offerIds={ea_ids}"
                 exe_path = f'"{ea_launcher_path}"'.strip('"')

@@ -2,6 +2,7 @@ import os
 import json
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 
@@ -26,6 +27,8 @@ def epic_games_scanner(logged_in_home, epic_games_launcher, create_new_entry):
         # Epic Game Scanner
         for item_file in os.listdir(item_dir):
             if item_file.endswith('.item'):
+
+                time.sleep(0.1)
                 with open(os.path.join(item_dir, item_file), 'r') as file:
                     item_data = json.load(file)
 

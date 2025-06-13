@@ -2,6 +2,7 @@ import os
 import re
 import decky_plugin
 import platform
+import time
 from scanners.game_tracker import track_game
 
 # Conditionally import winreg for Windows
@@ -58,6 +59,7 @@ def legacy_games_scanner(logged_in_home, legacy_launcher, create_new_entry):
                         launch_options = f"STEAM_COMPAT_DATA_PATH=\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{legacy_launcher}\" %command%"
                         create_new_entry(f'"{exe_path}"', game_name, launch_options, f'"{start_dir}"', "Legacy Games")
                         track_game(game_name, "Legacy Games")
+                        time.sleep(0.1)
 
 def get_windows_registry_entries():
     registry_entries = ""

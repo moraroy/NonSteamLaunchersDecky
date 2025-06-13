@@ -1,6 +1,7 @@
 import json
 import os
 import decky_plugin
+import time
 from scanners.game_tracker import track_game
 
 def humble_scanner(logged_in_home, humble_launcher, create_new_entry):
@@ -59,3 +60,4 @@ def humble_scanner(logged_in_home, humble_launcher, create_new_entry):
 
                 create_new_entry(f'"{linux_exe_path}"', game_name, launch_options, f'"{start_dir}"', "Humble Bundle")
                 track_game(game_name, "Humble Bundle")
+                time.sleep(0.1)

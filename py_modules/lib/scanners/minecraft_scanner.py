@@ -1,6 +1,7 @@
 import os
 import json
 import decky_plugin
+import time
 from scanners.game_tracker import track_game
 
 
@@ -50,6 +51,7 @@ def minecraft_scanner(logged_in_home, minecraft_launcher, create_new_entry):
                     # Create the new entry (this is where you can use your custom function for Steam shortcuts)
                     create_new_entry(exe_path, display_name, launch_options, start_dir, "Minecraft Launcher")
                     track_game(display_name, "Minecraft Launcher")
+                    time.sleep(0.1)
 
                 else:
                     decky_plugin.logger.info("Key 'productLibraryDir' not found in the JSON.")

@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import decky_plugin
 from scanners.game_tracker import track_game
 
@@ -60,6 +61,7 @@ def gamejolt_scanner(logged_in_home, gamejolt_launcher, create_new_entry):
                     # Create the new entry (this is where you can use your custom function for Steam shortcuts)
                     create_new_entry(exe_path, display_name, launch_options, start_dir, 'Game Jolt Client')
                     track_game(display_name, "Game Jolt Client")
+                    time.sleep(0.1)
 
             else:
                 decky_plugin.logger.info("'objects' key not found in the games data.")
