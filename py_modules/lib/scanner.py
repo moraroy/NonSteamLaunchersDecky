@@ -85,7 +85,8 @@ def initialiseVariables(env_vars):
     global hoyoplayshortcutdirectory, gamejoltshortcutdirectory, artixgameshortcutdirectory
     global arcshortcutdirectory, poketcgshortcutdirectory, antstreamshortcutdirectory
     global vfunshortcutdirectory, temposhortcutdirectory, repaireaappshortcutdirectory, chromedirectory
-
+    global stoveshortcutdirectory
+    
     steamid3 = env_vars.get('steamid3')
     logged_in_home = env_vars.get('logged_in_home')
     compat_tool_name = env_vars.get('compat_tool_name')
@@ -131,7 +132,7 @@ def initialiseVariables(env_vars):
     antstreamshortcutdirectory = env_vars.get('antstreamshortcutdirectory')
     vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
     temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
-    stoveshortcutdirectory = env_vars.get('shortcutdirectory')
+    stoveshortcutdirectory = env_vars.get('stoveshortcutdirectory')
 
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
