@@ -1432,40 +1432,39 @@ handle_uninstall_psplus() {
     psplus_uninstaller="MsiExec.exe"
     psplus_uninstaller_options=""
 
-    in_psplus_section=false
-
     for reg_file in "${reg_paths[@]}"; do
         [ -f "$reg_file" ] || continue
 
-        while IFS= read -r line || [ -n "$line" ]; do
-            # Detect start of a new uninstall section
-            if [[ "$line" =~ ^\[(.*)\\Uninstall\\\{[0-9A-Fa-f\-]+\}\] ]]; then
-                in_psplus_section=false
-                continue
+        uninstall_string=$(awk '
+            BEGIN { in_section=0 }
+            /^\[/ {
+                in_section=0
+                next
+            }
+            /"DisplayName"="PlayStation Plus"/ {
+                in_section=1
+                next
+            }
+            in_section && /"UninstallString"=str\(2\):"/ {
+                match($0, /str\(2\):"(.*)"/, arr)
+                if (arr[1] != "") {
+                    print arr[1]
+                    exit
+                }
+            }
+        ' "$reg_file")
+
+        if [[ -n "$uninstall_string" ]]; then
+            # Remove leading "MsiExec.exe " from uninstall string to get only options
+            psplus_uninstaller_options="${uninstall_string#MsiExec.exe }"
+
+            # Append /quiet if not already present
+            if [[ "$psplus_uninstaller_options" != *"/quiet"* ]]; then
+                psplus_uninstaller_options="$psplus_uninstaller_options /quiet"
             fi
 
-            # Check if this section is PlayStation Plus
-            if [[ "$line" == *'"DisplayName"="PlayStation Plus"'* ]]; then
-                in_psplus_section=true
-                continue
-            fi
-
-            # Extract uninstall string if in PS Plus section
-            if $in_psplus_section && [[ "$line" == *'"UninstallString"=str(2):'* ]]; then
-                uninstall_string="${line#*str(2):\"}"
-                uninstall_string="${uninstall_string%\"}"
-
-                # Remove leading "MsiExec.exe " from uninstall string to get only options
-                psplus_uninstaller_options="${uninstall_string#MsiExec.exe }"
-
-                # Append /quiet if not already present
-                if [[ "$psplus_uninstaller_options" != *"/quiet"* ]]; then
-                    psplus_uninstaller_options="$psplus_uninstaller_options /quiet"
-                fi
-
-                break 2
-            fi
-        done < "$reg_file"
+            break
+        fi
     done
 
     if [ -z "$psplus_uninstaller_options" ]; then
@@ -1700,15 +1699,25 @@ process_uninstall_options() {
                 uninstall_launcher "$uninstall_options" "Legacy Games" "$legacygames_path1" "$legacygames_path2" "" "" "legacy"
             fi
         fi
+
+
         if [[ $uninstall_options == *"Uninstall Playstation Plus"* ]]; then
+
+            # NonSteamLaunchers prefix: run uninstaller, do not delete prefix
             if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/PlayStationPlus" ]]; then
                 handle_uninstall_psplus "NonSteamLaunchers"
-                uninstall_launcher "$uninstall_options" "Playstation Plus" "$psplus_path1" "$psplus_path2" "" "" "psplus"
-            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" ]]; then
-                handle_uninstall_psplus "PlaystationPlusLauncher"
-                uninstall_launcher "$uninstall_options" "Playstation Plus" "$psplus_path1" "$psplus_path2" "" "" "psplus"
+                uninstall_launcher "$uninstall_options" "Playstation Plus" "$psplus_path1" "" "" "" "psplus"
             fi
+
+            # PlaystationPlusLauncher prefix: run uninstaller and delete prefix
+            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher/pfx/drive_c/Program Files (x86)/PlayStationPlus" ]]; then
+                handle_uninstall_psplus "PlaystationPlusLauncher"
+                uninstall_launcher "$uninstall_options" "Playstation Plus" "$psplus_path2" "" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" "" "psplus"
+                rm -rf "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher"
+            fi
+
         fi
+
 
         if [[ $uninstall_options == *"Uninstall Artix Game Launcher"* ]]; then
             if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Artix Game Launcher" ]]; then

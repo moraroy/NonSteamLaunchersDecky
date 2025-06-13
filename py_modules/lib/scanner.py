@@ -131,6 +131,7 @@ def initialiseVariables(env_vars):
     antstreamshortcutdirectory = env_vars.get('antstreamshortcutdirectory')
     vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
     temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
+    stoveshortcutdirectory = env_vars.get('shortcutdirectory')
 
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
@@ -907,6 +908,7 @@ def add_launchers():
     create_new_entry(env_vars.get('vfunshortcutdirectory'), 'VFUN Launcher', env_vars.get('vfunlaunchoptions'), env_vars.get('vfunstartingdir'), None)
     create_new_entry(env_vars.get('temposhortcutdirectory'), 'Tempo Launcher', env_vars.get('tempolaunchoptions'), env_vars.get('tempostartingdir'), None)
     create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
+    create_new_entry(env_vars.get('stoveshortcutdirectory'), 'STOVE Client', env_vars.get('stovelaunchoptions'), env_vars.get('stovestartingdir'), None)
 
 
 
