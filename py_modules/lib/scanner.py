@@ -3,7 +3,6 @@ import os
 import json
 import re
 import ssl
-import requests
 import certifi
 import decky_plugin
 from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
