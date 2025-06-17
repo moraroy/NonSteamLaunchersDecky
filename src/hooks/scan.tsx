@@ -28,8 +28,8 @@ async function setupWebSocket(url: string, onMessage: (data: any) => void, onCom
                         const games = message.removed_games[platform];
                         for (const gameName of games) {
                             notify.toast(
-                                gameName,
-                                `from ${platform} has been removed from your library!`
+                                `${gameName} (${platform})`,
+                                'has been removed from your library!'
                             );
                         }
                     }

@@ -391,7 +391,7 @@
                       for (const platform in message.removed_games) {
                           const games = message.removed_games[platform];
                           for (const gameName of games) {
-                              notify.toast(gameName, `from ${platform} has been removed from your library!`);
+                              notify.toast(`${gameName} (${platform})`, 'has been removed from your library!');
                           }
                       }
                   }
