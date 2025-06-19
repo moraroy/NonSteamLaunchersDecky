@@ -209,10 +209,23 @@ def finalize_game_tracking():
             _master_list[launcher] = {}
         _master_list[launcher].update(games)
 
-    # Save updated JSON
-    os.makedirs(os.path.dirname(installed_apps_path), exist_ok=True)
-    with open(installed_apps_path, "w") as f:
-        json.dump(_master_list, f, indent=4)
+    # Helper to strip volatile fields for comparison
+    def cleaned(data):
+        if isinstance(data, dict):
+            return {k: cleaned(v) for k, v in data.items() if k != "last_seen"}
+        elif isinstance(data, list):
+            return [cleaned(i) for i in data]
+        else:
+            return data
+
+    # Only write to file if there are meaningful changes
+    if cleaned(_master_list) != cleaned(_previous_master_list):
+        os.makedirs(os.path.dirname(installed_apps_path), exist_ok=True)
+        with open(installed_apps_path, "w") as f:
+            json.dump(_master_list, f, indent=4)
+        decky_plugin.logger.info("Master list updated and saved.")
+    else:
+        decky_plugin.logger.info("No meaningful changes to master list. Skipping write.")
 
     # Handle removed apps
     if removed_apps:
@@ -222,6 +235,7 @@ def finalize_game_tracking():
             uninstall_removed_apps(apps, appid_map)
     else:
         decky_plugin.logger.info("No newly removed apps detected.")
+
     return removed_apps
 
 
