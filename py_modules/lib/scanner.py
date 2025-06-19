@@ -886,31 +886,43 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
 
 
 def add_launchers():
-    create_new_entry(env_vars.get('epicshortcutdirectory'), 'Epic Games', env_vars.get('epiclaunchoptions'), env_vars.get('epicstartingdir'), None)
-    create_new_entry(env_vars.get('gogshortcutdirectory'), 'GOG Galaxy', env_vars.get('goglaunchoptions'), env_vars.get('gogstartingdir'), None)
-    create_new_entry(env_vars.get('uplayshortcutdirectory'), 'Ubisoft Connect', env_vars.get('uplaylaunchoptions'), env_vars.get('uplaystartingdir'), None)
-    create_new_entry(env_vars.get('battlenetshortcutdirectory'), 'Battle.net', env_vars.get('battlenetlaunchoptions'), env_vars.get('battlenetstartingdir'), None)
-    create_new_entry(env_vars.get('eaappshortcutdirectory'), 'EA App', env_vars.get('eaapplaunchoptions'), env_vars.get('eaappstartingdir'), None)
-    create_new_entry(env_vars.get('amazonshortcutdirectory'), 'Amazon Games', env_vars.get('amazonlaunchoptions'), env_vars.get('amazonstartingdir'), None)
-    create_new_entry(env_vars.get('itchioshortcutdirectory'), 'itch.io', env_vars.get('itchiolaunchoptions'), env_vars.get('itchiostartingdir'), None)
-    create_new_entry(env_vars.get('legacyshortcutdirectory'), 'Legacy Games', env_vars.get('legacylaunchoptions'), env_vars.get('legacystartingdir'), None)
-    create_new_entry(env_vars.get('humbleshortcutdirectory'), 'Humble Bundle', env_vars.get('humblelaunchoptions'), env_vars.get('humblestartingdir'), None)
-    create_new_entry(env_vars.get('indieshortcutdirectory'), 'IndieGala Client', env_vars.get('indielaunchoptions'), env_vars.get('indiestartingdir'), None)
-    create_new_entry(env_vars.get('rockstarshortcutdirectory'), 'Rockstar Games Launcher', env_vars.get('rockstarlaunchoptions'), env_vars.get('rockstarstartingdir'), None)
-    create_new_entry(env_vars.get('glyphshortcutdirectory'), 'Glyph', env_vars.get('glyphlaunchoptions'), env_vars.get('glyphstartingdir'), "Glyph")
-    create_new_entry(env_vars.get('minecraftshortcutdirectory'), 'Minecraft Launcher', env_vars.get('minecraftlaunchoptions'), env_vars.get('minecraftstartingdir'), None)
-    create_new_entry(env_vars.get('psplusshortcutdirectory'), 'Playstation Plus', env_vars.get('pspluslaunchoptions'), env_vars.get('psplusstartingdir'), None)
-    create_new_entry(env_vars.get('vkplayshortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'), None)
-    create_new_entry(env_vars.get('hoyoplayshortcutdirectory'), 'HoYoPlay', env_vars.get('hoyoplaylaunchoptions'), env_vars.get('hoyoplaystartingdir'), None)
-    create_new_entry(env_vars.get('gamejoltshortcutdirectory'), 'Game Jolt Client', env_vars.get('gamejoltlaunchoptions'), env_vars.get('gamejoltstartingdir'), None)
-    create_new_entry(env_vars.get('artixgameshortcutdirectory'), 'Artix Game Launcher', env_vars.get('artixgamelaunchoptions'), env_vars.get('artixgamestartingdir'), None)
-    create_new_entry(env_vars.get('arcshortcutdirectory'), 'ARC Launcher', env_vars.get('arclaunchoptions'), env_vars.get('arcstartingdir'), None)
-    create_new_entry(env_vars.get('poketcgshortcutdirectory'), 'Pokémon Trading Card Game Live', env_vars.get('poketcglaunchoptions'), env_vars.get('poketcgstartingdir'), None)
-    create_new_entry(env_vars.get('antstreamshortcutdirectory'), 'Antstream Arcade', env_vars.get('antstreamlaunchoptions'), env_vars.get('antstreamstartingdir'), None)
-    create_new_entry(env_vars.get('vfunshortcutdirectory'), 'VFUN Launcher', env_vars.get('vfunlaunchoptions'), env_vars.get('vfunstartingdir'), None)
-    create_new_entry(env_vars.get('temposhortcutdirectory'), 'Tempo Launcher', env_vars.get('tempolaunchoptions'), env_vars.get('tempostartingdir'), None)
-    create_new_entry(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'), None)
-    create_new_entry(env_vars.get('stoveshortcutdirectory'), 'STOVE Client', env_vars.get('stovelaunchoptions'), env_vars.get('stovestartingdir'), None)
+    def try_add(shortcut_dir, name, launch_options, start_dir, override=None):
+        if shortcut_dir:
+            result = create_new_entry(shortcut_dir, name, launch_options, start_dir, override)
+            if result:
+                track_game(name, "Launcher")
+            else:
+                track_game(name, "Launcher")
+            return result
+        return False
+
+    try_add(env_vars.get('epicshortcutdirectory'), 'Epic Games', env_vars.get('epiclaunchoptions'), env_vars.get('epicstartingdir'))
+    try_add(env_vars.get('gogshortcutdirectory'), 'GOG Galaxy', env_vars.get('goglaunchoptions'), env_vars.get('gogstartingdir'))
+    try_add(env_vars.get('uplayshortcutdirectory'), 'Ubisoft Connect', env_vars.get('uplaylaunchoptions'), env_vars.get('uplaystartingdir'))
+    try_add(env_vars.get('battlenetshortcutdirectory'), 'Battle.net', env_vars.get('battlenetlaunchoptions'), env_vars.get('battlenetstartingdir'))
+    try_add(env_vars.get('eaappshortcutdirectory'), 'EA App', env_vars.get('eaapplaunchoptions'), env_vars.get('eaappstartingdir'))
+    try_add(env_vars.get('amazonshortcutdirectory'), 'Amazon Games', env_vars.get('amazonlaunchoptions'), env_vars.get('amazonstartingdir'))
+    try_add(env_vars.get('itchioshortcutdirectory'), 'itch.io', env_vars.get('itchiolaunchoptions'), env_vars.get('itchiostartingdir'))
+    try_add(env_vars.get('legacyshortcutdirectory'), 'Legacy Games', env_vars.get('legacylaunchoptions'), env_vars.get('legacystartingdir'))
+    try_add(env_vars.get('humbleshortcutdirectory'), 'Humble Bundle', env_vars.get('humblelaunchoptions'), env_vars.get('humblestartingdir'))
+    try_add(env_vars.get('indieshortcutdirectory'), 'IndieGala Client', env_vars.get('indielaunchoptions'), env_vars.get('indiestartingdir'))
+    try_add(env_vars.get('rockstarshortcutdirectory'), 'Rockstar Games Launcher', env_vars.get('rockstarlaunchoptions'), env_vars.get('rockstarstartingdir'))
+    try_add(env_vars.get('glyphshortcutdirectory'), 'Glyph', env_vars.get('glyphlaunchoptions'), env_vars.get('glyphstartingdir'), "Glyph")
+    try_add(env_vars.get('minecraftshortcutdirectory'), 'Minecraft Launcher', env_vars.get('minecraftlaunchoptions'), env_vars.get('minecraftstartingdir'))
+    try_add(env_vars.get('psplusshortcutdirectory'), 'Playstation Plus', env_vars.get('pspluslaunchoptions'), env_vars.get('psplusstartingdir'))
+    try_add(env_vars.get('vkplayshortcutdirectory'), 'VK Play', env_vars.get('vkplaylaunchoptions'), env_vars.get('vkplaystartingdir'))
+    try_add(env_vars.get('hoyoplayshortcutdirectory'), 'HoYoPlay', env_vars.get('hoyoplaylaunchoptions'), env_vars.get('hoyoplaystartingdir'))
+    try_add(env_vars.get('gamejoltshortcutdirectory'), 'Game Jolt Client', env_vars.get('gamejoltlaunchoptions'), env_vars.get('gamejoltstartingdir'))
+    try_add(env_vars.get('artixgameshortcutdirectory'), 'Artix Game Launcher', env_vars.get('artixgamelaunchoptions'), env_vars.get('artixgamestartingdir'))
+    try_add(env_vars.get('arcshortcutdirectory'), 'ARC Launcher', env_vars.get('arclaunchoptions'), env_vars.get('arcstartingdir'))
+    try_add(env_vars.get('poketcgshortcutdirectory'), 'Pokémon Trading Card Game Live', env_vars.get('poketcglaunchoptions'), env_vars.get('poketcgstartingdir'))
+    try_add(env_vars.get('antstreamshortcutdirectory'), 'Antstream Arcade', env_vars.get('antstreamlaunchoptions'), env_vars.get('antstreamstartingdir'))
+    try_add(env_vars.get('vfunshortcutdirectory'), 'VFUN Launcher', env_vars.get('vfunlaunchoptions'), env_vars.get('vfunstartingdir'))
+    try_add(env_vars.get('temposhortcutdirectory'), 'Tempo Launcher', env_vars.get('tempolaunchoptions'), env_vars.get('tempostartingdir'))
+    try_add(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'))
+    try_add(env_vars.get('repaireaappshortcutdirectory'), 'Repair EA App', env_vars.get('repaireaapplaunchoptions'), env_vars.get('repaireaappstartingdir'))
+    try_add(env_vars.get('stoveshortcutdirectory'), 'STOVE Client', env_vars.get('stovelaunchoptions'), env_vars.get('stovestartingdir'))
+
 
 
 
