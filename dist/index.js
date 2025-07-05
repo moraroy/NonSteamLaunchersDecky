@@ -136,7 +136,20 @@
       const appId = await SteamClient.Apps.AddShortcut(appname, formattedExe, formattedStartDir, launchOptions);
       if (appId) {
           const defaultIconUrl = "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/main/assets/logo.png";
-          const gameIconUrl = Icon ? `data:image/x-icon;base64,${Icon}` : defaultIconUrl; // Use the base64-encoded icon or default icon
+          let gameIconUrl;
+          if (Icon) {
+              if (Icon.startsWith("data:image/") || Icon.match(/^[A-Za-z0-9+/=]+$/)) {
+                  gameIconUrl = `data:image/x-icon;base64,${Icon}`;
+                  SteamClient.Apps.SetShortcutIcon(appId, gameIconUrl);
+              }
+              else {
+                  gameIconUrl = Icon;
+                  SteamClient.Apps.SetShortcutIcon(appId, Icon); // Assume it's a real file path
+              }
+          }
+          else {
+              gameIconUrl = defaultIconUrl;
+          }
           const launcherIconUrl = LauncherIcon ? `data:image/x-icon;base64,${LauncherIcon}` : null; // Use the base64-encoded launcher icon or null
           // Pass both icons to the notification
           if (launcherIconUrl) {
@@ -150,10 +163,6 @@
           SteamClient.Apps.SetAppLaunchOptions(appId, launchOptions);
           SteamClient.Apps.SetShortcutExe(appId, formattedExe);
           SteamClient.Apps.SetShortcutStartDir(appId, formattedStartDir);
-          // Explicitly set the icon for the shortcut
-          //if (Icon) {
-          //SteamClient.Apps.SetShortcutIcon(appId, `data:image/x-icon;base64,${Icon}`);
-          //}
           let AvailableCompatTools = await SteamClient.Apps.GetAvailableCompatTools(appId);
           let CompatToolExists = AvailableCompatTools.some((e) => e.strToolName === CompatTool);
           if (CompatTool && CompatToolExists) {
