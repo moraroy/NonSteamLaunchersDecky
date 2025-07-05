@@ -3,7 +3,7 @@ import { notify } from "./notify";
 // Shortcut Creation Code
 // Define the createShortcut function
 export async function createShortcut(game: any) {
-  const { appid, appname, exe, StartDir, LaunchOptions, CompatTool, Grid, WideGrid, Hero, Logo, Icon, LauncherIcon, Launcher } = game;
+  const { appid, appname, exe, StartDir, LaunchOptions, CompatTool, Grid, WideGrid, Hero, Logo, Icon, LauncherIcon, Launcher, Icon64 } = game;
   
   // No need to format exe and StartDir here as it's already done in Python
   const formattedExe = exe;
@@ -19,17 +19,17 @@ export async function createShortcut(game: any) {
     const defaultIconUrl = "https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/main/assets/logo.png";
 
     let gameIconUrl: string;
+
     if (Icon) {
-      if (Icon.startsWith("data:image/") || Icon.match(/^[A-Za-z0-9+/=]+$/)) {
-        gameIconUrl = `data:image/x-icon;base64,${Icon}`;
-        SteamClient.Apps.SetShortcutIcon(appId, gameIconUrl);
-      } else {
-        gameIconUrl = Icon;
-        SteamClient.Apps.SetShortcutIcon(appId, Icon);  // Assume it's a real file path
-      }
+      SteamClient.Apps.SetShortcutIcon(appId, Icon); // Icon is now a file path
+    }
+
+    if (Icon64) {
+      gameIconUrl = `data:image/x-icon;base64,${Icon64}`;
     } else {
       gameIconUrl = defaultIconUrl;
     }
+
 
     const launcherIconUrl = LauncherIcon ? `data:image/x-icon;base64,${LauncherIcon}` : null;  // Use the base64-encoded launcher icon or null
 

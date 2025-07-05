@@ -806,6 +806,10 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         game_id = get_game_id(appname)
         decky_plugin.logger.info(f"Game ID for {appname}: {game_id}")
 
+        # Construct the local path to the saved icon file
+        pathtoiconfile = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid/{game_id}_icon.ico"
+
+
         if game_id is not None and game_id != "default_game_id":
             missing_any_art = any(x is None for x in [icon, logo64, hero64, gridp64, grid64])
 
@@ -869,9 +873,10 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         'Grid': gridp64,
         'Hero': hero64,
         'Logo': logo64,
-        'Icon': icon,
+        'Icon': pathtoiconfile,
         'LauncherIcon': launcher_icon,
         'Launcher': launcher,
+        'Icon64': icon,
     }
 
     decky_shortcuts[appname] = decky_entry
@@ -946,6 +951,9 @@ def get_sgdb_art(game_id, launcher):
     return icon, logo64, hero64, gridp64, grid64, launcher_icon
 
 
+from base64 import b64encode
+import os
+
 def download_artwork(game_id, art_type, dimensions=None):
     if not game_id:
         decky_plugin.logger.info(f"Skipping download for {art_type} artwork. Game ID is empty.")
@@ -966,7 +974,6 @@ def download_artwork(game_id, art_type, dimensions=None):
         decky_plugin.logger.info(f"Error making API call: {e}")
         return None
 
-    # Continue with the rest of your function using `data`
     for artwork in data['data']:
         if game_id == 5297303 and dimensions == "600x900":  # get a better poster for Xbox Game Pass
             image_url = "https://cdn2.steamgriddb.com/thumb/eea5656d3244578f512f32cb4043792a.jpg"
@@ -977,12 +984,27 @@ def download_artwork(game_id, art_type, dimensions=None):
             response = requests.get(image_url, stream=True)
             response.raise_for_status()
             if response.status_code == 200:
-                return b64encode(response.content).decode('utf-8')
+                image_bytes = response.content
+
+
+                if art_type == 'icons':
+                    output_dir = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid"
+                    os.makedirs(output_dir, exist_ok=True)
+                    output_path = os.path.join(output_dir, f"{game_id}_icon.ico")
+                    try:
+                        with open(output_path, "wb") as f:
+                            f.write(image_bytes)
+                        decky_plugin.logger.info(f"Icon saved to disk at: {output_path}")
+                    except Exception as e:
+                        decky_plugin.logger.warning(f"Failed to save icon to disk: {e}")
+
+                return b64encode(image_bytes).decode('utf-8')
         except requests.exceptions.RequestException as e:
             decky_plugin.logger.info(f"Error downloading image: {e}")
             if art_type == 'icons':
                 return download_artwork(game_id, 'icons_ico', dimensions)
     return None
+
 
 def get_game_id(game_name):
     if game_name == "Disney+":  # hardcode disney+ game ID
