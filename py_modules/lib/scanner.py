@@ -761,20 +761,16 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
 
 
 
-
-
-#Create a shortcut
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     global decky_shortcuts
 
-    pathtoiconfile = None  # Initialize early so it's always defined
+    pathtoiconfile = None
 
     if not exe or not appname or not startingdir:
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
         return
 
     update_game_details([appname])
-
 
     if launchoptions is None:
         launchoptions = ''
@@ -795,37 +791,30 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     formatted_launch_options = launchoptions
 
     icon, logo64, hero64, gridp64, grid64, launcher_icon = None, None, None, None, None, None
+    icon_path = None
 
     local_art = get_local_tagged_artwork(appname, steamid3, logged_in_home)
-    icon_path = local_art.get('IconPath')  # <- NEW
-    icon = local_art['Icon']
-    logo64 = local_art['Logo']
-    hero64 = local_art['Hero']
-    gridp64 = local_art['Grid']
-    grid64 = local_art['WideGrid']
+    if local_art:
+        icon_path = local_art.get('IconPath')
+        icon = local_art.get('Icon')
+        logo64 = local_art.get('Logo')
+        hero64 = local_art.get('Hero')
+        gridp64 = local_art.get('Grid')
+        grid64 = local_art.get('WideGrid')
+
+    sgdb_icon_path = None
 
     if appname not in ["NonSteamLaunchers", "Repair EA App", "RemotePlayWhatever"]:
         game_id = get_game_id(appname)
         decky_plugin.logger.info(f"Game ID for {appname}: {game_id}")
 
-
         if game_id and game_id != "default_game_id":
-            if icon_path and os.path.exists(icon_path):
-                pathtoiconfile = icon_path
-                decky_plugin.logger.info(f"Using local icon file: {pathtoiconfile}")
-            else:
-                decky_plugin.logger.warning(f"No valid local icon file found for {appname}.")
-
-
-
-
-        if game_id is not None and game_id != "default_game_id":
             missing_any_art = any(x is None for x in [icon, logo64, hero64, gridp64, grid64])
 
             if missing_any_art:
                 decky_plugin.logger.info(f"Some artwork missing, selectively fetching from SGDB for {appname}")
 
-                sgdb_icon = download_artwork(game_id, "icons") if not icon else None
+                sgdb_icon, sgdb_icon_path = download_artwork(game_id, "icons") if not icon else (None, None)
                 sgdb_logo64 = download_artwork(game_id, "logos") if not logo64 else None
                 sgdb_hero64 = download_artwork(game_id, "heroes") if not hero64 else None
                 sgdb_gridp64 = download_artwork(game_id, "grids", "600x900") if not gridp64 else None
@@ -834,13 +823,22 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
                 launcher_icon = None
                 launcher_id = launcher_icons.get(launcher)
                 if launcher_id:
-                    launcher_icon = download_artwork(launcher_id, "icons")
+                    launcher_icon, _ = download_artwork(launcher_id, "icons")
 
                 icon = icon or sgdb_icon or launcher_icon
                 logo64 = logo64 or sgdb_logo64
                 hero64 = hero64 or sgdb_hero64
                 gridp64 = gridp64 or sgdb_gridp64
                 grid64 = grid64 or sgdb_grid64
+
+            # Set icon path if not already done
+            if not pathtoiconfile:
+                if sgdb_icon_path:
+                    pathtoiconfile = sgdb_icon_path
+                    decky_plugin.logger.info(f"Icon file path set from SGDB download: {pathtoiconfile}")
+                elif icon_path and os.path.exists(icon_path):
+                    pathtoiconfile = icon_path
+                    decky_plugin.logger.info(f"Icon file path set from local cache: {pathtoiconfile}")
         else:
             decky_plugin.logger.info(f"No valid game ID found for {appname}. Skipping artwork download.")
 
@@ -853,22 +851,23 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         create_steam_store_app_manifest_file(steam_store_appid, appname)
 
         if not gridp64:
-            decky_plugin.logger.info(f"Using fallback grid artwork for {appname}")
             gridp64 = get_steam_fallback_artwork(steam_store_appid, "grid")
         if not grid64:
-            decky_plugin.logger.info(f"Using fallback widegrid artwork for {appname}")
             grid64 = get_steam_fallback_artwork(steam_store_appid, "widegrid")
         if not hero64:
-            decky_plugin.logger.info(f"Using fallback hero artwork for {appname}")
             hero64 = get_steam_fallback_artwork(steam_store_appid, "hero")
         if not logo64:
-            decky_plugin.logger.info(f"Using fallback logo artwork for {appname}")
             logo64 = get_steam_fallback_artwork(steam_store_appid, "logo")
         if not icon:
-            decky_plugin.logger.info(f"Using fallback icon artwork for {appname}")
             icon = get_steam_fallback_artwork(steam_store_appid, "icon")
-            if not icon:
-                decky_plugin.logger.warning(f"Fallback artwork for {appname} failed — no icon found.")
+            if icon:
+                # Save fallback to file if needed
+                fallback_path = f"/tmp/{appname}_icon.ico"
+                with open(fallback_path, "wb") as f:
+                    f.write(base64.b64decode(icon))
+                pathtoiconfile = fallback_path
+            else:
+                decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
 
     compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
 
@@ -883,15 +882,16 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         'Hero': hero64,
         'Logo': logo64,
         'Icon': pathtoiconfile,
+        'Icon64': icon,
         'LauncherIcon': launcher_icon,
         'Launcher': launcher,
-        'Icon64': icon,
     }
 
     decky_shortcuts[appname] = decky_entry
     decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
 
     get_movies(appname)
+
 
 
 
@@ -941,18 +941,22 @@ def add_launchers():
 
 
 def get_sgdb_art(game_id, launcher):
-    decky_plugin.logger.info(f"Downloading icon artwork...")
-    icon = download_artwork(game_id, "icons")
-    decky_plugin.logger.info(f"Downloading logo artwork...")
+    decky_plugin.logger.info("Downloading icon artwork...")
+    icon, icon_path = download_artwork(game_id, "icons")
+
+    decky_plugin.logger.info("Downloading logo artwork...")
     logo64 = download_artwork(game_id, "logos")
-    decky_plugin.logger.info(f"Downloading hero artwork...")
+
+    decky_plugin.logger.info("Downloading hero artwork...")
     hero64 = download_artwork(game_id, "heroes")
+
     decky_plugin.logger.info("Downloading grids artwork of size 600x900...")
     gridp64 = download_artwork(game_id, "grids", "600x900")
+
     decky_plugin.logger.info("Downloading grids artwork of size 920x430...")
     grid64 = download_artwork(game_id, "grids", "920x430")
 
-    launcher_icon = download_artwork(launcher_icons.get(launcher, ""), "icons")
+    launcher_icon, _ = download_artwork(launcher_icons.get(launcher, ""), "icons")
 
     if not icon:
         icon = launcher_icon
@@ -960,13 +964,11 @@ def get_sgdb_art(game_id, launcher):
     return icon, logo64, hero64, gridp64, grid64, launcher_icon
 
 
-
 def download_artwork(game_id, art_type, dimensions=None):
     if not game_id:
         decky_plugin.logger.info(f"Skipping download for {art_type} artwork. Game ID is empty.")
-        return None
+        return (None, None) if art_type == "icons" else None
 
-    # If the result is not in the cache, make the API call
     decky_plugin.logger.info(f"Game ID: {game_id}")
     url = f"{proxy_url}/{art_type}/game/{game_id}"
     if dimensions:
@@ -979,13 +981,14 @@ def download_artwork(game_id, art_type, dimensions=None):
         data = response.json()
     except requests.exceptions.RequestException as e:
         decky_plugin.logger.info(f"Error making API call: {e}")
-        return None
+        return (None, None) if art_type == "icons" else None
 
-    for artwork in data['data']:
-        if game_id == 5297303 and dimensions == "600x900":  # get a better poster for Xbox Game Pass
+    for artwork in data.get("data", []):
+        if game_id == 5297303 and dimensions == "600x900":
             image_url = "https://cdn2.steamgriddb.com/thumb/eea5656d3244578f512f32cb4043792a.jpg"
         else:
             image_url = artwork['thumb']
+
         decky_plugin.logger.info(f"Downloading image from: {image_url}")
         try:
             response = requests.get(image_url, stream=True)
@@ -993,8 +996,7 @@ def download_artwork(game_id, art_type, dimensions=None):
             if response.status_code == 200:
                 image_bytes = response.content
 
-
-                if art_type == 'icons':
+                if art_type == "icons":
                     output_dir = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid"
                     os.makedirs(output_dir, exist_ok=True)
                     output_path = os.path.join(output_dir, f"{game_id}_icon.ico")
@@ -1004,13 +1006,17 @@ def download_artwork(game_id, art_type, dimensions=None):
                         decky_plugin.logger.info(f"Icon saved to disk at: {output_path}")
                     except Exception as e:
                         decky_plugin.logger.warning(f"Failed to save icon to disk: {e}")
+                        output_path = None
 
-                return b64encode(image_bytes).decode('utf-8')
+                    return b64encode(image_bytes).decode("utf-8"), output_path
+
+                return b64encode(image_bytes).decode("utf-8")
         except requests.exceptions.RequestException as e:
             decky_plugin.logger.info(f"Error downloading image: {e}")
-            if art_type == 'icons':
-                return download_artwork(game_id, 'icons_ico', dimensions)
-    return None
+            if art_type == "icons":
+                return download_artwork(game_id, "icons_ico", dimensions)
+
+    return (None, None) if art_type == "icons" else None
 
 
 def get_game_id(game_name):
