@@ -704,11 +704,11 @@ def get_steam_fallback_artwork(steam_store_appid, art_type):
 
 
 
-#Check Local Artwork Files
 def get_local_tagged_artwork(appname, steamid3, logged_in_home):
     grid_dir = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid"
     artwork = {
         'Icon': None,
+        'IconPath': None,
         'Logo': None,
         'Hero': None,
         'Grid': None,
@@ -729,7 +729,6 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
     for filename in files:
         file_path = os.path.join(grid_dir, filename)
         try:
-            # Run getfattr to get the user.xdg.tags attribute
             result = subprocess.run(
                 ["getfattr", "-n", "user.xdg.tags", "--only-values", file_path],
                 capture_output=True,
@@ -737,7 +736,6 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
                 check=False
             )
             if result.returncode != 0:
-                # No attribute or error
                 continue
 
             tag = result.stdout.strip()
@@ -747,6 +745,7 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
                     encoded = base64.b64encode(f.read()).decode('utf-8')
                 if "-icon" in filename:
                     artwork['Icon'] = encoded
+                    artwork['IconPath'] = file_path  # <- New addition
                 elif "_logo" in filename:
                     artwork['Logo'] = encoded
                 elif "_hero" in filename:
@@ -759,7 +758,7 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
             decky_plugin.logger.error(f"Unexpected error processing {file_path}: {e}")
 
     return artwork
-#End of Checking Local Artwork files
+
 
 
 
@@ -767,6 +766,8 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
 #Create a shortcut
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     global decky_shortcuts
+
+    pathtoiconfile = None  # Initialize early so it's always defined
 
     if not exe or not appname or not startingdir:
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
@@ -796,6 +797,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     icon, logo64, hero64, gridp64, grid64, launcher_icon = None, None, None, None, None, None
 
     local_art = get_local_tagged_artwork(appname, steamid3, logged_in_home)
+    icon_path = local_art.get('IconPath')  # <- NEW
     icon = local_art['Icon']
     logo64 = local_art['Logo']
     hero64 = local_art['Hero']
@@ -806,8 +808,15 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         game_id = get_game_id(appname)
         decky_plugin.logger.info(f"Game ID for {appname}: {game_id}")
 
-        # Construct the local path to the saved icon file
-        pathtoiconfile = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid/{game_id}_icon.ico"
+
+        if game_id and game_id != "default_game_id":
+            if icon_path and os.path.exists(icon_path):
+                pathtoiconfile = icon_path
+                decky_plugin.logger.info(f"Using local icon file: {pathtoiconfile}")
+            else:
+                decky_plugin.logger.warning(f"No valid local icon file found for {appname}.")
+
+
 
 
         if game_id is not None and game_id != "default_game_id":
@@ -951,8 +960,6 @@ def get_sgdb_art(game_id, launcher):
     return icon, logo64, hero64, gridp64, grid64, launcher_icon
 
 
-from base64 import b64encode
-import os
 
 def download_artwork(game_id, art_type, dimensions=None):
     if not game_id:
