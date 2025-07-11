@@ -24,7 +24,7 @@ importers:
         specifier: ^4.4.0
         version: 4.12.0(react@18.3.1)
       run:
-        specifier: ^1.4.0
+        specifier: ^1.5.0
         version: 1.5.0
     devDependencies:
       '@rollup/plugin-commonjs':
