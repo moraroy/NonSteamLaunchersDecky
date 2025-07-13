@@ -125,7 +125,7 @@
   // Shortcut Creation Code
   // Define the createShortcut function
   async function createShortcut(game) {
-      const { appid, appname, exe, StartDir, LaunchOptions, CompatTool, Grid, WideGrid, Hero, Logo, Icon, LauncherIcon, Launcher, Icon64 } = game;
+      const { appid, appname, exe, StartDir, LaunchOptions, CompatTool, Grid, WideGrid, Hero, Logo, Icon, LauncherIcon, Launcher, Icon64, } = game;
       // No need to format exe and StartDir here as it's already done in Python
       const formattedExe = exe;
       const formattedStartDir = StartDir;
@@ -172,6 +172,44 @@
           SteamClient.Apps.SetCustomArtworkForApp(appId, Grid, 'png', 0);
           SteamClient.Apps.SetCustomArtworkForApp(appId, WideGrid, 'png', 3);
           //SteamClient.Apps.AddUserTagToApps([appId], "NonSteamLaunchers");
+          //START: Add to or create launcher-based collection
+          if (Launcher && typeof window !== 'undefined') {
+              try {
+                  const tag = Launcher;
+                  const collectionStore = window.g_CollectionStore || window.collectionStore;
+                  if (!collectionStore) {
+                      console.error("No collection store found.");
+                  }
+                  else {
+                      const collectionId = collectionStore.GetCollectionIDByUserTag(tag);
+                      const collection = typeof collectionId === "string"
+                          ? collectionStore.GetCollection(collectionId)
+                          : collectionStore.NewUnsavedCollection(tag, undefined, []);
+                      if (collection) {
+                          if (!collectionId) {
+                              await collection.Save();
+                              console.log(`Created new collection "${tag}".`);
+                          }
+                          if (!collection.m_setApps.has(appId)) {
+                              collection.m_setApps.add(appId);
+                              collection.m_setAddedManually.add(appId);
+                              await collection.Save();
+                              console.log(`Added app ${appId} to collection "${tag}".`);
+                          }
+                          else {
+                              console.log(`App ${appId} already in collection "${tag}".`);
+                          }
+                      }
+                      else {
+                          console.error(`Could not get or create collection "${tag}".`);
+                      }
+                  }
+              }
+              catch (error) {
+                  console.error("Failed to create or update collection:", error);
+              }
+          }
+          //End of Launcher-based collection logic
           return true;
       }
       else {
