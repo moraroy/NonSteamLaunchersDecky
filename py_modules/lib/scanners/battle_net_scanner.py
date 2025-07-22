@@ -26,7 +26,7 @@ flavor_mapping = {
     "W3": "Warcraft III: Reforged",
     "WoW": "World of Warcraft",
     "WoWC": "World of Warcraft Classic",
-    "GRY": "Warcraft Arclight Rumble",
+    "GRY": "Warcraft Rumble",
     "ZEUS": "Call of Duty: Black Ops - Cold War",
     "VIPR": "Call of Duty: Black Ops 4",
     "ODIN": "Call of Duty: Modern Warfare",
@@ -35,6 +35,8 @@ flavor_mapping = {
     "FORE": "Call of Duty: Vanguard",
     "SPOT": "Call of Duty: Modern Warfare III",
     "WLBY": "Crash Bandicoot 4: It's About Time",
+    "Aqua": "Avowed",
+    "LBRA": "Tony Hawk's Pro Skater 3 + 4",
     # Add more games here...
 }
 
@@ -112,13 +114,22 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             elif game_key == "wow_classic":
                 decky_plugin.logger.info("Handling 'wow_classic' as 'WoWC'")
                 game_key = "WoWC"
-            #elif game_key == "aqua":
-                #decky_plugin.logger.info("Handling 'aqua' as 'unknowm'")
-                #game_key = "unknown"
-
+            elif game_key == "wow":
+                decky_plugin.logger.info("Handling 'wow' as 'WoW'")
+                game_key = "WoW"
+            elif game_key == "aqua":
+                decky_plugin.logger.info("Handling 'aqua' as 'Aqua'")
+                game_key = "Aqua"
             elif game_key == "aris":
                 decky_plugin.logger.info("Handling 'aris' as 'Aris'")
                 game_key = "Aris"
+            elif game_key == "heroes":
+                game_key = "Hero"
+            elif game_key == "gryphon":
+                game_key = "GRY"
+            elif game_key == "lbra":
+                decky_plugin.logger.info("Handling 'lbra' as 'LBRA'")
+                game_key = "LBRA"
 
             game_name = flavor_mapping.get(game_key, "unknown")
 
