@@ -1272,7 +1272,7 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
 # Set the URL to download the GameJolt Launcher file from
-gamejolt_url="https://tinyurl.com/3z8wpv2v"
+gamejolt_url="https://download.gamejolt.net/dfcc547848eb90f72f7347fc09c32231ae2680f4adafe9ed042d5c97b8d7cb27,1753917774,7/data/games/5/162/362412/files/66bc359fe3e14/gamejoltclientsetup.exe"
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
