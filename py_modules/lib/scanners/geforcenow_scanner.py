@@ -4,31 +4,31 @@ import json
 import decky_plugin
 from scanners.game_tracker import track_game
 
-def extract_block_info(block):
-    full_game_name = None
-    short_name = None
-    parent_game_id = None
-
-    for line in block:
-        if not full_game_name:
-            m = re.search(r"Add game to favorites for\s+(.+?)\s+\[", line)
-            if m:
-                full_game_name = m.group(1).strip()
-
-        if not short_name:
-            m = re.search(r"Attempting add to favorite, game\s+(\S+)\[", line)
-            if m:
-                short_name = m.group(1)
-
-        if not parent_game_id:
-            m = re.search(r"\[([0-9a-fA-F-]{36})\]", line)
-            if m:
-                parent_game_id = m.group(1)
-
-    return full_game_name, short_name, parent_game_id
-
 
 def geforcenow_scanner(logged_in_home, geforcenow_launcher, create_new_entry):
+    def extract_block_info(block):
+        full_game_name = None
+        short_name = None
+        parent_game_id = None
+
+        for line in block:
+            if not full_game_name:
+                m = re.search(r"Add game to favorites for\s+(.+?)\s+\[", line)
+                if m:
+                    full_game_name = m.group(1).strip()
+
+            if not short_name:
+                m = re.search(r"Attempting add to favorite, game\s+(\S+)\[", line)
+                if m:
+                    short_name = m.group(1)
+
+            if not parent_game_id:
+                m = re.search(r"\[([0-9a-fA-F-]{36})\]", line)
+                if m:
+                    parent_game_id = m.group(1)
+
+        return full_game_name, short_name, parent_game_id
+
     log_path = os.path.join(
         logged_in_home,
         ".var/app/com.nvidia.geforcenow/.local/state/NVIDIA/GeForceNOW/console.log"
