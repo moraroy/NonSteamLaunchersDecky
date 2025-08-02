@@ -29,6 +29,7 @@ from scanners.minecraft_scanner import minecraft_scanner
 from scanners.indie_scanner import indie_scanner
 from scanners.humble_scanner import humble_scanner
 from scanners.stove_scanner import stove_scanner
+from scanners.geforcenow_scanner import geforcenow_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
@@ -64,6 +65,7 @@ launcher_icons = {
     "GeForce Now": "5258450",
     "STOVE Client": "5443968",
     "Humble Bundle": "5333415",
+    "NVIDIA GeForce Now": "5258450",
 }
 
 # Initial environment variables refresh
@@ -75,7 +77,7 @@ def initialiseVariables(env_vars):
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
     global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
-    global humble_launcher, stove_launcher
+    global humble_launcher, stove_launcher, geforcenow_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
@@ -135,6 +137,8 @@ def initialiseVariables(env_vars):
 
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
+    geforcenow_launcher = "com.nvidia.geforcenow"
+
 
 
 
@@ -175,6 +179,7 @@ def scan():
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
             (flatpak_scanner, logged_in_home, create_new_entry),
+            (geforcenow_scanner, logged_in_home, geforcenow_launcher, create_new_entry),
         ]
 
         # Use ThreadPoolExecutor to limit to 2 threads
