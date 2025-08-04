@@ -1024,9 +1024,9 @@ def download_artwork(game_id, art_type, dimensions=None):
     return (None, None) if art_type == "icons" else None
 
 
+
 def get_game_id(game_name):
-    if game_name == "Disney+":  # hardcode disney+ game ID
-        return 5260961
+
     decky_plugin.logger.info(f"Searching for game ID for: {game_name}")
 
     retry_attempts = 1  # Retry only once
