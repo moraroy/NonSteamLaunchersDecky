@@ -1,6 +1,6 @@
 {
   "name": "nonsteamlaunchers",
-  "version": "1.2.24",
+  "version": "1.2.25",
   "description": "A template to quickly create decky plugins from scratch, based on TypeScript and webpack",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",

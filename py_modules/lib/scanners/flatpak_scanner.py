@@ -47,5 +47,5 @@ def flatpak_scanner(logged_in_home, create_new_entry):
         display_name,
         app_name,
         start_dir,
-        "GeForce NOW"
+        "NVIDIA GeForce NOW"
     )
