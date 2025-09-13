@@ -37,7 +37,7 @@ flavor_mapping = {
     "WLBY": "Crash Bandicoot 4: It's About Time",
     "Aqua": "Avowed",
     "LBRA": "Tony Hawk's Pro Skater 3 + 4",
-    # Add more games here...
+    "SCOR": "Sea of Thieves",
 }
 
 def parse_battlenet_config(config_file_path):
@@ -130,6 +130,15 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             elif game_key == "lbra":
                 decky_plugin.logger.info("Handling 'lbra' as 'LBRA'")
                 game_key = "LBRA"
+            elif game_key == "seaofthieves":
+                decky_plugin.logger.info("Handling 'seaofthieves' as 'SCOR'")
+                game_key = "SCOR"
+            elif game_key == "sot":
+                decky_plugin.logger.info("Handling 'sot' as 'SCOR'")
+                game_key = "SCOR"
+            elif game_key == "scor":
+                game_key = "SCOR"
+
 
             game_name = flavor_mapping.get(game_key, "unknown")
 

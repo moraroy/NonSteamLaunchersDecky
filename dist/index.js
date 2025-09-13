@@ -172,6 +172,11 @@
           SteamClient.Apps.SetCustomArtworkForApp(appId, Grid, 'png', 0);
           SteamClient.Apps.SetCustomArtworkForApp(appId, WideGrid, 'png', 3);
           //SteamClient.Apps.AddUserTagToApps([appId], "NonSteamLaunchers");
+          // Set "Sort As" title to match the collection name (if present)
+          if (Launcher && typeof Launcher === "string" && Launcher.trim().length > 0) {
+              await SteamClient.Apps.SetShortcutSortAs(appId, Launcher.trim());
+              console.log("Sort As title set to:", Launcher.trim());
+          }
           //START: Add to or create launcher-based collection
           if (Launcher && typeof window !== 'undefined') {
               try {
@@ -1647,7 +1652,7 @@
                       overflow: "hidden",
                       wordWrap: "break-word", // Word wrap
                   } },
-                  window.SP_REACT.createElement("div", null, "New update found! :) Pressing update will restart Steam."),
+                  window.SP_REACT.createElement("div", null, "New update found! :) Pressing update will restart Steam. If the update does not work, please run the NSLPlugin.desktop in Desktop Mode."),
                   window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
                       window.SP_REACT.createElement("div", null,

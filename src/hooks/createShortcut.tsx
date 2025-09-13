@@ -74,6 +74,14 @@ export async function createShortcut(game: any) {
     SteamClient.Apps.SetCustomArtworkForApp(appId, WideGrid, 'png', 3);
     //SteamClient.Apps.AddUserTagToApps([appId], "NonSteamLaunchers");
 
+
+    // Set "Sort As" title to match the collection name (if present)
+    if (Launcher && typeof Launcher === "string" && Launcher.trim().length > 0) {
+      await SteamClient.Apps.SetShortcutSortAs(appId, Launcher.trim());
+      console.log("Sort As title set to:", Launcher.trim());
+    }
+
+
     //START: Add to or create launcher-based collection
     if (Launcher && typeof window !== 'undefined') {
       try {
