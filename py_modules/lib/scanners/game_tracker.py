@@ -159,25 +159,41 @@ def uninstall_removed_apps(removed_appnames, appid_map):
     for appname in removed_appnames:
         norm_name = normalize_appname(appname)
         appid = appid_map.get(norm_name)
-        if appid:
-            decky_plugin.logger.info(f"Attempting to uninstall '{appname}' with AppID {appid} ...")
-            try:
-                cmd = ["steam", f"steam://uninstall/{appid}"]
-                subprocess.run(cmd, check=True)
-                time.sleep(2)
-                decky_plugin.logger.info(f"Uninstall command sent for '{appname}' using Steam client.")
-            except subprocess.CalledProcessError as e:
-                decky_plugin.logger.error(f"Failed to uninstall '{appname}' using Steam client: {e}")
-                try:
-                    cmd = ["steam", f"steam://uninstall/{appid}"]
-                    subprocess.run(cmd, check=True)
-                    time.sleep(2)
-                    decky_plugin.logger.info(f"Uninstall command sent for '{appname}' using Steam URI handler.")
-                except subprocess.CalledProcessError as e:
-                    decky_plugin.logger.error(f"Failed to uninstall '{appname}' using Steam URI handler: {e}")
-                    decky_plugin.logger.warning(f"Uninstallation failed for '{appname}' (AppID {appid}). Manual intervention may be required.")
-        else:
+
+        if not appid:
             decky_plugin.logger.warning(f"AppID not found for removed app '{appname}'")
+            continue
+
+        decky_plugin.logger.info(f"Attempting to uninstall '{appname}' with AppID {appid} ...")
+
+        uninstall_uri = f"steam://uninstall/{appid}"
+
+        # Common environment for subprocesses
+        env = os.environ.copy()
+        env.update({
+            'PATH': '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'LD_LIBRARY_PATH': '/usr/lib:/lib:/usr/lib32:/lib32',
+        })
+
+        commands_to_try = [
+            ["steam", uninstall_uri]
+        ]
+
+        success = False
+        for cmd in commands_to_try:
+            try:
+                subprocess.run(cmd, check=True, env=env)
+                decky_plugin.logger.info(f"Successfully ran uninstall command: {' '.join(cmd)}")
+                success = True
+                time.sleep(2)  # Give Steam time to process the URI
+                break
+            except subprocess.CalledProcessError as e:
+                decky_plugin.logger.warning(f"Failed command: {' '.join(cmd)} | Error: {e}")
+            except FileNotFoundError:
+                decky_plugin.logger.warning(f"Command not found: {cmd[0]}")
+
+        if not success:
+            decky_plugin.logger.error(f"All uninstall attempts failed for '{appname}' (AppID {appid}). Manual removal may be needed.")
 
 def finalize_game_tracking():
     now = datetime.utcnow().isoformat() + "Z"

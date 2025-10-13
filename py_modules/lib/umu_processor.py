@@ -16,18 +16,11 @@ def fetch_and_parse_csv(compat_tool_name=None):
     def parse_csv_lines(lines):
         return [row for row in csv.DictReader(lines)]
 
-    try:
-        response = requests.get(CSV_URL, timeout=5)
-        response.raise_for_status()
-        csv_data = parse_csv_lines(response.text.splitlines())
-        decky_plugin.logger.info("Successfully fetched and parsed remote CSV.")
-    except Exception as e:
-        decky_plugin.logger.warning(f"Failed to fetch remote CSV: {e}")
-
-        if compat_tool_name is None:
-            # Try to auto-detect the latest UMU folder
-            dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
-            pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
+    if compat_tool_name is None:
+        # Try to auto-detect latest UMU folder
+        dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
+        pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
+        try:
             umu_folders = [
                 (tuple(map(int, (m.group(1) + '.' + (m.group(2) or '0')).split('.'))), name)
                 for name in os.listdir(dir_path)
@@ -36,10 +29,12 @@ def fetch_and_parse_csv(compat_tool_name=None):
             if umu_folders:
                 compat_tool_name = max(umu_folders)[1]
             else:
-                decky_plugin.logger.error("No valid UMU compatibility tool folders found.")
-                csv_data = []
-                return csv_data
+                decky_plugin.logger.warning("No valid UMU compatibility tool folders found.")
+        except Exception as e:
+            decky_plugin.logger.warning(f"Error reading UMU folders: {e}")
+            compat_tool_name = None
 
+    if compat_tool_name:
         fallback_path = os.path.join(
             DECKY_USER_HOME,
             ".steam", "root", "compatibilitytools.d",
@@ -52,13 +47,21 @@ def fetch_and_parse_csv(compat_tool_name=None):
             try:
                 with open(fallback_path, "r", encoding="utf-8") as f:
                     csv_data = parse_csv_lines(f.readlines())
-                decky_plugin.logger.info("Loaded fallback local CSV.")
+                decky_plugin.logger.info("Loaded CSV from local fallback.")
+                return csv_data
             except Exception as fallback_error:
-                decky_plugin.logger.error(f"Failed to parse local fallback CSV: {fallback_error}")
-                csv_data = []
+                decky_plugin.logger.warning(f"Failed to parse local fallback CSV: {fallback_error}")
         else:
-            decky_plugin.logger.error("No local fallback CSV found.")
-            csv_data = []
+            decky_plugin.logger.warning("Local fallback CSV not found.")
+
+    try:
+        response = requests.get(CSV_URL, timeout=5)
+        response.raise_for_status()
+        csv_data = parse_csv_lines(response.text.splitlines())
+        decky_plugin.logger.info("Successfully fetched and parsed remote CSV.")
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to fetch remote CSV: {e}")
+        csv_data = []
 
     return csv_data
 
