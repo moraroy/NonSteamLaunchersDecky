@@ -787,8 +787,12 @@ class Plugin:
 
         # Set up the environment for the new process
         env = os.environ.copy()
-        env['DISPLAY'] = ':0'
-        env['XAUTHORITY'] = os.path.join(os.environ['HOME'], '.Xauthority')
+        env.update({
+            'DISPLAY': ':0',
+            'XAUTHORITY': os.path.join(os.environ['HOME'], '.Xauthority'),
+            'PATH': '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'LD_LIBRARY_PATH': '/usr/lib:/lib:/usr/lib32:/lib32'
+        })
 
         # Check if xterm exists before attempting to use it
         try:

@@ -82,6 +82,20 @@ def ubisoft_scanner(logged_in_home, ubisoft_connect_launcher, create_new_entry):
         else:
             game_dict = getUplayGameInfo(data_folder_path, registry_file_path)
 
+
+    sublaunch_map = {
+        "Assassin's Creed III Remastered": {
+            "Assassin's Creed Liberation Remastered": "/1"
+        },
+        # Add more bundles here if needed
+    }
+
+    for parent, subs in sublaunch_map.items():
+        if parent in game_dict:
+            for sub_name, suffix in subs.items():
+                if sub_name not in game_dict:
+                    game_dict[sub_name] = game_dict[parent] + suffix
+
     for game, uplay_id in game_dict.items():
         if uplay_id:
             if platform.system() == "Windows":
@@ -95,5 +109,6 @@ def ubisoft_scanner(logged_in_home, ubisoft_connect_launcher, create_new_entry):
             create_new_entry(exe_path, game, launch_options, start_dir, "Ubisoft Connect")
             track_game(game, "Ubisoft Connect")
             time.sleep(0.1)
+
 
 # End of Ubisoft Game Scanner

@@ -13,67 +13,81 @@ def chrome_scanner(logged_in_home, create_new_entry):
     geforce_now_urls = []
     xbox_urls = []
     luna_urls = []
+    seen_urls = set()
+
+    def process_bookmark_item(item):
+        if item['type'] != "url":
+            return
+
+        name = item['name'].strip()
+        url = item['url']
+
+        if not name or url in seen_urls:
+            return
+
+        # GeForce NOW
+        if "play.geforcenow.com/games" in url:
+            if name == "GeForce NOW":
+                return
+
+            game_name = name.replace(" on GeForce NOW", "").strip()
+            url = url.split("&")[0] if "&" in url else url
+
+            if url not in seen_urls:
+                geforce_now_urls.append(("GeForce NOW", game_name, url))
+                seen_urls.add(url)
+
+        # Xbox Cloud Gaming
+        elif "www.xbox.com/en-US/play/games/" in url:
+            if name.startswith("Play "):
+                game_name = name.replace("Play ", "").split(" |")[0].strip()
+            else:
+                game_name = name.split(" |")[0].strip()
+
+            if game_name and url not in seen_urls:
+                xbox_urls.append(("Xbox", game_name, url))
+                seen_urls.add(url)
+
+        # Amazon Luna
+        elif "luna.amazon.com/game/" in url:
+            if name.startswith("Play "):
+                game_name = name.replace("Play ", "").split(" |")[0].strip()
+            else:
+                game_name = name.split(" |")[0].strip()
+
+            if game_name and url not in seen_urls:
+                luna_urls.append(("Amazon Luna", game_name, url))
+                seen_urls.add(url)
+
+    def scan_children(children):
+        for item in children:
+            if item['type'] == "folder":
+                scan_children(item.get('children', []))
+            else:
+                process_bookmark_item(item)
 
     try:
+        if not os.path.exists(bookmarks_file_path):
+            decky_plugin.logger.info("Chrome Bookmarks not found. Skipping scanning for Bookmarks.")
+            return
+
         with open(bookmarks_file_path, 'r') as f:
             data = json.load(f)
 
-        # Loop through the "Other bookmarks" folder
-        for item in data['roots']['other']['children']:
-            if item['type'] == "url":
-                name = item['name'].strip()
-                url = item['url']
+        # Recursively scan all relevant bookmark folders
+        roots = data.get('roots', {})
+        scan_children(roots.get('bookmark_bar', {}).get('children', []))
+        scan_children(roots.get('other', {}).get('children', []))
+        scan_children(roots.get('synced', {}).get('children', []))
 
-                if not name:
-                    continue
-
-                # GeForce NOW
-                if "play.geforcenow.com/games" in url:
-                    if name == "GeForce NOW":
-                        continue  # Skip generic folder/bookmark
-
-                    # Clean the name by removing " on GeForce NOW"
-                    if " on GeForce NOW" in name:
-                        game_name = name.replace(" on GeForce NOW", "").strip()
-                    else:
-                        game_name = name
-
-                    # Strip anything from &lang and onward
-                    if "&" in url:
-                        url = url.split("&")[0]
-
-                    geforce_now_urls.append(("GeForce NOW", game_name, url))
-
-                # Xbox Cloud Gaming
-                elif "www.xbox.com/en-US/play/games/" in url:
-                    # Clean up the name
-                    if name.startswith("Play "):
-                        game_name = name.replace("Play ", "").split(" |")[0].strip()
-                    else:
-                        game_name = name.split(" |")[0].strip()
-
-                    if game_name:
-                        xbox_urls.append(("Xbox", game_name, url))
-
-                # Amazon Luna
-                elif "luna.amazon.com/game/" in url:
-                    # Clean up the name
-                    if name.startswith("Play "):
-                        game_name = name.replace("Play ", "").split(" |")[0].strip()
-                    else:
-                        game_name = name.split(" |")[0].strip()
-
-                    if game_name:
-                        luna_urls.append(("Amazon Luna", game_name, url))
-
-        # Merge all platforms' URLs into a single list for processing
+        # Merge and process
         all_urls = geforce_now_urls + xbox_urls + luna_urls
 
         for platform_name, game_name, url in all_urls:
             time.sleep(0.1)
             decky_plugin.logger.info(f"{platform_name}: {game_name} - {url}")
 
-            # Encode URL to prevent issues with special characters
+            # Encode URL safely
             encoded_url = quote(url, safe=":/?=&")
 
             chromelaunch_options = (
@@ -82,7 +96,6 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 f'--start-fullscreen {encoded_url} --no-first-run --enable-features=OverlayScrollbar'
             )
 
-            # Use double quotes around paths
             chromedirectory = f'"{os.environ.get("chromedirectory", "/usr/bin/flatpak")}"'
             chrome_startdir = f'"{os.environ.get("chrome_startdir", "/usr/bin")}"'
 
@@ -93,7 +106,8 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 chrome_startdir,
                 "Google Chrome"
             )
+
             track_game(game_name, "Google Chrome")
 
-    except FileNotFoundError:
-        decky_plugin.logger.info("Chrome Bookmarks not found. Skipping scanning for Bookmarks.")
+    except Exception as e:
+        decky_plugin.logger.error(f"Error scanning Chrome bookmarks: {e}")

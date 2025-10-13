@@ -138,6 +138,9 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
                 game_key = "SCOR"
             elif game_key == "scor":
                 game_key = "SCOR"
+            elif game_key == "wow_classic_era":
+                print("Handling 'wow_classic_era' as 'WoWC'")
+                game_key = "WoWC"
 
 
             game_name = flavor_mapping.get(game_key, "unknown")
