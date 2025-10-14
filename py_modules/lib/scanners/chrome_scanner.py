@@ -37,8 +37,8 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 geforce_now_urls.append(("GeForce NOW", game_name, url))
                 seen_urls.add(url)
 
-        # Xbox Cloud Gaming
-        elif "www.xbox.com/en-US/play/games/" in url:
+        # Xbox Cloud Gaming (supporting multiple regions and new URL structure)
+        elif ("xbox.com/play/launch/" in url) or ("xbox.com/en-US/play/games/" in url):
             if name.startswith("Play "):
                 game_name = name.replace("Play ", "").split(" |")[0].strip()
             else:
@@ -48,8 +48,8 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 xbox_urls.append(("Xbox", game_name, url))
                 seen_urls.add(url)
 
-        # Amazon Luna
-        elif "luna.amazon.com/game/" in url:
+        # Amazon Luna (supporting regional domains)
+        elif "luna.amazon." in url and "/game/" in url:
             if name.startswith("Play "):
                 game_name = name.replace("Play ", "").split(" |")[0].strip()
             else:
