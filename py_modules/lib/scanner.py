@@ -34,6 +34,8 @@ from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
 from scanners.flatpak_scanner import flatpak_scanner
+from scanners.microsoftxbox_scanner import microsoftxbox_scanner
+
 
 from scanners.game_tracker import load_master_list, track_game, finalize_game_tracking
 from get_env_vars import refresh_env_vars
@@ -66,6 +68,7 @@ launcher_icons = {
     "STOVE Client": "5443968",
     "Humble Bundle": "5333415",
     "NVIDIA GeForce Now": "5258450",
+    "Microsoft Xbox": "5297303"
 }
 
 # Initial environment variables refresh
@@ -77,7 +80,7 @@ def initialiseVariables(env_vars):
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
     global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
-    global humble_launcher, stove_launcher, geforcenow_launcher
+    global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
@@ -87,6 +90,8 @@ def initialiseVariables(env_vars):
     global arcshortcutdirectory, poketcgshortcutdirectory, antstreamshortcutdirectory
     global vfunshortcutdirectory, temposhortcutdirectory, repaireaappshortcutdirectory, chromedirectory
     global stoveshortcutdirectory
+    global microsoftxbox_launcher
+
     
     steamid3 = env_vars.get('steamid3')
     logged_in_home = env_vars.get('logged_in_home')
@@ -109,6 +114,7 @@ def initialiseVariables(env_vars):
     indie_launcher = env_vars.get('indie_launcher', '')
     humble_launcher = env_vars.get('humble_launcher', '')
     stove_launcher = env_vars.get('stove_launcher', '')
+    microsoftxbox_launcher = env_vars.get('microsoftxbox_launcher', '')
 
     epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
     gogshortcutdirectory = env_vars.get('gogshortcutdirectory')
@@ -180,6 +186,7 @@ def scan():
             (waydroid_scanner, logged_in_home, create_new_entry),
             (flatpak_scanner, logged_in_home, create_new_entry),
             (geforcenow_scanner, logged_in_home, geforcenow_launcher, create_new_entry),
+            (microsoftxbox_scanner, logged_in_home, microsoftxbox_launcher, create_new_entry)
         ]
 
         # Use ThreadPoolExecutor to limit to 2 threads
