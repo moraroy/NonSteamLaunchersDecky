@@ -2,7 +2,7 @@ import subprocess
 import json
 import os
 from pathlib import Path
-import xml.etree.ElementTree as ET
+import externals.xml.etree.ElementTree as ET
 import platform
 import time
 import decky_plugin
