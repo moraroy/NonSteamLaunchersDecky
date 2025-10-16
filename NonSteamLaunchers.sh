@@ -477,7 +477,6 @@ function CheckInstallationDirectory {
     done
 }
 
-
 #Get SD Card Path
 get_sd_path() {
     # This assumes that the SD card is mounted under /run/media/deck/
