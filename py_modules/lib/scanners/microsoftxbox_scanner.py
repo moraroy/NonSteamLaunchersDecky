@@ -47,10 +47,13 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
             applications = root.find('.//{*}Applications')
             app_list = applications.findall('{*}Application') if applications is not None else []
 
-            return visual_display_name, general_display_name, app_list, root
+            identity = root.find('.//{*}Identity')
+            family_name = identity.attrib.get('Name') if identity is not None else ""
+
+            return visual_display_name, general_display_name, app_list, root, family_name
         except Exception as e:
             decky_plugin.logger.error(f"Failed to parse manifest: {manifest_path}, error: {e}")
-            return "", "", [], None
+            return "", "", [], None, ""
 
     def is_game_app(config_path, app_list):
         if Path(config_path).exists():
@@ -84,7 +87,7 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
                 decky_plugin.logger.warning(f"Manifest not found: {manifest_path}")
                 continue
 
-            visual_name, general_name, app_list, _ = parse_manifest(manifest_path)
+            visual_name, general_name, app_list, _, _ = parse_manifest(manifest_path)
 
             if "DisplayName" in general_name or "ms-resource" in general_name:
                 decky_plugin.logger.warning(f"Skipping app with unresolved display name: {general_name}")
@@ -96,7 +99,6 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
 
             for app in app_list:
                 app_id = app.attrib.get('Id')
-                exe = app.attrib.get('Executable', '')
 
                 if not app_id:
                     decky_plugin.logger.warning(f"Missing App ID in app entry for package: {family_name}")
@@ -109,8 +111,8 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
                     decky_plugin.logger.warning(f"Game name could not be determined for: {install_location}")
                     continue
 
-                exe_path = "explorer.exe"
-                start_dir = None
+                exe_path = "C:\\WINDOWS\\explorer.exe"
+                start_dir = "C:\\WINDOWS"
                 launch_options = f"shell:AppsFolder\\{aumid}"
 
                 create_new_entry(exe_path, name, launch_options, start_dir, "Microsoft Xbox")
@@ -134,29 +136,36 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
                 decky_plugin.logger.warning(f"Manifest file not found for: {item_path}")
                 continue
 
-            visual_name, general_name, app_list, _ = parse_manifest(manifest_path)
+            visual_name, general_name, app_list, _, family_name = parse_manifest(manifest_path)
+
+            if not family_name:
+                decky_plugin.logger.warning(f"Missing package family name in manifest: {manifest_path}")
+                continue
+
+            if "DisplayName" in general_name or "ms-resource" in general_name:
+                decky_plugin.logger.warning(f"Skipping app with unresolved display name: {general_name}")
+                continue
 
             if not is_game_app(config_path, app_list):
                 decky_plugin.logger.warning(f"Non-game app skipped: {item_path}")
                 continue
 
             for app in app_list:
-                exe = app.attrib.get("Executable", "")
                 app_id = app.attrib.get("Id", "")
-
-                if not exe.endswith(".exe"):
-                    decky_plugin.logger.warning(f"Skipping invalid executable: {exe}")
+                if not app_id:
+                    decky_plugin.logger.warning(f"Missing App ID in app entry for: {item_path}")
                     continue
 
-                exe_path = os.path.join(item_path, exe)
-                start_dir = os.path.dirname(exe_path)
+                aumid = f"{family_name}!{app_id}"
                 name = visual_name if visual_name and "DisplayName" not in visual_name and "ms-resource" not in visual_name else general_name
 
                 if not name:
                     decky_plugin.logger.warning(f"Game name could not be determined in prefix: {item_path}")
                     continue
 
-                launch_options = f'STEAM_COMPAT_DATA_PATH="{logged_in_home}/.local/share/Steam/steamapps/compatdata/{microsoftxbox_launcher}" %command% "{exe_path}"'
+                exe_path = "C:\\WINDOWS\\explorer.exe"
+                start_dir = "C:\\WINDOWS"
+                launch_options = f'shell:AppsFolder\\{aumid}'
 
                 create_new_entry(exe_path, name, launch_options, start_dir, "Microsoft Xbox")
                 track_game(name, "Microsoft Xbox (Proton)")
