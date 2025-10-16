@@ -3,9 +3,15 @@ import shutil
 import configparser
 import decky_plugin
 import time
+import platform
 from scanners.game_tracker import track_game
 
 def waydroid_scanner(logged_in_home, create_new_entry):
+    # Skip scanner if running on Windows
+    if platform.system() == "Windows":
+        decky_plugin.logger.info("Running on Windows. Skipping Waydroid scanner.")
+        return
+
     # Check for Waydroid
     if shutil.which("waydroid") is None:
         decky_plugin.logger.info("Waydroid not found. Skipping Waydroid scanner.")

@@ -1,10 +1,16 @@
 import os
 import subprocess
 import decky_plugin
+import platform
 from scanners.game_tracker import track_game
 
 
 def flatpak_scanner(logged_in_home, create_new_entry):
+    # Skip scanner if running on Windows
+    if platform.system() == "Windows":
+        decky_plugin.logger.info("Running on Windows. Skipping Flatpak scanner.")
+        return
+
     env_vars = {**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
 
     # GeForce NOW Flatpak Scanner
