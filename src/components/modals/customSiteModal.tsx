@@ -23,7 +23,6 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
     const [sites, setSites] = useState<Sites>([{ siteName: "", siteURL: "" }]);
     const [canSave, setCanSave] = useState<boolean>(false);
     const [progress, setProgress] = useState({ percent: 0, status: '', description: '' });
-
     const [selectedBrowser, setSelectedBrowser] = useState<string | null>(null);
 
     useEffect(() => {
@@ -100,17 +99,25 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
         transition: 'opacity 1s ease-in-out'
     };
 
+    const browserImageMap: Record<string, string> = {
+        "Google Chrome": "https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg",
+        "Mozilla Firefox": "https://cdn2.steamgriddb.com/thumb/9384fe92aef7ea0128be2c916ed07cea.jpg",
+        "Microsoft Edge": "https://cdn2.steamgriddb.com/thumb/ec0b830920c0efad2469c960b5dfae61.jpg"
+    };
+
     return (progress.percent > 0 && progress.percent < 100) ? (
         <ModalRoot>
             <DialogHeader>Installing Custom Sites</DialogHeader>
             <DialogBodyText>Creating shortcuts for sites: {sites.map(site => site.siteName).join(', ')}</DialogBodyText>
             <DialogBody>
                 <SteamSpinner />
-                <img
-                    src="https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg"
-                    alt="Overlay"
-                    style={{ ...fadeStyle, opacity: 0.5 }}
-                />
+                {selectedBrowser && (
+                    <img
+                        src={browserImageMap[selectedBrowser]}
+                        alt={`${selectedBrowser} Logo`}
+                        style={{ ...fadeStyle, opacity: 0.5 }}
+                    />
+                )}
                 <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
             </DialogBody>
         </ModalRoot>
