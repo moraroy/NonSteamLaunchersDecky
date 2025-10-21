@@ -224,7 +224,7 @@
   }
   // End of Shortcut Creation Code
 
-  const installSite = async (sites, serverAPI, { setProgress }, total) => {
+  const installSite = async (sites, serverAPI, { setProgress }, total, browser) => {
       console.log('installSite called');
       try {
           const result = await serverAPI.callPluginMethod("install", {
@@ -237,7 +237,7 @@
           });
           if (result) {
               console.log('Installation successful!');
-              await createSiteShortcut(sites, { setProgress }, total);
+              await createSiteShortcut(sites, browser, { setProgress }, total);
           }
           else {
               console.log('Installation failed.');
@@ -247,14 +247,17 @@
           console.error('Error calling _main method on server-side plugin:', error);
       }
   };
-  async function createSiteShortcut(sites, { setProgress }, total) {
-      let customSiteWS;
+  async function createSiteShortcut(sites, browser, { setProgress }, total) {
       let installed = 0;
-      customSiteWS = new WebSocket('ws://localhost:8675/customSite');
+      const customSiteWS = new WebSocket('ws://localhost:8675/customSite');
       customSiteWS.onopen = () => {
           console.log('NSL Custom Site WebSocket connection opened');
           if (customSiteWS.readyState === WebSocket.OPEN) {
-              customSiteWS.send(JSON.stringify(sites));
+              // <--- send both sites AND browser info
+              customSiteWS.send(JSON.stringify({
+                  sites,
+                  selectedBrowser: browser
+              }));
           }
           else {
               console.log('Cannot send message, NSL Custom Site WebSocket connection is not open');
@@ -264,15 +267,15 @@
           console.log(`Received custom site data from NSL server: ${e.data}`);
           if (e.data === 'NoShortcuts') {
               console.log('No shortcuts to add, unblocking UI');
-              setProgress({ percent: 100, status: ``, description: `` });
+              setProgress({ percent: 100, status: '', description: '' });
           }
           if (e.data[0] === '{' && e.data[e.data.length - 1] === '}') {
               try {
                   const site = JSON.parse(e.data);
                   installed++;
                   createShortcut(site);
-                  if (installed == total) {
-                      setProgress({ percent: 100, status: ``, description: `` });
+                  if (installed === total) {
+                      setProgress({ percent: 100, status: '', description: '' });
                   }
               }
               catch (error) {
@@ -286,17 +289,15 @@
       };
       customSiteWS.onclose = (e) => {
           console.log(`NSL Custom Site WebSocket connection closed, code: ${e.code}, reason: ${e.reason}`);
-          setProgress({ percent: 100, status: ``, description: `` });
+          setProgress({ percent: 100, status: '', description: '' });
       };
   }
 
-  /**
-  * The modal for updating custom sites.
-  */
   const CustomSiteModal = ({ closeModal, serverAPI }) => {
       const [sites, setSites] = React.useState([{ siteName: "", siteURL: "" }]);
       const [canSave, setCanSave] = React.useState(false);
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
+      const [selectedBrowser, setSelectedBrowser] = React.useState(null);
       React.useEffect(() => {
           setCanSave(sites.every(site => site.siteName != "") && sites.every(site => site.siteURL != ""));
       }, [sites]);
@@ -335,21 +336,23 @@
       }
       function addSiteFields() {
           if (canSave) {
-              setSites(// Replace the state
-              [
+              setSites([
                   ...sites,
-                  { siteName: '', siteURL: '' } // and one new item at the end
+                  { siteName: '', siteURL: '' }
               ]);
           }
       }
       async function onSave() {
-          if (canSave) {
+          if (canSave && selectedBrowser) {
               setProgress({ percent: 1, status: `Installing Custom Sites`, description: `` });
-              await installSite(sites, serverAPI, { setProgress }, sites.length);
+              await installSite(sites, serverAPI, { setProgress }, sites.length, selectedBrowser);
           }
       }
       const cancelOperation = () => {
           setProgress({ percent: 0, status: '', description: '' });
+      };
+      const handleBrowserSelect = (browser) => {
+          setSelectedBrowser(browser);
       };
       const fadeStyle = {
           position: 'absolute',
@@ -372,10 +375,15 @@
                   window.SP_REACT.createElement("img", { src: "https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg", alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } }),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
           window.SP_REACT.createElement("div", null,
-              window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
+              window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave || !selectedBrowser, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
+                  window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+                      window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' } },
+                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Google Chrome", checked: selectedBrowser === "Google Chrome", onChange: () => handleBrowserSelect("Google Chrome") }),
+                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Mozilla Firefox (disabled)", checked: selectedBrowser === "Mozilla Firefox", onChange: () => { }, disabled: true }),
+                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Microsoft Edge (disabled)", checked: selectedBrowser === "Microsoft Edge", onChange: () => { }, disabled: true }))),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered."),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, sites.map(({ siteName, siteURL }, index) => window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
-                      window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}` },
+                      window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}`, key: index },
                           window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "Name", value: siteName, placeholder: "The name you want to appear in the shortcut for your site.", onChange: (e) => onNameChange(siteName, e) }),
                           window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "URL", value: siteURL, placeholder: "The URL for your site.", onChange: (e) => onURLChange(siteName, e) }))))))));
   };

@@ -8,40 +8,40 @@ import {
     ServerAPI,
     SteamSpinner,
     TextField,
-    DialogButton
-  } from "decky-frontend-lib";
-  import { useState, VFC, useEffect } from "react";
-  import { Sites, installSite } from "../../hooks/installSites";
-  
-  type CustomSiteModalProps = {
+    DialogButton,
+    ToggleField,
+} from "decky-frontend-lib";
+import { useState, VFC, useEffect } from "react";
+import { Sites, installSite } from "../../hooks/installSites";
+
+type CustomSiteModalProps = {
     closeModal?: () => void,
     serverAPI: ServerAPI,
-  };
-  
-  /**
-  * The modal for updating custom sites.
-  */
-  export const CustomSiteModal: VFC<CustomSiteModalProps> = ({closeModal, serverAPI}) => {
-    const [sites, setSites] = useState<Sites>([{siteName: "", siteURL: ""}])
+};
+
+export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverAPI }) => {
+    const [sites, setSites] = useState<Sites>([{ siteName: "", siteURL: "" }])
     const [canSave, setCanSave] = useState<boolean>(false);
-    const [progress, setProgress] = useState({ percent:0, status:'', description: '' });
-  
+    const [progress, setProgress] = useState({ percent: 0, status: '', description: '' });
+
+    const [selectedBrowser, setSelectedBrowser] = useState<string | null>(null);
+
     useEffect(() => {
         setCanSave(sites.every(site => site.siteName != "") && sites.every(site => site.siteURL != ""));
     }, [sites]);
-  
+
     useEffect(() => {
         if (progress.percent === 100) {
             closeModal!();
         }
     }, [progress]);
-  
+
     function onNameChange(siteName: string, e: React.ChangeEvent<HTMLInputElement>) {
         const newSites = sites.map(site => {
             if (site.siteName === siteName) {
                 return {
-                ...site,
-                siteName: e?.target.value
+                    ...site,
+                    siteName: e?.target.value
                 };
             } else {
                 return site;
@@ -49,13 +49,13 @@ import {
         });
         setSites(newSites);
     }
-  
+
     function onURLChange(siteName: string, e: React.ChangeEvent<HTMLInputElement>) {
         const newSites = sites.map(site => {
             if (site.siteName === siteName) {
                 return {
-                ...site,
-                siteURL: e?.target.value
+                    ...site,
+                    siteURL: e?.target.value
                 };
             } else {
                 return site;
@@ -63,29 +63,31 @@ import {
         });
         setSites(newSites);
     }
-  
+
     function addSiteFields() {
         if (canSave) {
-            setSites( // Replace the state
-            [ // with a new array
-                ...sites, // that contains all the old items
-                { siteName: '', siteURL: '' } // and one new item at the end
-            ]
-            );
+            setSites([
+                ...sites,
+                { siteName: '', siteURL: '' }
+            ]);
         }
     }
-  
+
     async function onSave() {
-        if (canSave) {
-            setProgress({ percent: 1, status:`Installing Custom Sites`, description: `` });
-            await installSite(sites, serverAPI, {setProgress}, sites.length);
-        } 
+        if (canSave && selectedBrowser) {
+            setProgress({ percent: 1, status: `Installing Custom Sites`, description: `` });
+            await installSite(sites, serverAPI, { setProgress }, sites.length, selectedBrowser);
+        }
     }
-  
+
     const cancelOperation = () => {
         setProgress({ percent: 0, status: '', description: '' });
     };
-  
+
+    const handleBrowserSelect = (browser: string) => {
+        setSelectedBrowser(browser);
+    };
+
     const fadeStyle = {
         position: 'absolute',
         top: 0,
@@ -96,7 +98,7 @@ import {
         pointerEvents: 'none',
         transition: 'opacity 1s ease-in-out'
     };
-  
+
     return ((progress.percent > 0 && progress.percent < 100) ?
         <ModalRoot>
             <DialogHeader>
@@ -104,7 +106,7 @@ import {
             </DialogHeader>
             <DialogBodyText>Creating shortcuts for sites: {sites.map(site => site.siteName).join(', ')}</DialogBodyText>
             <DialogBody>
-                <SteamSpinner/>
+                <SteamSpinner />
                 <img src="https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg" alt="Overlay" style={{ ...fadeStyle, opacity: 0.5 }} />
                 <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
             </DialogBody>
@@ -117,18 +119,54 @@ import {
                 strMiddleButtonText={'Add Another Site'}
                 onMiddleButton={addSiteFields}
                 bMiddleDisabled={!canSave}
-                bOKDisabled={!canSave}
+                bOKDisabled={!canSave || !selectedBrowser}
                 onOK={onSave}
                 strOKButtonText="Create Shortcuts"
-                strTitle = "Enter Custom Websites"
+                strTitle="Enter Custom Websites"
             >
-                <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered.</DialogBodyText>
+                {/* Browser Selection (using toggles) */}
                 <DialogBody>
-                    {sites.map(({siteName, siteURL}, index) =>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' }}>
+                        <ToggleField
+                            label="Google Chrome"
+                            checked={selectedBrowser === "Google Chrome"}
+                            onChange={() => handleBrowserSelect("Google Chrome")}
+                        />
+                        <ToggleField
+                            label="Mozilla Firefox (disabled)"
+                            checked={selectedBrowser === "Mozilla Firefox"}
+                            onChange={() => {}} // no-op
+                            disabled
+                        />
+                        <ToggleField
+                            label="Microsoft Edge (disabled)"
+                            checked={selectedBrowser === "Microsoft Edge"}
+                            onChange={() => {}} // no-op
+                            disabled
+                        />
+                    </div>
+                </DialogBody>
+
+                <DialogBodyText>
+                    NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered.
+                </DialogBodyText>
+
+                <DialogBody>
+                    {sites.map(({ siteName, siteURL }, index) =>
                         <>
-                            <PanelSection title={`Site ${index + 1}`}>
-                                <TextField label = "Name" value={siteName} placeholder="The name you want to appear in the shortcut for your site." onChange={(e) => onNameChange(siteName, e)} />
-                                <TextField label = "URL" value={siteURL} placeholder="The URL for your site." onChange={(e) => onURLChange(siteName, e)} />
+                            <PanelSection title={`Site ${index + 1}`} key={index}>
+                                <TextField
+                                    label="Name"
+                                    value={siteName}
+                                    placeholder="The name you want to appear in the shortcut for your site."
+                                    onChange={(e) => onNameChange(siteName, e)}
+                                />
+                                <TextField
+                                    label="URL"
+                                    value={siteURL}
+                                    placeholder="The URL for your site."
+                                    onChange={(e) => onURLChange(siteName, e)}
+                                />
                             </PanelSection>
                         </>
                     )}
@@ -136,4 +174,4 @@ import {
             </ConfirmModal>
         </div>
     )
-  };
+};
