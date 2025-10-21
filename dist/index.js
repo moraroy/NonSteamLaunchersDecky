@@ -372,7 +372,7 @@
               window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back")))) : (window.SP_REACT.createElement("div", null,
           window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave || !selectedBrowser, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' } },
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'row', gap: '1em', marginBottom: '1em', alignItems: 'center' } },
                       window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Google Chrome", checked: selectedBrowser === "Google Chrome", onChange: () => handleBrowserSelect("Google Chrome") }),
                       window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Mozilla Firefox", checked: selectedBrowser === "Mozilla Firefox", onChange: () => handleBrowserSelect("Mozilla Firefox") }),
                       window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Microsoft Edge", checked: selectedBrowser === "Microsoft Edge", onChange: () => handleBrowserSelect("Microsoft Edge") }))),

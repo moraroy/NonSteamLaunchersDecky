@@ -282,6 +282,7 @@ class Plugin:
 
 
 
+
         async def handleCustomSite(request):
             ws = web.WebSocketResponse()
             await ws.prepare(request)
@@ -376,9 +377,12 @@ class Plugin:
                                 "com.microsoft.Edge",
                                 override_paths=["/run/udev:ro"]  # add any overrides if needed
                             )
+                    for site in sites:
+                        site["browser"] = selected_browser
 
                     # Now proceed with adding custom sites
-                    decky_shortcuts = addCustomSite(sites)
+                    decky_shortcuts = addCustomSite(sites, selected_browser)
+
 
                     if not decky_shortcuts:
                         decky_plugin.logger.info(f"No shortcuts")

@@ -130,7 +130,7 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
             >
                 {/* Browser Selection (using toggles) */}
                 <DialogBody>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '1em', marginBottom: '1em', alignItems: 'center' }}>
                         <ToggleField
                             label="Google Chrome"
                             checked={selectedBrowser === "Google Chrome"}

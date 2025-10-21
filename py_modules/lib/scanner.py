@@ -208,16 +208,16 @@ def scan():
     return decky_shortcuts, removed_apps
 
 
-
 def addCustomSite(customSiteJSON, selectedBrowser):
+    global decky_shortcuts
     decky_shortcuts = {}
     new_shortcuts = []
-
-    browser_lower = selectedBrowser.lower()
 
     for site in customSiteJSON:
         customSiteName = site['siteName']
         customSiteURL = site['siteURL'].strip()
+        browser_lower = site.get("browser", selectedBrowser).lower()
+
         cleanSiteURL = customSiteURL.replace('http://', '').replace('https://', '').replace('www.', '')
 
         if "chrome" in browser_lower:
@@ -239,7 +239,6 @@ def addCustomSite(customSiteJSON, selectedBrowser):
                 f'run --branch=stable --arch=x86_64 org.mozilla.firefox --kiosk https://{cleanSiteURL}'
             )
         else:
-            # fallback or other browsers
             launch_options = f'run https://{cleanSiteURL}'
 
         new_shortcuts.append({
@@ -248,11 +247,9 @@ def addCustomSite(customSiteJSON, selectedBrowser):
             'options': launch_options
         })
 
-    # Refresh env_vars and initialize variables
     env_vars = refresh_env_vars()
     initialiseVariables(env_vars)
 
-    # Create entries for each new shortcut
     for site in new_shortcuts:
         create_new_entry(
             env_vars.get('chromedirectory'),
@@ -263,6 +260,9 @@ def addCustomSite(customSiteJSON, selectedBrowser):
         )
 
     return decky_shortcuts
+
+
+
 
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
@@ -322,7 +322,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 def add_compat_tool(launchoptions):
     steam_compat_marker = 'STEAM_COMPAT_DATA_PATH'
 
-    if 'chrome' in launchoptions or '--appid 0' in launchoptions:
+    if 'chrome' in launchoptions or 'edge' in launchoptions or 'firefox' in launchoptions or '--appid 0' in launchoptions:
         return False
     elif any(x in launchoptions for x in ['jp.', 'com.', 'online.']):
         if steam_compat_marker not in launchoptions:
