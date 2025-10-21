@@ -211,7 +211,7 @@ def addCustomSite(customSiteJSON):
     global decky_shortcuts
     decky_shortcuts = {}
 
-    customSites = json.loads(customSiteJSON)
+    customSites = customSiteJSON
     new_shortcuts = []  # Temporary storage for new shortcuts
     for site in customSites:
         customSiteName = site['siteName']
