@@ -299,24 +299,23 @@
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const [selectedBrowser, setSelectedBrowser] = React.useState(null);
       React.useEffect(() => {
-          setCanSave(sites.every(site => site.siteName != "") && sites.every(site => site.siteURL != ""));
+          setCanSave(sites.every(site => site.siteName.trim() !== "") &&
+              sites.every(site => site.siteURL?.trim() !== ""));
       }, [sites]);
       React.useEffect(() => {
           if (progress.percent === 100) {
-              closeModal();
+              closeModal?.();
           }
-      }, [progress]);
+      }, [progress, closeModal]);
       function onNameChange(siteName, e) {
           const newSites = sites.map(site => {
               if (site.siteName === siteName) {
                   return {
                       ...site,
-                      siteName: e?.target.value
+                      siteName: e.target.value
                   };
               }
-              else {
-                  return site;
-              }
+              return site;
           });
           setSites(newSites);
       }
@@ -325,12 +324,10 @@
               if (site.siteName === siteName) {
                   return {
                       ...site,
-                      siteURL: e?.target.value
+                      siteURL: e.target.value
                   };
               }
-              else {
-                  return site;
-              }
+              return site;
           });
           setSites(newSites);
       }
@@ -364,28 +361,25 @@
           pointerEvents: 'none',
           transition: 'opacity 1s ease-in-out'
       };
-      return ((progress.percent > 0 && progress.percent < 100) ?
-          window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
-              window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Custom Sites"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
-                  "Creating shortcuts for sites: ",
-                  sites.map(site => site.siteName).join(', ')),
+      return (progress.percent > 0 && progress.percent < 100) ? (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, null,
+          window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Installing Custom Sites"),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null,
+              "Creating shortcuts for sites: ",
+              sites.map(site => site.siteName).join(', ')),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
+              window.SP_REACT.createElement("img", { src: "https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg", alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } }),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back")))) : (window.SP_REACT.createElement("div", null,
+          window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave || !selectedBrowser, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
               window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                  window.SP_REACT.createElement(deckyFrontendLib.SteamSpinner, null),
-                  window.SP_REACT.createElement("img", { src: "https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg", alt: "Overlay", style: { ...fadeStyle, opacity: 0.5 } }),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back"))) :
-          window.SP_REACT.createElement("div", null,
-              window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { bAllowFullSize: true, onCancel: closeModal, onEscKeypress: closeModal, strMiddleButtonText: 'Add Another Site', onMiddleButton: addSiteFields, bMiddleDisabled: !canSave, bOKDisabled: !canSave || !selectedBrowser, onOK: onSave, strOKButtonText: "Create Shortcuts", strTitle: "Enter Custom Websites" },
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
-                      window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' } },
-                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Google Chrome", checked: selectedBrowser === "Google Chrome", onChange: () => handleBrowserSelect("Google Chrome") }),
-                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Mozilla Firefox (disabled)", checked: selectedBrowser === "Mozilla Firefox", onChange: () => { }, disabled: true }),
-                          window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Microsoft Edge (disabled)", checked: selectedBrowser === "Microsoft Edge", onChange: () => { }, disabled: true }))),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered."),
-                  window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, sites.map(({ siteName, siteURL }, index) => window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
-                      window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}`, key: index },
-                          window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "Name", value: siteName, placeholder: "The name you want to appear in the shortcut for your site.", onChange: (e) => onNameChange(siteName, e) }),
-                          window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "URL", value: siteURL, placeholder: "The URL for your site.", onChange: (e) => onURLChange(siteName, e) }))))))));
+                  window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: '0.5em', marginBottom: '1em' } },
+                      window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Google Chrome", checked: selectedBrowser === "Google Chrome", onChange: () => handleBrowserSelect("Google Chrome") }),
+                      window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Mozilla Firefox", checked: selectedBrowser === "Mozilla Firefox", onChange: () => handleBrowserSelect("Mozilla Firefox") }),
+                      window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Microsoft Edge", checked: selectedBrowser === "Microsoft Edge", onChange: () => handleBrowserSelect("Microsoft Edge") }))),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use the selected browser to launch these sites. Non-Steam shortcuts will be created for each site entered."),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null, sites.map(({ siteName, siteURL }, index) => (window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: `Site ${index + 1}`, key: index },
+                  window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "Name", value: siteName, placeholder: "The name you want to appear in the shortcut for your site.", onChange: (e) => onNameChange(siteName, e) }),
+                  window.SP_REACT.createElement(deckyFrontendLib.TextField, { label: "URL", value: siteURL || '', placeholder: "The URL for your site.", onChange: (e) => onURLChange(siteName, e) }))))))));
   };
 
   const useSettings = (serverApi) => {

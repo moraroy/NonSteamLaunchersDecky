@@ -20,32 +20,34 @@ type CustomSiteModalProps = {
 };
 
 export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverAPI }) => {
-    const [sites, setSites] = useState<Sites>([{ siteName: "", siteURL: "" }])
+    const [sites, setSites] = useState<Sites>([{ siteName: "", siteURL: "" }]);
     const [canSave, setCanSave] = useState<boolean>(false);
     const [progress, setProgress] = useState({ percent: 0, status: '', description: '' });
 
     const [selectedBrowser, setSelectedBrowser] = useState<string | null>(null);
 
     useEffect(() => {
-        setCanSave(sites.every(site => site.siteName != "") && sites.every(site => site.siteURL != ""));
+        setCanSave(
+            sites.every(site => site.siteName.trim() !== "") &&
+            sites.every(site => site.siteURL?.trim() !== "")
+        );
     }, [sites]);
 
     useEffect(() => {
         if (progress.percent === 100) {
-            closeModal!();
+            closeModal?.();
         }
-    }, [progress]);
+    }, [progress, closeModal]);
 
     function onNameChange(siteName: string, e: React.ChangeEvent<HTMLInputElement>) {
         const newSites = sites.map(site => {
             if (site.siteName === siteName) {
                 return {
                     ...site,
-                    siteName: e?.target.value
+                    siteName: e.target.value
                 };
-            } else {
-                return site;
             }
+            return site;
         });
         setSites(newSites);
     }
@@ -55,11 +57,10 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
             if (site.siteName === siteName) {
                 return {
                     ...site,
-                    siteURL: e?.target.value
+                    siteURL: e.target.value
                 };
-            } else {
-                return site;
             }
+            return site;
         });
         setSites(newSites);
     }
@@ -89,28 +90,31 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
     };
 
     const fadeStyle = {
-        position: 'absolute',
+        position: 'absolute' as const,
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
         opacity: 1,
-        pointerEvents: 'none',
+        pointerEvents: 'none' as const,
         transition: 'opacity 1s ease-in-out'
     };
 
-    return ((progress.percent > 0 && progress.percent < 100) ?
+    return (progress.percent > 0 && progress.percent < 100) ? (
         <ModalRoot>
-            <DialogHeader>
-                Installing Custom Sites
-            </DialogHeader>
+            <DialogHeader>Installing Custom Sites</DialogHeader>
             <DialogBodyText>Creating shortcuts for sites: {sites.map(site => site.siteName).join(', ')}</DialogBodyText>
             <DialogBody>
                 <SteamSpinner />
-                <img src="https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg" alt="Overlay" style={{ ...fadeStyle, opacity: 0.5 }} />
+                <img
+                    src="https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg"
+                    alt="Overlay"
+                    style={{ ...fadeStyle, opacity: 0.5 }}
+                />
                 <DialogButton onClick={cancelOperation} style={{ width: '25px' }}>Back</DialogButton>
             </DialogBody>
-        </ModalRoot> :
+        </ModalRoot>
+    ) : (
         <div>
             <ConfirmModal
                 bAllowFullSize
@@ -133,45 +137,41 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
                             onChange={() => handleBrowserSelect("Google Chrome")}
                         />
                         <ToggleField
-                            label="Mozilla Firefox (disabled)"
+                            label="Mozilla Firefox"
                             checked={selectedBrowser === "Mozilla Firefox"}
-                            onChange={() => {}} // no-op
-                            disabled
+                            onChange={() => handleBrowserSelect("Mozilla Firefox")}
                         />
                         <ToggleField
-                            label="Microsoft Edge (disabled)"
+                            label="Microsoft Edge"
                             checked={selectedBrowser === "Microsoft Edge"}
-                            onChange={() => {}} // no-op
-                            disabled
+                            onChange={() => handleBrowserSelect("Microsoft Edge")}
                         />
                     </div>
                 </DialogBody>
 
                 <DialogBodyText>
-                    NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each site entered.
+                    NSL will install and use the selected browser to launch these sites. Non-Steam shortcuts will be created for each site entered.
                 </DialogBodyText>
 
                 <DialogBody>
-                    {sites.map(({ siteName, siteURL }, index) =>
-                        <>
-                            <PanelSection title={`Site ${index + 1}`} key={index}>
-                                <TextField
-                                    label="Name"
-                                    value={siteName}
-                                    placeholder="The name you want to appear in the shortcut for your site."
-                                    onChange={(e) => onNameChange(siteName, e)}
-                                />
-                                <TextField
-                                    label="URL"
-                                    value={siteURL}
-                                    placeholder="The URL for your site."
-                                    onChange={(e) => onURLChange(siteName, e)}
-                                />
-                            </PanelSection>
-                        </>
-                    )}
+                    {sites.map(({ siteName, siteURL }, index) => (
+                        <PanelSection title={`Site ${index + 1}`} key={index}>
+                            <TextField
+                                label="Name"
+                                value={siteName}
+                                placeholder="The name you want to appear in the shortcut for your site."
+                                onChange={(e) => onNameChange(siteName, e)}
+                            />
+                            <TextField
+                                label="URL"
+                                value={siteURL || ''}
+                                placeholder="The URL for your site."
+                                onChange={(e) => onURLChange(siteName, e)}
+                            />
+                        </PanelSection>
+                    ))}
                 </DialogBody>
             </ConfirmModal>
         </div>
-    )
+    );
 };

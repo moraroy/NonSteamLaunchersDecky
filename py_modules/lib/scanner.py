@@ -207,35 +207,52 @@ def scan():
 
     return decky_shortcuts, removed_apps
 
-def addCustomSite(customSiteJSON):
-    global decky_shortcuts
-    decky_shortcuts = {}
 
-    customSites = customSiteJSON
-    new_shortcuts = []  # Temporary storage for new shortcuts
-    for site in customSites:
+
+def addCustomSite(customSiteJSON, selectedBrowser):
+    decky_shortcuts = {}
+    new_shortcuts = []
+
+    browser_lower = selectedBrowser.lower()
+
+    for site in customSiteJSON:
         customSiteName = site['siteName']
         customSiteURL = site['siteURL'].strip()
         cleanSiteURL = customSiteURL.replace('http://', '').replace('https://', '').replace('www.', '')
 
-        chromelaunch_options = (
-            f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome '
-            f'--file-forwarding com.google.Chrome @@u @@ '
-            f'--window-size=1280,800 --force-device-scale-factor=1.00 '
-            f'--device-scale-factor=1.00 --start-fullscreen '
-            f'https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
-        )
+        if "chrome" in browser_lower:
+            launch_options = (
+                f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome '
+                f'--file-forwarding com.google.Chrome @@u @@ '
+                f'--window-size=1280,800 --force-device-scale-factor=1.00 '
+                f'--device-scale-factor=1.00 --start-fullscreen '
+                f'https://{cleanSiteURL} --no-first-run --enable-features=OverlayScrollbar'
+            )
+        elif "edge" in browser_lower:
+            launch_options = (
+                f'run --arch=x86_64 com.microsoft.Edge --window-size=1280,800 '
+                f'--force-device-scale-factor=1.00 --device-scale-factor=1.00 --start-fullscreen '
+                f'https://{cleanSiteURL} --no-first-run'
+            )
+        elif "firefox" in browser_lower:
+            launch_options = (
+                f'run --branch=stable --arch=x86_64 org.mozilla.firefox --kiosk https://{cleanSiteURL}'
+            )
+        else:
+            # fallback or other browsers
+            launch_options = f'run https://{cleanSiteURL}'
 
         new_shortcuts.append({
             'name': customSiteName,
             'url': cleanSiteURL,
-            'options': chromelaunch_options
+            'options': launch_options
         })
 
-    # Refresh env_vars once
+    # Refresh env_vars and initialize variables
     env_vars = refresh_env_vars()
     initialiseVariables(env_vars)
 
+    # Create entries for each new shortcut
     for site in new_shortcuts:
         create_new_entry(
             env_vars.get('chromedirectory'),
@@ -246,8 +263,6 @@ def addCustomSite(customSiteJSON):
         )
 
     return decky_shortcuts
-
-
 
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 

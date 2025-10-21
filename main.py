@@ -280,11 +280,15 @@ class Plugin:
             return ws
 
 
+
+
         async def handleCustomSite(request):
             ws = web.WebSocketResponse()
             await ws.prepare(request)
 
             decky_plugin.logger.info(f"Called Custom Site")
+
+            env_vars = {**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
 
             async for msg in ws:
                 decky_plugin.logger.info(f"Received WS message: {msg.data}")
@@ -297,76 +301,81 @@ class Plugin:
                     decky_plugin.logger.info(f"Selected Browser: {selected_browser}")
                     decky_plugin.logger.info(f"Sites data: {sites}")
 
-                    # If selected browser includes "chrome", check/install Chrome
-                    if selected_browser and "chrome" in selected_browser.lower():
-                        # Set environment variables for subprocess
-                        env_vars = {**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
-
-                        # Check if Google Chrome is installed
-                        check_chrome_command = "flatpak list | grep com.google.Chrome"
-                        result_check_chrome = subprocess.run(
-                            check_chrome_command,
-                            shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            env=env_vars
+                    def check_and_install_flatpak(package_name: str, flatpak_id: str, override_paths: list = []):
+                        # Check if flatpak package installed
+                        check_cmd = f"flatpak list | grep {flatpak_id}"
+                        result_check = subprocess.run(
+                            check_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
                         )
-                        result_output = result_check_chrome.stdout.decode().strip()
+                        installed = bool(result_check.stdout.decode().strip())
+                        if installed:
+                            decky_plugin.logger.info(f"{package_name} is already installed: {result_check.stdout.decode().strip()}")
+                            return True
 
-                        if result_output:
-                            decky_plugin.logger.info(f"Google Chrome is already installed: {result_output}")
-                        else:
-                            # Check if Flathub repo exists
-                            check_flathub_command = "flatpak remote-list | grep flathub &> /dev/null"
-                            result_check_flathub = subprocess.run(
-                                check_flathub_command,
-                                shell=True,
-                                env=env_vars
-                            )
-                            if result_check_flathub.returncode != 0:
-                                decky_plugin.logger.info("Flathub repository not found. Adding Flathub repository.")
-                                add_flathub_command = "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
-                                subprocess.run(add_flathub_command, shell=True, env=env_vars)
+                        # Check/add Flathub repo
+                        check_flathub_cmd = "flatpak remote-list | grep flathub &> /dev/null"
+                        result_flathub = subprocess.run(check_flathub_cmd, shell=True, env=env_vars)
+                        if result_flathub.returncode != 0:
+                            decky_plugin.logger.info("Flathub repository not found. Adding Flathub repository.")
+                            add_flathub_cmd = "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
+                            subprocess.run(add_flathub_cmd, shell=True, env=env_vars)
 
-                            # Install Google Chrome
-                            decky_plugin.logger.info("Google Chrome is not installed. Proceeding with installation.")
-                            flatpak_install_command = "flatpak install --user flathub com.google.Chrome -y"
-                            result_install = subprocess.run(
-                                flatpak_install_command,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                env=env_vars
-                            )
+                        # Install the package
+                        decky_plugin.logger.info(f"{package_name} is not installed. Proceeding with installation.")
+                        install_cmd = f"flatpak install --user flathub {flatpak_id} -y"
+                        result_install = subprocess.run(
+                            install_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
+                        )
 
-                            if result_install.returncode == 0:
-                                decky_plugin.logger.info("Google Chrome installed successfully!")
-
-                                override_command = "flatpak --user override --filesystem=/run/udev:ro com.google.Chrome"
+                        if result_install.returncode == 0:
+                            decky_plugin.logger.info(f"{package_name} installed successfully!")
+                            # Apply overrides if any
+                            for path in override_paths:
+                                override_cmd = f"flatpak --user override --filesystem={path} {flatpak_id}"
                                 result_override = subprocess.run(
-                                    override_command,
-                                    shell=True,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    env=env_vars
+                                    override_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
                                 )
                                 if result_override.returncode == 0:
-                                    decky_plugin.logger.info("Flatpak override applied successfully.")
+                                    decky_plugin.logger.info(f"Flatpak override applied successfully for {path}.")
                                 else:
-                                    decky_plugin.logger.error("Failed to apply Flatpak override.")
+                                    decky_plugin.logger.error(f"Failed to apply Flatpak override for {path}.")
                                     decky_plugin.logger.error(f"Error Output: {result_override.stderr.decode()}")
-                            else:
-                                decky_plugin.logger.error("Installation failed.")
-                                decky_plugin.logger.error(f"Error Output: {result_install.stderr.decode()}")
-                                decky_plugin.logger.error(f"Standard Output: {result_install.stdout.decode()}")
-                                decky_plugin.logger.error(f"Exit Code: {result_install.returncode}")
+                            return True
+                        else:
+                            decky_plugin.logger.error(f"Installation failed for {package_name}.")
+                            decky_plugin.logger.error(f"Error Output: {result_install.stderr.decode()}")
+                            decky_plugin.logger.error(f"Standard Output: {result_install.stdout.decode()}")
+                            decky_plugin.logger.error(f"Exit Code: {result_install.returncode}")
 
-                                if "no permission" in result_install.stderr.decode().lower():
-                                    decky_plugin.logger.error("It seems like there might be a permissions issue. Please check your user permissions.")
-                                elif "cannot find" in result_install.stderr.decode().lower():
-                                    decky_plugin.logger.error("There might be an issue with the Flatpak repository or package name. Please check if the repository is added correctly.")
-                                else:
-                                    decky_plugin.logger.error("An unknown error occurred during installation.")
+                            if "no permission" in result_install.stderr.decode().lower():
+                                decky_plugin.logger.error("It seems like there might be a permissions issue. Please check your user permissions.")
+                            elif "cannot find" in result_install.stderr.decode().lower():
+                                decky_plugin.logger.error("There might be an issue with the Flatpak repository or package name. Please check if the repository is added correctly.")
+                            else:
+                                decky_plugin.logger.error("An unknown error occurred during installation.")
+                            return False
+
+                    # Browser install logic
+                    if selected_browser:
+                        browser_lower = selected_browser.lower()
+                        if "chrome" in browser_lower:
+                            check_and_install_flatpak(
+                                "Google Chrome",
+                                "com.google.Chrome",
+                                override_paths=["/run/udev:ro"]  # your existing override for Chrome
+                            )
+                        elif "firefox" in browser_lower:
+                            check_and_install_flatpak(
+                                "Mozilla Firefox",
+                                "org.mozilla.firefox",
+                                override_paths=["/run/udev:ro"]  # add any overrides if needed
+                            )
+                        elif "edge" in browser_lower:
+                            check_and_install_flatpak(
+                                "Microsoft Edge",
+                                "com.microsoft.Edge",
+                                override_paths=["/run/udev:ro"]  # add any overrides if needed
+                            )
 
                     # Now proceed with adding custom sites
                     decky_shortcuts = addCustomSite(sites)
