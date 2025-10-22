@@ -291,6 +291,59 @@ class Plugin:
 
             env_vars = {**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
 
+            def check_and_install_flatpak(package_name: str, flatpak_id: str, override_paths: list = []):
+                # Check if flatpak package installed
+                check_cmd = f"flatpak list | grep {flatpak_id}"
+                result_check = subprocess.run(
+                    check_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
+                )
+                installed = bool(result_check.stdout.decode().strip())
+
+                # Check/add Flathub repo
+                check_flathub_cmd = "flatpak remote-list | grep flathub &> /dev/null"
+                result_flathub = subprocess.run(check_flathub_cmd, shell=True, env=env_vars)
+                if result_flathub.returncode != 0:
+                    decky_plugin.logger.info("Flathub repository not found. Adding Flathub repository.")
+                    add_flathub_cmd = "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
+                    subprocess.run(add_flathub_cmd, shell=True, env=env_vars)
+
+                if installed:
+                    decky_plugin.logger.info(f"{package_name} is already installed: {result_check.stdout.decode().strip()}")
+                else:
+                    decky_plugin.logger.info(f"{package_name} is not installed. Proceeding with installation.")
+                    install_cmd = f"flatpak install --user flathub {flatpak_id} -y"
+                    result_install = subprocess.run(
+                        install_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
+                    )
+                    if result_install.returncode != 0:
+                        decky_plugin.logger.error(f"Installation failed for {package_name}.")
+                        decky_plugin.logger.error(f"Error Output: {result_install.stderr.decode()}")
+                        decky_plugin.logger.error(f"Standard Output: {result_install.stdout.decode()}")
+                        decky_plugin.logger.error(f"Exit Code: {result_install.returncode}")
+
+                        if "no permission" in result_install.stderr.decode().lower():
+                            decky_plugin.logger.error("It seems like there might be a permissions issue. Please check your user permissions.")
+                        elif "cannot find" in result_install.stderr.decode().lower():
+                            decky_plugin.logger.error("There might be an issue with the Flatpak repository or package name. Please check if the repository is added correctly.")
+                        else:
+                            decky_plugin.logger.error("An unknown error occurred during installation.")
+                        return False
+
+                # Apply overrides regardless of install or not
+                for path in override_paths:
+                    override_cmd = f"flatpak --user override --filesystem={path} {flatpak_id}"
+                    result_override = subprocess.run(
+                        override_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
+                    )
+                    if result_override.returncode == 0:
+                        decky_plugin.logger.info(f"Flatpak override applied successfully for {path}.")
+                    else:
+                        decky_plugin.logger.error(f"Failed to apply Flatpak override for {path}.")
+                        decky_plugin.logger.error(f"Error Output: {result_override.stderr.decode()}")
+                        # Optionally handle failure here
+
+                return True
+
             async for msg in ws:
                 decky_plugin.logger.info(f"Received WS message: {msg.data}")
 
@@ -301,60 +354,6 @@ class Plugin:
 
                     decky_plugin.logger.info(f"Selected Browser: {selected_browser}")
                     decky_plugin.logger.info(f"Sites data: {sites}")
-
-                    def check_and_install_flatpak(package_name: str, flatpak_id: str, override_paths: list = []):
-                        # Check if flatpak package installed
-                        check_cmd = f"flatpak list | grep {flatpak_id}"
-                        result_check = subprocess.run(
-                            check_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
-                        )
-                        installed = bool(result_check.stdout.decode().strip())
-                        if installed:
-                            decky_plugin.logger.info(f"{package_name} is already installed: {result_check.stdout.decode().strip()}")
-                            return True
-
-                        # Check/add Flathub repo
-                        check_flathub_cmd = "flatpak remote-list | grep flathub &> /dev/null"
-                        result_flathub = subprocess.run(check_flathub_cmd, shell=True, env=env_vars)
-                        if result_flathub.returncode != 0:
-                            decky_plugin.logger.info("Flathub repository not found. Adding Flathub repository.")
-                            add_flathub_cmd = "flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo"
-                            subprocess.run(add_flathub_cmd, shell=True, env=env_vars)
-
-                        # Install the package
-                        decky_plugin.logger.info(f"{package_name} is not installed. Proceeding with installation.")
-                        install_cmd = f"flatpak install --user flathub {flatpak_id} -y"
-                        result_install = subprocess.run(
-                            install_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
-                        )
-
-                        if result_install.returncode == 0:
-                            decky_plugin.logger.info(f"{package_name} installed successfully!")
-                            # Apply overrides if any
-                            for path in override_paths:
-                                override_cmd = f"flatpak --user override --filesystem={path} {flatpak_id}"
-                                result_override = subprocess.run(
-                                    override_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env_vars
-                                )
-                                if result_override.returncode == 0:
-                                    decky_plugin.logger.info(f"Flatpak override applied successfully for {path}.")
-                                else:
-                                    decky_plugin.logger.error(f"Failed to apply Flatpak override for {path}.")
-                                    decky_plugin.logger.error(f"Error Output: {result_override.stderr.decode()}")
-                            return True
-                        else:
-                            decky_plugin.logger.error(f"Installation failed for {package_name}.")
-                            decky_plugin.logger.error(f"Error Output: {result_install.stderr.decode()}")
-                            decky_plugin.logger.error(f"Standard Output: {result_install.stdout.decode()}")
-                            decky_plugin.logger.error(f"Exit Code: {result_install.returncode}")
-
-                            if "no permission" in result_install.stderr.decode().lower():
-                                decky_plugin.logger.error("It seems like there might be a permissions issue. Please check your user permissions.")
-                            elif "cannot find" in result_install.stderr.decode().lower():
-                                decky_plugin.logger.error("There might be an issue with the Flatpak repository or package name. Please check if the repository is added correctly.")
-                            else:
-                                decky_plugin.logger.error("An unknown error occurred during installation.")
-                            return False
 
                     # Browser install logic
                     if selected_browser:
@@ -369,7 +368,7 @@ class Plugin:
                             check_and_install_flatpak(
                                 "Mozilla Firefox",
                                 "org.mozilla.firefox",
-                                override_paths=["/run/udev:ro"]  # add any overrides if needed
+                                override_paths=["/run/udev:ro"]
                             )
                         elif "edge" in browser_lower:
                             check_and_install_flatpak(
@@ -389,7 +388,6 @@ class Plugin:
 
                     # Now proceed with adding custom sites
                     decky_shortcuts = addCustomSite(sites, selected_browser)
-
 
                     if not decky_shortcuts:
                         decky_plugin.logger.info(f"No shortcuts")
