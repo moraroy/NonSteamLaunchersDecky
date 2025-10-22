@@ -363,7 +363,7 @@ class Plugin:
                             check_and_install_flatpak(
                                 "Google Chrome",
                                 "com.google.Chrome",
-                                override_paths=["/run/udev:ro"]  # your existing override for Chrome
+                                override_paths=["/run/udev:ro"]
                             )
                         elif "firefox" in browser_lower:
                             check_and_install_flatpak(
@@ -375,8 +375,15 @@ class Plugin:
                             check_and_install_flatpak(
                                 "Microsoft Edge",
                                 "com.microsoft.Edge",
-                                override_paths=["/run/udev:ro"]  # add any overrides if needed
+                                override_paths=["/run/udev:ro"]
                             )
+                        elif "brave" in browser_lower:
+                            check_and_install_flatpak(
+                                "Brave",
+                                "com.brave.Browser",
+                                override_paths=["/run/udev:ro"]
+                            )
+
                     for site in sites:
                         site["browser"] = selected_browser
 

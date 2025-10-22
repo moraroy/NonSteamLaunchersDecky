@@ -102,7 +102,8 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
     const browserImageMap: Record<string, string> = {
         "Google Chrome": "https://cdn2.steamgriddb.com/thumb/d0fb992a3dc7f0014263653d6e2063fe.jpg",
         "Mozilla Firefox": "https://cdn2.steamgriddb.com/thumb/9384fe92aef7ea0128be2c916ed07cea.jpg",
-        "Microsoft Edge": "https://cdn2.steamgriddb.com/thumb/ec0b830920c0efad2469c960b5dfae61.jpg"
+        "Microsoft Edge": "https://cdn2.steamgriddb.com/thumb/ec0b830920c0efad2469c960b5dfae61.jpg",
+        "Brave": "https://cdn2.steamgriddb.com/thumb/5ac7b3d023885d0d49e05a32f16c3d54.jpg",
     };
 
     return (progress.percent > 0 && progress.percent < 100) ? (
@@ -152,6 +153,11 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
                             label="Microsoft Edge"
                             checked={selectedBrowser === "Microsoft Edge"}
                             onChange={() => handleBrowserSelect("Microsoft Edge")}
+                        />
+                        <ToggleField
+                            label="Brave"
+                            checked={selectedBrowser === "Brave"}
+                            onChange={() => handleBrowserSelect("Brave")}
                         />
                     </div>
                 </DialogBody>

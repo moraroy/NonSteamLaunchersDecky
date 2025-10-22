@@ -238,6 +238,13 @@ def addCustomSite(customSiteJSON, selectedBrowser):
             launch_options = (
                 f'run --branch=stable --arch=x86_64 org.mozilla.firefox --kiosk https://{cleanSiteURL}'
             )
+        elif "brave" in browser_lower:
+            launch_options = (
+                f'run --arch=x86_64 com.brave.Browser --start-fullscreen --window-size=1280,800 '
+                f'--force-device-scale-factor=1.00 --no-first-run --no-default-browser-check '
+                f'--enable-features=OverlayScrollbar,HardwareMediaKeyHandling '
+                f'https://{cleanSiteURL}'
+            )
         else:
             launch_options = f'run https://{cleanSiteURL}'
 
@@ -322,7 +329,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 def add_compat_tool(launchoptions):
     steam_compat_marker = 'STEAM_COMPAT_DATA_PATH'
 
-    if 'chrome' in launchoptions or 'edge' in launchoptions or 'firefox' in launchoptions or '--appid 0' in launchoptions:
+    if 'chrome' in launchoptions or 'edge' in launchoptions or 'firefox' in launchoptions or 'brave' in launchoptions or '--appid 0' in launchoptions:
         return False
     elif any(x in launchoptions for x in ['jp.', 'com.', 'online.']):
         if steam_compat_marker not in launchoptions:
