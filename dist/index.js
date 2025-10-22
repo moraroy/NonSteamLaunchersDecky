@@ -1563,8 +1563,115 @@
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
+  let playtimeByAppId = {};
+  async function loadPlaytime() {
+      try {
+          const res = await fetch("http://localhost:8675/playtime");
+          const rawData = await res.json();
+          playtimeByAppId = {};
+          for (const key in rawData) {
+              const entry = rawData[key];
+              if (entry.appid && entry.total_seconds !== undefined) {
+                  playtimeByAppId[entry.appid] = {
+                      total_seconds: entry.total_seconds,
+                  };
+              }
+          }
+      }
+      catch (err) {
+          console.error("Failed to load playtime data", err);
+      }
+  }
+  function applyRealPlaytimeToOverview(appOverview) {
+      if (!appOverview)
+          return false;
+      if (appOverview.app_type !== 1073741824)
+          return false; // non-Steam shortcuts only
+      const appid = appOverview.appid || appOverview.id;
+      if (!appid)
+          return false;
+      const playtimeEntry = playtimeByAppId[appid];
+      if (!playtimeEntry)
+          return false;
+      const minutes = Math.floor(playtimeEntry.total_seconds / 60);
+      appOverview.minutes_playtime_forever = minutes;
+      appOverview.minutes_playtime_last_two_weeks = minutes;
+      appOverview.nPlaytimeForever = minutes;
+      return true;
+  }
+  function patchAppStore() {
+      if (!window.appStore?.m_mapApps)
+          return;
+      if (appStore.m_mapApps._originalSet)
+          return;
+      appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
+      appStore.m_mapApps.set = function (appId, appOverview) {
+          try {
+              applyRealPlaytimeToOverview(appOverview);
+          }
+          catch { }
+          return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
+      };
+  }
+  function patchAppInfoStore() {
+      if (!window.appInfoStore)
+          return;
+      if (appInfoStore._originalOnAppOverviewChange)
+          return;
+      appInfoStore._originalOnAppOverviewChange = appInfoStore.OnAppOverviewChange;
+      appInfoStore.OnAppOverviewChange = function (apps) {
+          try {
+              for (const a of apps || []) {
+                  const id = typeof a?.appid === "function" ? a.appid() : a?.appid;
+                  const overview = id !== undefined && appStore?.GetAppOverviewByAppID
+                      ? appStore.GetAppOverviewByAppID(Number(id))
+                      : a;
+                  if (overview)
+                      applyRealPlaytimeToOverview(overview);
+              }
+          }
+          catch { }
+          return appInfoStore._originalOnAppOverviewChange.call(this, apps);
+      };
+  }
+  function manualPatch() {
+      try {
+          if (appStore?.GetAllApps) {
+              const all = appStore.GetAllApps() || [];
+              for (const ov of all)
+                  applyRealPlaytimeToOverview(ov);
+              if (typeof appInfoStore?.OnAppOverviewChange === "function") {
+                  appInfoStore.OnAppOverviewChange(all);
+              }
+          }
+          else if (window.appStore && typeof appStore.GetAppOverviewByAppID === "function") {
+              const m = location.pathname.match(/\/library\/app\/(\d+)/);
+              if (m) {
+                  const id = Number(m[1]);
+                  const ov = appStore.GetAppOverviewByAppID(id);
+                  if (ov) {
+                      applyRealPlaytimeToOverview(ov);
+                      appInfoStore?.OnAppOverviewChange?.([ov]);
+                  }
+              }
+          }
+      }
+      catch { }
+  }
+  function initRealPlaytime() {
+      // Fetch and patch data, then patch Steam's stores
+      loadPlaytime().then(() => {
+          patchAppStore();
+          patchAppInfoStore();
+          manualPatch();
+      });
+  }
+
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
+      React.useEffect(() => {
+          initRealPlaytime();
+      }, []);
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
@@ -1707,7 +1814,7 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(RestoreGameSavesModal, { serverAPI: serverAPI })) }, "Restore Game Saves")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
-              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games, native linux NVIDIA GeForce NOW \"Favorites\", Waydroid Applications and Native Xbox App Games on Windows OS."),
+              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games, The Native Linux NVIDIA GeForce NOW App by favoriting the game \"\u2665\", Waydroid Applications and Native Xbox App Games on Windows OS."),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {
                       setAutoScan(value);
                       if (value === true) {

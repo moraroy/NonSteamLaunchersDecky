@@ -23,10 +23,15 @@ import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
+import { initRealPlaytime } from "./hooks/playTime";
 
 const initialOptions = sitesList;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
+  useEffect(() => {
+    initRealPlaytime();
+  }, []);
+
   console.log('Content rendered');
 
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
@@ -226,7 +231,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         
         {/* Moved description of supported launchers */}
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
-          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games, native linux NVIDIA GeForce NOW "Favorites", Waydroid Applications and Native Xbox App Games on Windows OS.
+          The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games, The Native Linux NVIDIA GeForce NOW App by favoriting the game "♥", Waydroid Applications and Native Xbox App Games on Windows OS.
         </PanelSectionRow>
 
         <ToggleField

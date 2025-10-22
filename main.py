@@ -53,6 +53,17 @@ class Plugin:
         decky_user_home = decky_plugin.DECKY_USER_HOME
         defaultSettings = {"autoscan": False, "customSites": ""}
 
+
+
+        async def handle_playtime(request):
+            json_path = Path(decky_user_home) / ".config" / "systemd" / "user" / "playtime_log.json"
+            if not json_path.is_file():
+                return web.json_response({"error": "playtime log not found"}, status=404)
+                decky_plugin.logger.error(f"Error reading json file path {e}")
+            with json_path.open("r") as f:
+                data = json.load(f)
+            return web.json_response(data)
+
         # Function to fetch GitHub commit history for patch notes
         async def fetch_patch_notes():
             owner = "moraroy"  # Repository owner
@@ -556,6 +567,7 @@ class Plugin:
         app.router.add_get('/logUpdates', handleLogUpdates)
         app.router.add_get('/check_update', handle_check_update)
         app.router.add_get('/launcher_status', handle_launcher_status)
+        app.router.add_get("/playtime", handle_playtime)
 
         runner = web.AppRunner(app)
         await runner.setup()
