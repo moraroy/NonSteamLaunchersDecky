@@ -752,13 +752,11 @@
                   window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Separate Launcher Folders", checked: separateAppIds, onChange: handleSeparateAppIdsToggle }))))));
   };
 
-  /**
-   * The modal for selecting streaming sites.
-   */
   const StreamingInstallModal = ({ closeModal, streamingOptions, serverAPI }) => {
       const [progress, setProgress] = React.useState({ percent: 0, status: '', description: '' });
       const [options, setOptions] = React.useState(streamingOptions);
-      const [currentStreamingSites, setCurrentStreamingSites] = React.useState([]); // Track multiple sites
+      const [currentStreamingSites, setCurrentStreamingSites] = React.useState([]);
+      const [selectedBrowser, setSelectedBrowser] = React.useState(null); // NEW
       // Pagination state
       const [currentPage, setCurrentPage] = React.useState(1);
       const itemsPerPage = 7;
@@ -766,25 +764,21 @@
       const indexOfFirstSite = indexOfLastSite - itemsPerPage;
       const currentSites = streamingOptions.slice(indexOfFirstSite, indexOfLastSite);
       const handleInstallClick = async () => {
-          console.log('handleInstallClick called');
           const selectedStreamingSites = options
               .filter(option => option.enabled && option.streaming)
-              .map(option => {
-              return {
-                  siteName: option.label,
-                  siteURL: option.URL
-              };
-          });
-          if (selectedStreamingSites.length > 0) {
+              .map(option => ({
+              siteName: option.label,
+              siteURL: option.URL
+          }));
+          if (selectedStreamingSites.length > 0 && selectedBrowser) {
               const total = selectedStreamingSites.length;
               setProgress({
                   percent: 0,
                   status: `Installing ${total} Streaming Sites`,
                   description: `${selectedStreamingSites.map(site => site.siteName).join(', ')}`
               });
-              // Set the sites to be installed
               setCurrentStreamingSites(options.filter(option => option.enabled && option.streaming));
-              await installSite(selectedStreamingSites, serverAPI, { setProgress }, total);
+              await installSite(selectedStreamingSites, serverAPI, { setProgress }, total, selectedBrowser);
           }
       };
       const handleToggle = (changeName, changeValue) => {
@@ -803,9 +797,8 @@
       };
       const cancelOperation = () => {
           setProgress({ percent: 0, status: '', description: '' });
-          setCurrentStreamingSites([]); // Reset the current sites array
+          setCurrentStreamingSites([]);
       };
-      // Pagination functions
       const nextPage = () => {
           if (currentPage * itemsPerPage < streamingOptions.length) {
               setCurrentPage(prevPage => prevPage + 1);
@@ -816,14 +809,14 @@
               setCurrentPage(prevPage => prevPage - 1);
           }
       };
-      // Add the image cycling effect
+      // Browser Image Cycling
       const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
       React.useEffect(() => {
           if (currentStreamingSites.length > 0) {
               const interval = setInterval(() => {
                   setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
-              }, 7000); // Change image every 7 seconds
-              return () => clearInterval(interval); // Clean up the interval on unmount
+              }, 7000);
+              return () => clearInterval(interval);
           }
       }, [currentStreamingSites]);
       const fadeStyle = {
@@ -850,16 +843,21 @@
               currentStreamingSites.length > 0 && (window.SP_REACT.createElement("div", { style: fadeStyle })),
               window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: cancelOperation, style: { width: '25px' } }, "Back")))) : (window.SP_REACT.createElement(deckyFrontendLib.ModalRoot, { onCancel: closeModal },
           window.SP_REACT.createElement(deckyFrontendLib.DialogHeader, null, "Install Game/Media Streaming Sites"),
-          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection."),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
+              window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'row', gap: '1em', marginBottom: '1em', alignItems: 'center' } },
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Google Chrome", checked: selectedBrowser === "Google Chrome", onChange: () => setSelectedBrowser("Google Chrome") }),
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Mozilla Firefox", checked: selectedBrowser === "Mozilla Firefox", onChange: () => setSelectedBrowser("Mozilla Firefox") }),
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Microsoft Edge", checked: selectedBrowser === "Microsoft Edge", onChange: () => setSelectedBrowser("Microsoft Edge") }),
+                  window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Brave", checked: selectedBrowser === "Brave", onChange: () => setSelectedBrowser("Brave") }))),
+          window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, null, "NSL will install and use the selected browser to launch these sites. Non-Steam shortcuts will be created."),
           window.SP_REACT.createElement(deckyFrontendLib.DialogBody, null,
               window.SP_REACT.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' } },
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: prevPage, disabled: currentPage === 1 }, "Previous"),
                   window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { onClick: nextPage, disabled: currentPage * itemsPerPage >= streamingOptions.length }, "Next")),
-              currentSites.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: label, checked: options.find(option => option.name === name)?.enabled ? true : false, onChange: (value) => handleToggle(name, value) })))),
-          window.SP_REACT.createElement("p", null),
+              currentSites.map(({ name, label }) => (window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { key: name, label: label, checked: options.find(option => option.name === name)?.enabled || false, onChange: (value) => handleToggle(name, value) })))),
           window.SP_REACT.createElement(deckyFrontendLib.Focusable, { style: { display: "flex", alignItems: "center", gap: "10px" } },
-              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) }, "Install"),
-              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: "small" } }, "Note: NSL will attempt to install Google Chrome. Be sure that Google Chrome is installed from the Discover Store in Desktop Mode first or from SteamOS.")))));
+              window.SP_REACT.createElement(deckyFrontendLib.DialogButton, { style: { width: "fit-content" }, onClick: handleInstallClick, disabled: options.every(option => option.enabled === false) || !selectedBrowser }, "Install"),
+              window.SP_REACT.createElement(deckyFrontendLib.DialogBodyText, { style: { fontSize: "small" } }, "Note: Be sure your selected browser is installed from Discover Store or SteamOS Desktop Mode.")))));
   };
 
   /**

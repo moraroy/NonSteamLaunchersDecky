@@ -21,19 +21,17 @@ type StreamingInstallModalProps = {
       URL: string;
       streaming: boolean;
       enabled: boolean;
-      urlimage: string; // Add this line
+      urlimage: string;
   }[],
   serverAPI: ServerAPI
 };
 
-/**
- * The modal for selecting streaming sites.
- */
 export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeModal, streamingOptions, serverAPI }) => {
 
   const [progress, setProgress] = useState({ percent: 0, status: '', description: '' });
   const [options, setOptions] = useState(streamingOptions);
-  const [currentStreamingSites, setCurrentStreamingSites] = useState<typeof streamingOptions[0][]>([]); // Track multiple sites
+  const [currentStreamingSites, setCurrentStreamingSites] = useState<typeof streamingOptions[0][]>([]);
+  const [selectedBrowser, setSelectedBrowser] = useState<string | null>(null); // NEW
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,28 +42,24 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
   const currentSites = streamingOptions.slice(indexOfFirstSite, indexOfLastSite);
 
   const handleInstallClick = async () => {
-    console.log('handleInstallClick called');
     const selectedStreamingSites: Sites = options
-        .filter(option => option.enabled && option.streaming)
-        .map(option => {
-          return {
-            siteName: option.label,
-            siteURL: option.URL
-          }   
-        });
-    
-    if (selectedStreamingSites.length > 0) {
+      .filter(option => option.enabled && option.streaming)
+      .map(option => ({
+        siteName: option.label,
+        siteURL: option.URL
+      }));
+
+    if (selectedStreamingSites.length > 0 && selectedBrowser) {
       const total = selectedStreamingSites.length;
-      setProgress({ 
-        percent: 0, 
-        status: `Installing ${total} Streaming Sites`, 
-        description: `${selectedStreamingSites.map(site => site.siteName).join(', ')}` 
+      setProgress({
+        percent: 0,
+        status: `Installing ${total} Streaming Sites`,
+        description: `${selectedStreamingSites.map(site => site.siteName).join(', ')}`
       });
 
-      // Set the sites to be installed
       setCurrentStreamingSites(options.filter(option => option.enabled && option.streaming));
 
-      await installSite(selectedStreamingSites, serverAPI, { setProgress }, total);
+      await installSite(selectedStreamingSites, serverAPI, { setProgress }, total, selectedBrowser);
     }
   };
 
@@ -85,10 +79,9 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
 
   const cancelOperation = () => {
     setProgress({ percent: 0, status: '', description: '' });
-    setCurrentStreamingSites([]); // Reset the current sites array
+    setCurrentStreamingSites([]);
   };
 
-  // Pagination functions
   const nextPage = () => {
     if (currentPage * itemsPerPage < streamingOptions.length) {
       setCurrentPage(prevPage => prevPage + 1);
@@ -101,27 +94,25 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
     }
   };
 
-  // Add the image cycling effect
+  // Browser Image Cycling
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
   useEffect(() => {
     if (currentStreamingSites.length > 0) {
       const interval = setInterval(() => {
         setCurrentImageIndex(prevIndex => (prevIndex + 1) % currentStreamingSites.length);
-      }, 7000); // Change image every 7 seconds
-      
-      return () => clearInterval(interval); // Clean up the interval on unmount
+      }, 7000);
+      return () => clearInterval(interval);
     }
   }, [currentStreamingSites]);
 
   const fadeStyle = {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
     opacity: 0.5,
-    pointerEvents: 'none',
+    pointerEvents: 'none' as const,
     transition: 'background-image 1s ease-in-out',
     backgroundImage: `url(${currentStreamingSites[currentImageIndex]?.urlimage})`,
     backgroundSize: 'cover',
@@ -156,10 +147,38 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
         <DialogHeader>
           Install Game/Media Streaming Sites
         </DialogHeader>
-        <DialogBodyText>NSL will install and use Chrome to launch these sites. Non-Steam shortcuts will be created for each selection.</DialogBodyText>
-        <DialogBody>
 
-          {/* Pagination controls moved above the selection list */}
+        {/* Browser Selection */}
+        <DialogBody>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '1em', marginBottom: '1em', alignItems: 'center' }}>
+            <ToggleField
+              label="Google Chrome"
+              checked={selectedBrowser === "Google Chrome"}
+              onChange={() => setSelectedBrowser("Google Chrome")}
+            />
+            <ToggleField
+              label="Mozilla Firefox"
+              checked={selectedBrowser === "Mozilla Firefox"}
+              onChange={() => setSelectedBrowser("Mozilla Firefox")}
+            />
+            <ToggleField
+              label="Microsoft Edge"
+              checked={selectedBrowser === "Microsoft Edge"}
+              onChange={() => setSelectedBrowser("Microsoft Edge")}
+            />
+            <ToggleField
+              label="Brave"
+              checked={selectedBrowser === "Brave"}
+              onChange={() => setSelectedBrowser("Brave")}
+            />
+          </div>
+        </DialogBody>
+
+        <DialogBodyText>
+          NSL will install and use the selected browser to launch these sites. Non-Steam shortcuts will be created.
+        </DialogBodyText>
+
+        <DialogBody>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
             <DialogButton onClick={prevPage} disabled={currentPage === 1}>Previous</DialogButton>
             <DialogButton onClick={nextPage} disabled={currentPage * itemsPerPage >= streamingOptions.length}>Next</DialogButton>
@@ -167,23 +186,24 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
 
           {currentSites.map(({ name, label }) => (
             <ToggleField
+              key={name}
               label={label}
-              checked={options.find(option => option.name === name)?.enabled ? true : false}
+              checked={options.find(option => option.name === name)?.enabled || false}
               onChange={(value) => handleToggle(name, value)}
             />
           ))}
         </DialogBody>
-        <p></p>
+
         <Focusable style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <DialogButton
             style={{ width: "fit-content" }}
             onClick={handleInstallClick}
-            disabled={options.every(option => option.enabled === false)}
+            disabled={options.every(option => option.enabled === false) || !selectedBrowser}
           >
             Install
           </DialogButton>
           <DialogBodyText style={{ fontSize: "small" }}>
-            Note: NSL will attempt to install Google Chrome. Be sure that Google Chrome is installed from the Discover Store in Desktop Mode first or from SteamOS.
+            Note: Be sure your selected browser is installed from Discover Store or SteamOS Desktop Mode.
           </DialogBodyText>
         </Focusable>
       </ModalRoot>
