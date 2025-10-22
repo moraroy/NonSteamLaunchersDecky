@@ -3,22 +3,39 @@ import { useEffect } from "react";
 let playtimeByAppId: Record<number, { total_seconds: number }> = {};
 
 async function loadPlaytime() {
-  try {
-    const res = await fetch("http://localhost:8675/playtime");
-    const rawData = await res.json();
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket("ws://localhost:8675/playtime");
 
-    playtimeByAppId = {};
-    for (const key in rawData) {
-      const entry = rawData[key];
-      if (entry.appid && entry.total_seconds !== undefined) {
-        playtimeByAppId[entry.appid] = {
-          total_seconds: entry.total_seconds,
-        };
+    ws.onmessage = (event) => {
+      try {
+        const rawData = JSON.parse(event.data);
+
+        playtimeByAppId = {};
+        for (const key in rawData) {
+          const entry = rawData[key];
+          if (entry.appid && entry.total_seconds !== undefined) {
+            playtimeByAppId[entry.appid] = {
+              total_seconds: entry.total_seconds,
+            };
+          }
+        }
+
+        ws.close();
+        resolve(true);
+      } catch (err) {
+        reject(err);
       }
-    }
-  } catch (err) {
-    console.error("Failed to load playtime data", err);
-  }
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error", err);
+      reject(err);
+    };
+
+    ws.onclose = () => {
+      // Optional: handle socket close if needed
+    };
+  });
 }
 
 function applyRealPlaytimeToOverview(appOverview: any): boolean {
@@ -96,10 +113,13 @@ function manualPatch() {
 }
 
 export function initRealPlaytime() {
-  // Fetch and patch data, then patch Steam's stores
-  loadPlaytime().then(() => {
-    patchAppStore();
-    patchAppInfoStore();
-    manualPatch();
-  });
+  loadPlaytime()
+    .then(() => {
+      patchAppStore();
+      patchAppInfoStore();
+      manualPatch();
+    })
+    .catch((err) => {
+      console.error("Failed to load playtime data via WebSocket", err);
+    });
 }

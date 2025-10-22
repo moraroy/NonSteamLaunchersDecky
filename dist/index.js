@@ -1565,22 +1565,35 @@
 
   let playtimeByAppId = {};
   async function loadPlaytime() {
-      try {
-          const res = await fetch("http://localhost:8675/playtime");
-          const rawData = await res.json();
-          playtimeByAppId = {};
-          for (const key in rawData) {
-              const entry = rawData[key];
-              if (entry.appid && entry.total_seconds !== undefined) {
-                  playtimeByAppId[entry.appid] = {
-                      total_seconds: entry.total_seconds,
-                  };
+      return new Promise((resolve, reject) => {
+          const ws = new WebSocket("ws://localhost:8675/playtime");
+          ws.onmessage = (event) => {
+              try {
+                  const rawData = JSON.parse(event.data);
+                  playtimeByAppId = {};
+                  for (const key in rawData) {
+                      const entry = rawData[key];
+                      if (entry.appid && entry.total_seconds !== undefined) {
+                          playtimeByAppId[entry.appid] = {
+                              total_seconds: entry.total_seconds,
+                          };
+                      }
+                  }
+                  ws.close();
+                  resolve(true);
               }
-          }
-      }
-      catch (err) {
-          console.error("Failed to load playtime data", err);
-      }
+              catch (err) {
+                  reject(err);
+              }
+          };
+          ws.onerror = (err) => {
+              console.error("WebSocket error", err);
+              reject(err);
+          };
+          ws.onclose = () => {
+              // Optional: handle socket close if needed
+          };
+      });
   }
   function applyRealPlaytimeToOverview(appOverview) {
       if (!appOverview)
@@ -1659,11 +1672,14 @@
       catch { }
   }
   function initRealPlaytime() {
-      // Fetch and patch data, then patch Steam's stores
-      loadPlaytime().then(() => {
+      loadPlaytime()
+          .then(() => {
           patchAppStore();
           patchAppInfoStore();
           manualPatch();
+      })
+          .catch((err) => {
+          console.error("Failed to load playtime data via WebSocket", err);
       });
   }
 
