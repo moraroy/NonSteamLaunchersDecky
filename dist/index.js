@@ -1563,50 +1563,18 @@
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
-  let playtimeByAppId = {};
-  async function loadPlaytime() {
-      return new Promise((resolve, reject) => {
-          const ws = new WebSocket("ws://localhost:8675/playtime");
-          ws.onmessage = (event) => {
-              try {
-                  const rawData = JSON.parse(event.data);
-                  playtimeByAppId = {};
-                  for (const key in rawData) {
-                      const entry = rawData[key];
-                      if (entry.appid && entry.total_seconds !== undefined) {
-                          playtimeByAppId[entry.appid] = {
-                              total_seconds: entry.total_seconds,
-                          };
-                      }
-                  }
-                  ws.close();
-                  resolve(true);
-              }
-              catch (err) {
-                  reject(err);
-              }
-          };
-          ws.onerror = (err) => {
-              console.error("WebSocket error", err);
-              reject(err);
-          };
-          ws.onclose = () => {
-              // Optional: handle socket close if needed
-          };
-      });
-  }
   function applyRealPlaytimeToOverview(appOverview) {
       if (!appOverview)
           return false;
       if (appOverview.app_type !== 1073741824)
           return false; // non-Steam shortcuts only
-      const appid = appOverview.appid || appOverview.id;
-      if (!appid)
+      const start = appOverview.rt_last_time_played;
+      const end = appOverview.rt_last_time_locally_played;
+      if (!start || !end || end < start)
           return false;
-      const playtimeEntry = playtimeByAppId[appid];
-      if (!playtimeEntry)
-          return false;
-      const minutes = Math.floor(playtimeEntry.total_seconds / 60);
+      const sessionSeconds = end - start;
+      const minutes = Math.floor(sessionSeconds / 60);
+      // Update playtime fields
       appOverview.minutes_playtime_forever = minutes;
       appOverview.minutes_playtime_last_two_weeks = minutes;
       appOverview.nPlaytimeForever = minutes;
@@ -1672,15 +1640,14 @@
       catch { }
   }
   function initRealPlaytime() {
-      loadPlaytime()
-          .then(() => {
+      try {
           patchAppStore();
           patchAppInfoStore();
           manualPatch();
-      })
-          .catch((err) => {
-          console.error("Failed to load playtime data via WebSocket", err);
-      });
+      }
+      catch (err) {
+          console.error("Failed to patch playtime data", err);
+      }
   }
 
   const initialOptions = sitesList;

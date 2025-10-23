@@ -1,55 +1,18 @@
 import { useEffect } from "react";
 
-let playtimeByAppId: Record<number, { total_seconds: number }> = {};
-
-async function loadPlaytime() {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket("ws://localhost:8675/playtime");
-
-    ws.onmessage = (event) => {
-      try {
-        const rawData = JSON.parse(event.data);
-
-        playtimeByAppId = {};
-        for (const key in rawData) {
-          const entry = rawData[key];
-          if (entry.appid && entry.total_seconds !== undefined) {
-            playtimeByAppId[entry.appid] = {
-              total_seconds: entry.total_seconds,
-            };
-          }
-        }
-
-        ws.close();
-        resolve(true);
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error("WebSocket error", err);
-      reject(err);
-    };
-
-    ws.onclose = () => {
-      // Optional: handle socket close if needed
-    };
-  });
-}
-
 function applyRealPlaytimeToOverview(appOverview: any): boolean {
   if (!appOverview) return false;
   if (appOverview.app_type !== 1073741824) return false; // non-Steam shortcuts only
 
-  const appid = appOverview.appid || appOverview.id;
-  if (!appid) return false;
+  const start = appOverview.rt_last_time_played;
+  const end = appOverview.rt_last_time_locally_played;
 
-  const playtimeEntry = playtimeByAppId[appid];
-  if (!playtimeEntry) return false;
+  if (!start || !end || end < start) return false;
 
-  const minutes = Math.floor(playtimeEntry.total_seconds / 60);
+  const sessionSeconds = end - start;
+  const minutes = Math.floor(sessionSeconds / 60);
 
+  // Update playtime fields
   appOverview.minutes_playtime_forever = minutes;
   appOverview.minutes_playtime_last_two_weeks = minutes;
   appOverview.nPlaytimeForever = minutes;
@@ -113,13 +76,12 @@ function manualPatch() {
 }
 
 export function initRealPlaytime() {
-  loadPlaytime()
-    .then(() => {
-      patchAppStore();
-      patchAppInfoStore();
-      manualPatch();
-    })
-    .catch((err) => {
-      console.error("Failed to load playtime data via WebSocket", err);
-    });
+  try {
+    patchAppStore();
+    patchAppInfoStore();
+    manualPatch();
+  } catch (err) {
+    console.error("Failed to patch playtime data", err);
+  }
 }
+
