@@ -34,40 +34,50 @@ function restoreSavedPlaytimes() {
 }
 
 function applyRealPlaytimeToOverview(appOverview: any): boolean {
-  if (!appOverview) return false;
-  if (appOverview.app_type !== 1073741824) return false; // non-Steam shortcuts only
+  try {
+    if (!appOverview) return false;
+    if (appOverview.app_type !== 1073741824) return false;
 
-  const start = appOverview.rt_last_time_played;
-  const end = appOverview.rt_last_time_locally_played;
+    const start = appOverview.rt_last_time_played;
+    const end = appOverview.rt_last_time_locally_played;
 
-  if (!start || !end || end <= start) return false;
+    if (!start || !end || end <= start) return false;
 
-  const sessionSeconds = end - start;
-  const sessionMinutes = Math.floor(sessionSeconds / 60);
-  if (sessionMinutes <= 0) return false;
+    const sessionSeconds = end - start;
+    const sessionMinutes = Math.floor(sessionSeconds / 60);
+    if (sessionMinutes <= 0) return false;
 
-  const data = loadPlaytimeData();
-  const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-  const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
+    const data = loadPlaytimeData();
+    const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+    const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
 
-  // Only add new minutes if session is after the last recorded session
-  if (end <= prevEntry.lastSessionEnd) return false;
+    if (end <= prevEntry.lastSessionEnd) return false;
 
-  const newTotal = prevEntry.total + sessionMinutes;
-  data[appId] = { total: newTotal, lastSessionEnd: end };
-  savePlaytimeData(data);
+    const newTotal = prevEntry.total + sessionMinutes;
+    data[appId] = { total: newTotal, lastSessionEnd: end };
+    savePlaytimeData(data);
 
-  // Update UI immediately like old code
-  appOverview.minutes_playtime_forever = newTotal;
-  appOverview.minutes_playtime_last_two_weeks = newTotal;
-  appOverview.nPlaytimeForever = newTotal;
+    // Update UI immediately
+    appOverview.minutes_playtime_forever = newTotal;
+    appOverview.minutes_playtime_last_two_weeks = newTotal;
+    appOverview.nPlaytimeForever = newTotal;
 
-  if (typeof appOverview.TriggerChange === "function") {
-    appOverview.TriggerChange();
+    if (typeof appOverview.TriggerChange === "function") {
+      appOverview.TriggerChange();
+    }
+
+    console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
+    return true;
+  } catch (e) {
+    console.warn("[RealPlaytime] Failed in applyRealPlaytimeToOverview:", e);
+    return false;
+  } finally {
+    try {
+      restoreSavedPlaytimes();
+    } catch (e) {
+      console.warn("[RealPlaytime] Failed to re-sync after update:", e);
+    }
   }
-
-  console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
-  return true;
 }
 
 function patchAppStore() {
