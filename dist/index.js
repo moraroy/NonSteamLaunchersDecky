@@ -1575,6 +1575,20 @@
   function savePlaytimeData(data) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
+  function isEnvironmentReady() {
+      try {
+          localStorage.setItem("__rp_test__", "1");
+          localStorage.removeItem("__rp_test__");
+          if (!window.appStore || typeof appStore.GetAppOverviewByAppID !== "function")
+              return false;
+          if (!window.appInfoStore)
+              return false;
+          return true;
+      }
+      catch {
+          return false;
+      }
+  }
   /**
    * Restore saved playtime totals into the current appOverview objects.
    * This runs independently of whether the user played the game.
@@ -1719,7 +1733,17 @@
   /**
    * Initialize the RealPlaytime system
    */
-  function initRealPlaytime() {
+  function initRealPlaytime(retryCount = 0) {
+      if (!isEnvironmentReady()) {
+          if (retryCount < 10) { // Avoid infinite loops (10 retries = ~10s max)
+              console.log(`[RealPlaytime] Environment not ready (attempt ${retryCount + 1}), retrying...`);
+              setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
+          }
+          else {
+              console.warn("[RealPlaytime] Gave up waiting for environment.");
+          }
+          return;
+      }
       try {
           restoreSavedPlaytimes();
           patchAppStore();
@@ -1734,9 +1758,6 @@
 
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
-      React.useEffect(() => {
-          initRealPlaytime();
-      }, []);
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
@@ -1914,6 +1935,7 @@
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
       notify.setServer(serverApi);
+      initRealPlaytime();
       return {
           title: window.SP_REACT.createElement("div", { className: deckyFrontendLib.staticClasses.Title }, "NonSteamLaunchers"),
           alwaysRender: true,

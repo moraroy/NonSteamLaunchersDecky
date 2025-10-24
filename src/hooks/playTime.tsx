@@ -19,6 +19,22 @@ function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function isEnvironmentReady() {
+  try {
+
+    localStorage.setItem("__rp_test__", "1");
+    localStorage.removeItem("__rp_test__");
+
+
+    if (!window.appStore || typeof appStore.GetAppOverviewByAppID !== "function") return false;
+    if (!window.appInfoStore) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Restore saved playtime totals into the current appOverview objects.
  * This runs independently of whether the user played the game.
@@ -168,7 +184,19 @@ function manualPatch() {
 /**
  * Initialize the RealPlaytime system
  */
-export function initRealPlaytime() {
+
+
+export function initRealPlaytime(retryCount = 0) {
+  if (!isEnvironmentReady()) {
+    if (retryCount < 10) { // Avoid infinite loops (10 retries = ~10s max)
+      console.log(`[RealPlaytime] Environment not ready (attempt ${retryCount + 1}), retrying...`);
+      setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
+    } else {
+      console.warn("[RealPlaytime] Gave up waiting for environment.");
+    }
+    return;
+  }
+
   try {
     restoreSavedPlaytimes();
     patchAppStore();
