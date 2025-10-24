@@ -72,14 +72,7 @@ function applyRealPlaytimeToOverview(appOverview: any): boolean {
     data[appId] = { total: newTotal, lastSessionEnd: end };
     savePlaytimeData(data);
 
-    // Restore playtime for other apps
-    try {
-      restoreSavedPlaytimes();
-    } catch (e) {
-      console.warn("[RealPlaytime] Failed to restore other apps' playtime:", e);
-    }
-
-    // Update UI immediately
+    // Update UI immediately for the current app
     appOverview.minutes_playtime_forever = newTotal;
     appOverview.minutes_playtime_last_two_weeks = newTotal;
     appOverview.nPlaytimeForever = newTotal;
@@ -91,18 +84,14 @@ function applyRealPlaytimeToOverview(appOverview: any): boolean {
     console.log(
       `[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`
     );
+
+    // Restore playtime for other apps, excluding the current one
+    restoreSavedPlaytimes([appId]);
+
     return true;
   } catch (e) {
-    console.warn("[RealPlaytime] Failed in applyRealPlaytimeToOverview:", e);
+    console.warn("[RealPlaytime] Failed to apply real playtime:", e);
     return false;
-  } finally {
-    try {
-      // Exclude the currently updated app from being overwritten
-      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-      restoreSavedPlaytimes([appId]);
-    } catch (e) {
-      console.warn("[RealPlaytime] Failed to re-sync after update:", e);
-    }
   }
 }
 
