@@ -1563,6 +1563,32 @@
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
+  const STORAGE_KEY = "realPlaytimeData";
+  function loadPlaytimeData() {
+      try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      }
+      catch {
+          return {};
+      }
+  }
+  function savePlaytimeData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+  function restoreSavedPlaytimes() {
+      const data = loadPlaytimeData();
+      if (!window.appStore?.GetAppOverviewByAppID)
+          return;
+      for (const [id, total] of Object.entries(data)) {
+          const ov = appStore.GetAppOverviewByAppID(Number(id));
+          if (ov) {
+              ov.minutes_playtime_forever = total;
+              ov.minutes_playtime_last_two_weeks = total;
+              ov.nPlaytimeForever = total;
+          }
+      }
+      console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
+  }
   function applyRealPlaytimeToOverview(appOverview) {
       if (!appOverview)
           return false;
@@ -1573,11 +1599,19 @@
       if (!start || !end || end < start)
           return false;
       const sessionSeconds = end - start;
-      const minutes = Math.floor(sessionSeconds / 60);
-      // Update playtime fields
-      appOverview.minutes_playtime_forever = minutes;
-      appOverview.minutes_playtime_last_two_weeks = minutes;
-      appOverview.nPlaytimeForever = minutes;
+      const sessionMinutes = Math.floor(sessionSeconds / 60);
+      if (sessionMinutes <= 0)
+          return false;
+      const data = loadPlaytimeData();
+      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+      const prevTotal = data[appId] || 0;
+      const newTotal = prevTotal + sessionMinutes;
+      data[appId] = newTotal;
+      savePlaytimeData(data);
+      appOverview.minutes_playtime_forever = newTotal;
+      appOverview.minutes_playtime_last_two_weeks = newTotal;
+      appOverview.nPlaytimeForever = newTotal;
+      console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
       return true;
   }
   function patchAppStore() {
@@ -1590,7 +1624,9 @@
           try {
               applyRealPlaytimeToOverview(appOverview);
           }
-          catch { }
+          catch (e) {
+              console.warn("[RealPlaytime] Failed in appStore.set:", e);
+          }
           return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
       };
   }
@@ -1611,7 +1647,9 @@
                       applyRealPlaytimeToOverview(overview);
               }
           }
-          catch { }
+          catch (e) {
+              console.warn("[RealPlaytime] Failed in OnAppOverviewChange:", e);
+          }
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
   }
@@ -1637,16 +1675,20 @@
               }
           }
       }
-      catch { }
+      catch (e) {
+          console.warn("[RealPlaytime] Manual patch error:", e);
+      }
   }
   function initRealPlaytime() {
       try {
+          restoreSavedPlaytimes(); // restore totals first
           patchAppStore();
           patchAppInfoStore();
           manualPatch();
+          console.log("[RealPlaytime] Initialized and patches applied.");
       }
       catch (err) {
-          console.error("Failed to patch playtime data", err);
+          console.error("[RealPlaytime] Failed to patch playtime data", err);
       }
   }
 

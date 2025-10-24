@@ -1,5 +1,35 @@
 import { useEffect } from "react";
 
+
+const STORAGE_KEY = "realPlaytimeData";
+
+function loadPlaytimeData(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function savePlaytimeData(data: Record<string, number>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function restoreSavedPlaytimes() {
+  const data = loadPlaytimeData();
+  if (!window.appStore?.GetAppOverviewByAppID) return;
+  for (const [id, total] of Object.entries(data)) {
+    const ov = appStore.GetAppOverviewByAppID(Number(id));
+    if (ov) {
+      ov.minutes_playtime_forever = total;
+      ov.minutes_playtime_last_two_weeks = total;
+      ov.nPlaytimeForever = total;
+    }
+  }
+  console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
+}
+
+
 function applyRealPlaytimeToOverview(appOverview: any): boolean {
   if (!appOverview) return false;
   if (appOverview.app_type !== 1073741824) return false; // non-Steam shortcuts only
@@ -10,15 +40,29 @@ function applyRealPlaytimeToOverview(appOverview: any): boolean {
   if (!start || !end || end < start) return false;
 
   const sessionSeconds = end - start;
-  const minutes = Math.floor(sessionSeconds / 60);
+  const sessionMinutes = Math.floor(sessionSeconds / 60);
+  if (sessionMinutes <= 0) return false;
 
-  // Update playtime fields
-  appOverview.minutes_playtime_forever = minutes;
-  appOverview.minutes_playtime_last_two_weeks = minutes;
-  appOverview.nPlaytimeForever = minutes;
+
+  const data = loadPlaytimeData();
+  const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+  const prevTotal = data[appId] || 0;
+  const newTotal = prevTotal + sessionMinutes;
+  data[appId] = newTotal;
+  savePlaytimeData(data);
+
+
+  appOverview.minutes_playtime_forever = newTotal;
+  appOverview.minutes_playtime_last_two_weeks = newTotal;
+  appOverview.nPlaytimeForever = newTotal;
+
+  console.log(
+    `[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`
+  );
 
   return true;
 }
+
 
 function patchAppStore() {
   if (!window.appStore?.m_mapApps) return;
@@ -28,7 +72,9 @@ function patchAppStore() {
   appStore.m_mapApps.set = function (appId, appOverview) {
     try {
       applyRealPlaytimeToOverview(appOverview);
-    } catch {}
+    } catch (e) {
+      console.warn("[RealPlaytime] Failed in appStore.set:", e);
+    }
     return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
   };
 }
@@ -48,7 +94,9 @@ function patchAppInfoStore() {
             : a;
         if (overview) applyRealPlaytimeToOverview(overview);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("[RealPlaytime] Failed in OnAppOverviewChange:", e);
+    }
     return appInfoStore._originalOnAppOverviewChange.call(this, apps);
   };
 }
@@ -72,16 +120,20 @@ function manualPatch() {
         }
       }
     }
-  } catch {}
-}
-
-export function initRealPlaytime() {
-  try {
-    patchAppStore();
-    patchAppInfoStore();
-    manualPatch();
-  } catch (err) {
-    console.error("Failed to patch playtime data", err);
+  } catch (e) {
+    console.warn("[RealPlaytime] Manual patch error:", e);
   }
 }
 
+
+export function initRealPlaytime() {
+  try {
+    restoreSavedPlaytimes(); // restore totals first
+    patchAppStore();
+    patchAppInfoStore();
+    manualPatch();
+    console.log("[RealPlaytime] Initialized and patches applied.");
+  } catch (err) {
+    console.error("[RealPlaytime] Failed to patch playtime data", err);
+  }
+}
