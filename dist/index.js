@@ -1581,96 +1581,124 @@
           return;
       for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
-          if (ov)
-              injectTotals(ov, entry.total);
+          if (ov) {
+              ov.minutes_playtime_forever = entry.total;
+              ov.minutes_playtime_last_two_weeks = entry.total;
+              ov.nPlaytimeForever = entry.total;
+          }
       }
-      console.log("[RealPlaytime] Restored totals for", Object.keys(data).length, "apps");
+      console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
   }
-  function injectTotals(appOverview, total) {
-      if (!appOverview)
-          return;
-      // Wrap expected functions if missing
-      if (typeof appOverview.appid !== "function") {
-          const originalId = appOverview.appid;
-          appOverview.appid = () => originalId;
-      }
-      if (typeof appOverview.icon_hash !== "function") {
-          appOverview.icon_hash = () => null;
-      }
-      appOverview.minutes_playtime_forever = total;
-      appOverview.minutes_playtime_last_two_weeks = total;
-      appOverview.nPlaytimeForever = total;
-  }
+  // Apply playtime only if session is new
   function applyRealPlaytimeToOverview(appOverview) {
-      if (!appOverview || appOverview.app_type !== 1073741824)
-          return false; // non-Steam only
+      if (!appOverview)
+          return false;
+      if (appOverview.app_type !== 1073741824)
+          return false;
       const start = appOverview.rt_last_time_played;
       const end = appOverview.rt_last_time_locally_played;
       if (!start || !end || end <= start)
           return false;
-      const sessionMinutes = Math.floor((end - start) / 60);
+      const sessionSeconds = end - start;
+      const sessionMinutes = Math.floor(sessionSeconds / 60);
       if (sessionMinutes <= 0)
           return false;
       const data = loadPlaytimeData();
-      const appId = String(appOverview.appid?.());
+      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
       const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-      // Prevent double counting
       if (end <= prevEntry.lastSessionEnd)
           return false;
       const newTotal = prevEntry.total + sessionMinutes;
-      data[appId] = { total: newTotal, lastSessionEnd: end };
-      savePlaytimeData(data);
-      injectTotals(appOverview, newTotal);
-      console.log(`[RealPlaytime] +${sessionMinutes} min for ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal}`);
+      if (newTotal !== prevEntry.total) {
+          data[appId] = { total: newTotal, lastSessionEnd: end };
+          savePlaytimeData(data);
+      }
+      // Always update UI immediately
+      updateOverviewDisplay(appOverview, newTotal);
+      console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
       return true;
   }
-  function patchAppStore() {
-      if (!window.appStore?.m_mapApps || appStore.m_mapApps._patched)
+  // Always updates UI
+  function updateOverviewDisplay(appOverview, total) {
+      if (!appOverview)
           return;
-      const originalSet = appStore.m_mapApps.set.bind(appStore.m_mapApps);
+      const data = loadPlaytimeData();
+      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+      const value = total ?? data[appId]?.total ?? 0;
+      appOverview.minutes_playtime_forever = value;
+      appOverview.minutes_playtime_last_two_weeks = value;
+      appOverview.nPlaytimeForever = value;
+      // Trigger UI re-render if possible
+      if (typeof appOverview.TriggerChange === "function") {
+          appOverview.TriggerChange();
+      }
+  }
+  // Patch appStore.set to apply playtime immediately
+  function patchAppStore() {
+      if (!window.appStore?.m_mapApps)
+          return;
+      if (appStore.m_mapApps._originalSet)
+          return;
+      appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
       appStore.m_mapApps.set = function (appId, appOverview) {
           try {
               applyRealPlaytimeToOverview(appOverview);
           }
           catch (e) {
-              console.warn("[RealPlaytime] appStore.set patch error:", e);
+              console.warn("[RealPlaytime] Failed in appStore.set:", e);
           }
-          return originalSet(appId, appOverview);
+          return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
       };
-      appStore.m_mapApps._patched = true;
   }
+  // Patch appInfoStore to update UI reactively
   function patchAppInfoStore() {
-      if (!window.appInfoStore || appInfoStore._patched)
+      if (!window.appInfoStore)
           return;
-      const originalOnChange = appInfoStore.OnAppOverviewChange.bind(appInfoStore);
+      if (appInfoStore._originalOnAppOverviewChange)
+          return;
+      appInfoStore._originalOnAppOverviewChange = appInfoStore.OnAppOverviewChange;
       appInfoStore.OnAppOverviewChange = function (apps) {
           try {
               for (const a of apps || []) {
-                  const overview = a.appid ? appStore.GetAppOverviewByAppID(Number(a.appid())) || a : a;
+                  const id = typeof a?.appid === "function" ? a.appid() : a?.appid;
+                  const overview = id !== undefined && appStore?.GetAppOverviewByAppID
+                      ? appStore.GetAppOverviewByAppID(Number(id))
+                      : a;
                   if (overview)
                       applyRealPlaytimeToOverview(overview);
               }
           }
           catch (e) {
-              console.warn("[RealPlaytime] OnAppOverviewChange patch error:", e);
+              console.warn("[RealPlaytime] Failed in OnAppOverviewChange:", e);
           }
-          return originalOnChange(apps);
+          return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
-      appInfoStore._patched = true;
   }
+  // Manual patch for immediate UI update
   function manualPatch() {
       try {
           if (appStore?.GetAllApps) {
               const all = appStore.GetAllApps() || [];
-              for (const ov of all) {
-                  const total = loadPlaytimeData()[String(ov.appid?.())]?.total || 0;
-                  injectTotals(ov, total);
+              for (const ov of all)
+                  updateOverviewDisplay(ov);
+              if (typeof appInfoStore?.OnAppOverviewChange === "function") {
+                  appInfoStore.OnAppOverviewChange(all);
               }
-              appInfoStore?.OnAppOverviewChange?.(all);
+          }
+          else if (window.appStore && typeof appStore.GetAppOverviewByAppID === "function") {
+              const m = location.pathname.match(/\/library\/app\/(\d+)/);
+              if (m) {
+                  const id = Number(m[1]);
+                  const ov = appStore.GetAppOverviewByAppID(id);
+                  if (ov) {
+                      updateOverviewDisplay(ov);
+                      appInfoStore?.OnAppOverviewChange?.([ov]);
+                  }
+              }
           }
       }
       catch (e) {
-          console.warn("[RealPlaytime] manualPatch error:", e);
+          console.warn("[RealPlaytime] Manual patch error:", e);
       }
   }
   function initRealPlaytime() {
@@ -1679,10 +1707,10 @@
           patchAppStore();
           patchAppInfoStore();
           manualPatch();
-          console.log("[RealPlaytime] Initialized. Event-driven updates active.");
+          console.log("[RealPlaytime] Initialized and patches applied.");
       }
       catch (err) {
-          console.error("[RealPlaytime] Failed to initialize:", err);
+          console.error("[RealPlaytime] Failed to patch playtime data", err);
       }
   }
 
