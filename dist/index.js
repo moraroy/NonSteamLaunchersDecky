@@ -1575,19 +1575,23 @@
   function savePlaytimeData(data) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
-  function restoreSavedPlaytimes(excludeAppIds = []) {
+  /**
+   * Restore saved playtime totals into the current appOverview objects.
+   * This runs independently of whether the user played the game.
+   */
+  function restoreSavedPlaytimes() {
       const data = loadPlaytimeData();
       if (!window.appStore?.GetAppOverviewByAppID)
           return;
       let removedCount = 0;
       for (const [id, entry] of Object.entries(data)) {
-          if (excludeAppIds.includes(id))
-              continue; // skip apps currently being updated
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
               ov.minutes_playtime_forever = entry.total;
               ov.minutes_playtime_last_two_weeks = entry.total;
               ov.nPlaytimeForever = entry.total;
+              if (typeof ov.TriggerChange === "function")
+                  ov.TriggerChange(); // force UI update
           }
           else {
               // App no longer exists → remove from local storage
@@ -1601,11 +1605,13 @@
       }
       console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
   }
-  function applyRealPlaytimeToOverview(appOverview) {
+  /**
+   * Add real session time to the saved totals.
+   * Returns true if new minutes were added.
+   */
+  function applyRealSessionToOverview(appOverview) {
       try {
-          if (!appOverview)
-              return false;
-          if (appOverview.app_type !== 1073741824)
+          if (!appOverview || appOverview.app_type !== 1073741824)
               return false;
           const start = appOverview.rt_last_time_played;
           const end = appOverview.rt_last_time_locally_played;
@@ -1623,23 +1629,23 @@
           const newTotal = prevEntry.total + sessionMinutes;
           data[appId] = { total: newTotal, lastSessionEnd: end };
           savePlaytimeData(data);
-          // Update UI immediately for the current app
+          // Update UI immediately
           appOverview.minutes_playtime_forever = newTotal;
           appOverview.minutes_playtime_last_two_weeks = newTotal;
           appOverview.nPlaytimeForever = newTotal;
-          if (typeof appOverview.TriggerChange === "function") {
+          if (typeof appOverview.TriggerChange === "function")
               appOverview.TriggerChange();
-          }
           console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
-          // Restore playtime for other apps, excluding the current one
-          restoreSavedPlaytimes([appId]);
           return true;
       }
       catch (e) {
-          console.warn("[RealPlaytime] Failed to apply real playtime:", e);
+          console.warn("[RealPlaytime] Failed in applyRealSessionToOverview:", e);
           return false;
       }
   }
+  /**
+   * Patch appStore to update saved totals and apply sessions.
+   */
   function patchAppStore() {
       if (!window.appStore?.m_mapApps)
           return;
@@ -1647,15 +1653,22 @@
           return;
       appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
       appStore.m_mapApps.set = function (appId, appOverview) {
+          const result = appStore.m_mapApps._originalSet.call(this, appId, appOverview);
           try {
-              applyRealPlaytimeToOverview(appOverview);
+              // Always restore saved totals after Steam sets the object
+              restoreSavedPlaytimes();
+              // Also add any new session time if available
+              applyRealSessionToOverview(appOverview);
           }
           catch (e) {
-              console.warn("[RealPlaytime] Failed in appStore.set:", e);
+              console.warn("[RealPlaytime] Failed in appStore.set patch:", e);
           }
-          return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
+          return result;
       };
   }
+  /**
+   * Patch appInfoStore to intercept overview changes.
+   */
   function patchAppInfoStore() {
       if (!window.appInfoStore)
           return;
@@ -1669,26 +1682,31 @@
                   const overview = id !== undefined && appStore?.GetAppOverviewByAppID
                       ? appStore.GetAppOverviewByAppID(Number(id))
                       : a;
-                  if (overview)
-                      applyRealPlaytimeToOverview(overview);
+                  if (overview) {
+                      restoreSavedPlaytimes(); // ensure saved totals are always applied
+                      applyRealSessionToOverview(overview);
+                  }
               }
           }
           catch (e) {
-              console.warn("[RealPlaytime] Failed in OnAppOverviewChange:", e);
+              console.warn("[RealPlaytime] Failed in OnAppOverviewChange patch:", e);
           }
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
   }
+  /**
+   * Manual patch for the currently viewed game page
+   */
   function manualPatch() {
       try {
-          // Only patch the currently viewed game, not all apps
           if (window.appStore && typeof appStore.GetAppOverviewByAppID === "function") {
               const m = location.pathname.match(/\/library\/app\/(\d+)/);
               if (m) {
                   const id = Number(m[1]);
                   const ov = appStore.GetAppOverviewByAppID(id);
                   if (ov) {
-                      applyRealPlaytimeToOverview(ov);
+                      restoreSavedPlaytimes();
+                      applyRealSessionToOverview(ov);
                       appInfoStore?.OnAppOverviewChange?.([ov]);
                   }
               }
@@ -1698,6 +1716,9 @@
           console.warn("[RealPlaytime] Manual patch error:", e);
       }
   }
+  /**
+   * Initialize the RealPlaytime system
+   */
   function initRealPlaytime() {
       try {
           restoreSavedPlaytimes();
