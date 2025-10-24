@@ -22,14 +22,27 @@ function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
 function restoreSavedPlaytimes() {
   const data = loadPlaytimeData();
   if (!window.appStore?.GetAppOverviewByAppID) return;
+
+  let removedCount = 0;
+
   for (const [id, entry] of Object.entries(data)) {
     const ov = appStore.GetAppOverviewByAppID(Number(id));
     if (ov) {
       ov.minutes_playtime_forever = entry.total;
       ov.minutes_playtime_last_two_weeks = entry.total;
       ov.nPlaytimeForever = entry.total;
+    } else {
+      // App no longer exists → remove from local storage
+      delete data[id];
+      removedCount++;
     }
   }
+
+  if (removedCount > 0) {
+    savePlaytimeData(data);
+    console.log(`[RealPlaytime] Removed ${removedCount} deleted apps from Local Storage`);
+  }
+
   console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
 }
 
