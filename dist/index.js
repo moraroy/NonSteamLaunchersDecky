@@ -1714,9 +1714,6 @@
 
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
-      React.useEffect(() => {
-          initRealPlaytime();
-      }, []);
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
@@ -1893,6 +1890,7 @@
   };
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
+      initRealPlaytime();
       notify.setServer(serverApi);
       return {
           title: window.SP_REACT.createElement("div", { className: deckyFrontendLib.staticClasses.Title }, "NonSteamLaunchers"),
