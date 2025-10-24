@@ -28,7 +28,9 @@ import { initRealPlaytime } from "./hooks/playTime";
 const initialOptions = sitesList;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
-
+  useEffect(() => {
+    initRealPlaytime();
+  }, []);
 
   console.log('Content rendered');
 
@@ -291,7 +293,6 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
-  initRealPlaytime();
   notify.setServer(serverApi);
   return {
     title: <div className={staticClasses.Title}>NonSteamLaunchers</div>,
