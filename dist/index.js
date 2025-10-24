@@ -1579,16 +1579,17 @@
       const data = loadPlaytimeData();
       if (!window.appStore?.GetAppOverviewByAppID)
           return;
-      for (const [id, total] of Object.entries(data)) {
+      for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
-              ov.minutes_playtime_forever = total;
-              ov.minutes_playtime_last_two_weeks = total;
-              ov.nPlaytimeForever = total;
+              ov.minutes_playtime_forever = entry.total;
+              ov.minutes_playtime_last_two_weeks = entry.total;
+              ov.nPlaytimeForever = entry.total;
           }
       }
       console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
   }
+  // Apply playtime only if the session is new
   function applyRealPlaytimeToOverview(appOverview) {
       if (!appOverview)
           return false;
@@ -1596,7 +1597,7 @@
           return false; // non-Steam shortcuts only
       const start = appOverview.rt_last_time_played;
       const end = appOverview.rt_last_time_locally_played;
-      if (!start || !end || end < start)
+      if (!start || !end || end <= start)
           return false;
       const sessionSeconds = end - start;
       const sessionMinutes = Math.floor(sessionSeconds / 60);
@@ -1604,23 +1605,33 @@
           return false;
       const data = loadPlaytimeData();
       const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-      const prevTotal = data[appId] || 0;
-      const newTotal = prevTotal + sessionMinutes;
-      data[appId] = newTotal;
-      savePlaytimeData(data);
+      const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
+      // Prevent double counting
+      if (end <= prevEntry.lastSessionEnd)
+          return false;
+      const newTotal = prevEntry.total + sessionMinutes;
+      // Only update localStorage if total changed
+      if (newTotal !== prevEntry.total) {
+          data[appId] = {
+              total: newTotal,
+              lastSessionEnd: end,
+          };
+          savePlaytimeData(data);
+      }
+      // Always update overview UI
       appOverview.minutes_playtime_forever = newTotal;
       appOverview.minutes_playtime_last_two_weeks = newTotal;
       appOverview.nPlaytimeForever = newTotal;
       console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
       return true;
   }
-  // New helper: only updates the display, doesn't add session time
+  // Only updates the UI without adding playtime
   function updateOverviewDisplay(appOverview) {
       if (!appOverview)
           return;
       const data = loadPlaytimeData();
       const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-      const total = data[appId] || 0;
+      const total = data[appId]?.total || 0;
       appOverview.minutes_playtime_forever = total;
       appOverview.minutes_playtime_last_two_weeks = total;
       appOverview.nPlaytimeForever = total;
