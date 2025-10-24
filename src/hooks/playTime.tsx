@@ -19,13 +19,15 @@ function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function restoreSavedPlaytimes() {
+function restoreSavedPlaytimes(excludeAppIds: string[] = []) {
   const data = loadPlaytimeData();
   if (!window.appStore?.GetAppOverviewByAppID) return;
 
   let removedCount = 0;
 
   for (const [id, entry] of Object.entries(data)) {
+    if (excludeAppIds.includes(id)) continue; // skip apps currently being updated
+
     const ov = appStore.GetAppOverviewByAppID(Number(id));
     if (ov) {
       ov.minutes_playtime_forever = entry.total;
@@ -70,7 +72,6 @@ function applyRealPlaytimeToOverview(appOverview: any): boolean {
     data[appId] = { total: newTotal, lastSessionEnd: end };
     savePlaytimeData(data);
 
-
     // Restore playtime for other apps
     try {
       restoreSavedPlaytimes();
@@ -87,14 +88,18 @@ function applyRealPlaytimeToOverview(appOverview: any): boolean {
       appOverview.TriggerChange();
     }
 
-    console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
+    console.log(
+      `[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`
+    );
     return true;
   } catch (e) {
     console.warn("[RealPlaytime] Failed in applyRealPlaytimeToOverview:", e);
     return false;
   } finally {
     try {
-      restoreSavedPlaytimes();
+      // Exclude the currently updated app from being overwritten
+      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+      restoreSavedPlaytimes([appId]);
     } catch (e) {
       console.warn("[RealPlaytime] Failed to re-sync after update:", e);
     }
