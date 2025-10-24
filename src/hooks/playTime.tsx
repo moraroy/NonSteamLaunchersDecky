@@ -7,10 +7,44 @@ interface PlaytimeDataEntry {
   lastSessionEnd: number;
 }
 
+// ---- Validation helpers ----
+function isValidPlaytimeDataEntry(entry: any): entry is PlaytimeDataEntry {
+  return (
+    typeof entry === "object" &&
+    entry !== null &&
+    typeof entry.total === "number" &&
+    typeof entry.lastSessionEnd === "number"
+  );
+}
+
+function sanitizePlaytimeData(data: any): Record<string, PlaytimeDataEntry> {
+  if (typeof data !== "object" || data === null) return {};
+
+  const cleaned: Record<string, PlaytimeDataEntry> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (isValidPlaytimeDataEntry(value)) cleaned[key] = value;
+  }
+  return cleaned;
+}
+
+// ---- Local storage handling ----
 function loadPlaytimeData(): Record<string, PlaytimeDataEntry> {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {}; // key not present
+
+    const parsed = JSON.parse(raw);
+    const cleaned = sanitizePlaytimeData(parsed);
+
+    // If data was invalid or partially repaired, update storage
+    if (Object.keys(cleaned).length !== Object.keys(parsed || {}).length) {
+      console.warn(`[loadPlaytimeData] Invalid or partial data under ${STORAGE_KEY}, repaired.`);
+      savePlaytimeData(cleaned);
+    }
+
+    return cleaned;
+  } catch (err) {
+    console.error("[loadPlaytimeData] Failed to parse or validate:", err);
     return {};
   }
 }
@@ -21,12 +55,12 @@ function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
 
 function isEnvironmentReady() {
   try {
-
+    // Check localStorage accessibility
     localStorage.setItem("__rp_test__", "1");
     localStorage.removeItem("__rp_test__");
 
-
-    if (!window.appStore || typeof appStore.GetAppOverviewByAppID !== "function") return false;
+    // Check for app environment
+    if (!window.appStore || typeof window.appStore.GetAppOverviewByAppID !== "function") return false;
     if (!window.appInfoStore) return false;
 
     return true;
@@ -37,7 +71,6 @@ function isEnvironmentReady() {
 
 /**
  * Restore saved playtime totals into the current appOverview objects.
- * This runs independently of whether the user played the game.
  */
 function restoreSavedPlaytimes() {
   const data = loadPlaytimeData();
@@ -69,7 +102,6 @@ function restoreSavedPlaytimes() {
 
 /**
  * Add real session time to the saved totals.
- * Returns true if new minutes were added.
  */
 function applyRealSessionToOverview(appOverview: any): boolean {
   try {
@@ -120,9 +152,7 @@ function patchAppStore() {
   appStore.m_mapApps.set = function (appId, appOverview) {
     const result = appStore.m_mapApps._originalSet.call(this, appId, appOverview);
     try {
-      // Always restore saved totals after Steam sets the object
       restoreSavedPlaytimes();
-      // Also add any new session time if available
       applyRealSessionToOverview(appOverview);
     } catch (e) {
       console.warn("[RealPlaytime] Failed in appStore.set patch:", e);
@@ -148,7 +178,7 @@ function patchAppInfoStore() {
             ? appStore.GetAppOverviewByAppID(Number(id))
             : a;
         if (overview) {
-          restoreSavedPlaytimes(); // ensure saved totals are always applied
+          restoreSavedPlaytimes();
           applyRealSessionToOverview(overview);
         }
       }
@@ -184,11 +214,9 @@ function manualPatch() {
 /**
  * Initialize the RealPlaytime system
  */
-
-
 export function initRealPlaytime(retryCount = 0) {
   if (!isEnvironmentReady()) {
-    if (retryCount < 10) { // Avoid infinite loops (10 retries = ~10s max)
+    if (retryCount < 100) {
       console.log(`[RealPlaytime] Environment not ready (attempt ${retryCount + 1}), retrying...`);
       setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
     } else {
