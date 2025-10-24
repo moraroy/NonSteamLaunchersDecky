@@ -1589,12 +1589,11 @@
       }
       console.log("[RealPlaytime] Restored saved totals for", Object.keys(data).length, "apps");
   }
-  // Apply playtime only if session is new
   function applyRealPlaytimeToOverview(appOverview) {
       if (!appOverview)
           return false;
       if (appOverview.app_type !== 1073741824)
-          return false;
+          return false; // non-Steam shortcuts only
       const start = appOverview.rt_last_time_played;
       const end = appOverview.rt_last_time_locally_played;
       if (!start || !end || end <= start)
@@ -1606,34 +1605,22 @@
       const data = loadPlaytimeData();
       const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
       const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
+      // Only add new minutes if session is after the last recorded session
       if (end <= prevEntry.lastSessionEnd)
           return false;
       const newTotal = prevEntry.total + sessionMinutes;
-      if (newTotal !== prevEntry.total) {
-          data[appId] = { total: newTotal, lastSessionEnd: end };
-          savePlaytimeData(data);
-      }
-      // Always update UI immediately
-      updateOverviewDisplay(appOverview, newTotal);
-      console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
-      return true;
-  }
-  // Always updates UI
-  function updateOverviewDisplay(appOverview, total) {
-      if (!appOverview)
-          return;
-      const data = loadPlaytimeData();
-      const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-      const value = total ?? data[appId]?.total ?? 0;
-      appOverview.minutes_playtime_forever = value;
-      appOverview.minutes_playtime_last_two_weeks = value;
-      appOverview.nPlaytimeForever = value;
-      // Trigger UI re-render if possible
+      data[appId] = { total: newTotal, lastSessionEnd: end };
+      savePlaytimeData(data);
+      // Update UI immediately like old code
+      appOverview.minutes_playtime_forever = newTotal;
+      appOverview.minutes_playtime_last_two_weeks = newTotal;
+      appOverview.nPlaytimeForever = newTotal;
       if (typeof appOverview.TriggerChange === "function") {
           appOverview.TriggerChange();
       }
+      console.log(`[RealPlaytime] +${sessionMinutes} min added to ${appOverview.display_name || "Unknown"} (${appId}). Total: ${newTotal} min`);
+      return true;
   }
-  // Patch appStore.set to apply playtime immediately
   function patchAppStore() {
       if (!window.appStore?.m_mapApps)
           return;
@@ -1650,7 +1637,6 @@
           return appStore.m_mapApps._originalSet.call(this, appId, appOverview);
       };
   }
-  // Patch appInfoStore to update UI reactively
   function patchAppInfoStore() {
       if (!window.appInfoStore)
           return;
@@ -1674,24 +1660,16 @@
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
   }
-  // Manual patch for immediate UI update
   function manualPatch() {
       try {
-          if (appStore?.GetAllApps) {
-              const all = appStore.GetAllApps() || [];
-              for (const ov of all)
-                  updateOverviewDisplay(ov);
-              if (typeof appInfoStore?.OnAppOverviewChange === "function") {
-                  appInfoStore.OnAppOverviewChange(all);
-              }
-          }
-          else if (window.appStore && typeof appStore.GetAppOverviewByAppID === "function") {
+          // Only patch the currently viewed game, not all apps
+          if (window.appStore && typeof appStore.GetAppOverviewByAppID === "function") {
               const m = location.pathname.match(/\/library\/app\/(\d+)/);
               if (m) {
                   const id = Number(m[1]);
                   const ov = appStore.GetAppOverviewByAppID(id);
                   if (ov) {
-                      updateOverviewDisplay(ov);
+                      applyRealPlaytimeToOverview(ov);
                       appInfoStore?.OnAppOverviewChange?.([ov]);
                   }
               }

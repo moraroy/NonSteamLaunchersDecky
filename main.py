@@ -54,38 +54,6 @@ class Plugin:
         defaultSettings = {"autoscan": False, "customSites": ""}
 
 
-
-        async def handle_playtime(request):
-            ws = web.WebSocketResponse()
-            await ws.prepare(request)
-
-            json_path = os.path.join(
-                decky_plugin.DECKY_USER_HOME,
-                '.config/systemd/user/playtime_log.json'
-            )
-            decky_plugin.logger.info(f"[handle_playtime_ws] Checking for playtime log at: {json_path}")
-
-            try:
-                if not os.path.isfile(json_path):
-                    decky_plugin.logger.warning(f"[handle_playtime_ws] File not found: {json_path}")
-                    await ws.send_json({"error": "playtime log not found"})
-                    await ws.close()
-                    return ws
-
-                with open(json_path, "r") as f:
-                    data = json.load(f)
-
-                decky_plugin.logger.info("[handle_playtime_ws] Successfully loaded playtime data.")
-                await ws.send_json(data)
-
-            except Exception as e:
-                decky_plugin.logger.error(f"[handle_playtime_ws] Error reading playtime log: {e}")
-                await ws.send_json({"error": "internal server error"})
-
-            await ws.close()
-            return ws
-
-
         # Function to fetch GitHub commit history for patch notes
         async def fetch_patch_notes():
             owner = "moraroy"  # Repository owner
@@ -589,7 +557,6 @@ class Plugin:
         app.router.add_get('/logUpdates', handleLogUpdates)
         app.router.add_get('/check_update', handle_check_update)
         app.router.add_get('/launcher_status', handle_launcher_status)
-        app.router.add_get("/playtime", handle_playtime)
 
         runner = web.AppRunner(app)
         await runner.setup()
