@@ -1564,9 +1564,10 @@
   };
 
   const STORAGE_KEY = "realPlaytimeData_Debug";
-  // ------------------------------
-  // Validation + Sanitization
-  // ------------------------------
+  // 🟢 In-memory cache to prevent overwrites during UI cycles
+  let memoryCache = null;
+  // 🟢 Track already applied sessions to prevent double counting
+  const appliedSessions = {};
   function isValidPlaytimeDataEntry(entry) {
       return (typeof entry === "object" &&
           entry !== null &&
@@ -1584,51 +1585,32 @@
       }
       return cleaned;
   }
-  // ------------------------------
-  // Local Storage I/O
-  // ------------------------------
   function loadPlaytimeData() {
       try {
+          if (memoryCache)
+              return memoryCache; // ✅ use memory cache if available
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw)
-              return {};
-          const parsed = JSON.parse(raw);
-          return sanitizePlaytimeData(parsed);
-      }
-      catch (err) {
-          console.warn("[Playtime] Failed to load:", err);
-          return {};
-      }
-  }
-  // ------------------------------
-  // In-memory Cache System
-  // ------------------------------
-  let cachedPlaytimeData = null;
-  let saveTimeout = null;
-  function getPlaytimeData() {
-      if (!cachedPlaytimeData) {
-          cachedPlaytimeData = loadPlaytimeData();
-      }
-      return cachedPlaytimeData;
-  }
-  function scheduleSave() {
-      if (saveTimeout)
-          clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-          if (cachedPlaytimeData) {
-              try {
-                  localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedPlaytimeData));
-                  console.debug("[Playtime] Saved data to localStorage");
-              }
-              catch (err) {
-                  console.warn("[Playtime] Failed to save:", err);
-              }
+          if (!raw) {
+              memoryCache = {};
+              return memoryCache;
           }
-      }, 1000); // Save at most once per second
+          const parsed = JSON.parse(raw);
+          const cleaned = sanitizePlaytimeData(parsed);
+          if (Object.keys(cleaned).length !== Object.keys(parsed || {}).length) {
+              savePlaytimeData(cleaned);
+          }
+          memoryCache = cleaned;
+          return memoryCache;
+      }
+      catch {
+          memoryCache = {};
+          return memoryCache;
+      }
   }
-  // ------------------------------
-  // Environment Safety Checks
-  // ------------------------------
+  function savePlaytimeData(data) {
+      memoryCache = data; // ✅ keep in-memory cache in sync
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
   function isEnvironmentReady() {
       try {
           localStorage.setItem("__rp_test__", "1");
@@ -1643,14 +1625,11 @@
           return false;
       }
   }
-  // ------------------------------
-  // Core Logic
-  // ------------------------------
   function restoreSavedPlaytimes() {
-      const data = getPlaytimeData();
+      const data = loadPlaytimeData();
       if (!window.appStore?.GetAppOverviewByAppID)
           return;
-      let modified = false;
+      let removedCount = 0;
       for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
@@ -1660,20 +1639,15 @@
               if (typeof ov.TriggerChange === "function") {
                   ov.TriggerChange();
               }
-              if (entry.missingCount)
-                  delete entry.missingCount;
           }
           else {
-              entry.missingCount = (entry.missingCount || 0) + 1;
-              // Only delete if missing for 5+ restores
-              if (entry.missingCount > 5) {
-                  delete data[id];
-                  modified = true;
-              }
+              delete data[id];
+              removedCount++;
           }
       }
-      if (modified)
-          scheduleSave();
+      if (removedCount > 0) {
+          savePlaytimeData(data);
+      }
   }
   function applyRealSessionToOverview(appOverview) {
       try {
@@ -1683,35 +1657,34 @@
           const end = appOverview.rt_last_time_locally_played;
           if (!start || !end || end <= start)
               return false;
+          // Prevent double-counting: check if this session has already been applied
+          const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+          if (appliedSessions[appId] && appliedSessions[appId] >= end)
+              return false;
           const sessionSeconds = end - start;
           const sessionMinutes = Math.floor(sessionSeconds / 60);
           if (sessionMinutes <= 0)
               return false;
-          const data = getPlaytimeData();
-          const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
+          const data = loadPlaytimeData();
           const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-          // Prevent double-counting sessions
           if (end <= prevEntry.lastSessionEnd)
               return false;
           const newTotal = prevEntry.total + sessionMinutes;
           data[appId] = { total: newTotal, lastSessionEnd: end };
+          savePlaytimeData(data);
+          appliedSessions[appId] = end; // ✅ mark this session as applied
           appOverview.minutes_playtime_forever = newTotal;
           appOverview.minutes_playtime_last_two_weeks = newTotal;
           appOverview.nPlaytimeForever = newTotal;
           if (typeof appOverview.TriggerChange === "function") {
               appOverview.TriggerChange();
           }
-          scheduleSave();
           return true;
       }
-      catch (err) {
-          console.warn("[Playtime] applyRealSessionToOverview error:", err);
+      catch {
           return false;
       }
   }
-  // ------------------------------
-  // Patches
-  // ------------------------------
   function patchAppStore() {
       if (!window.appStore?.m_mapApps)
           return;
@@ -1720,6 +1693,7 @@
       appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
       appStore.m_mapApps.set = function (appId, appOverview) {
           const result = appStore.m_mapApps._originalSet.call(this, appId, appOverview);
+          restoreSavedPlaytimes();
           applyRealSessionToOverview(appOverview);
           return result;
       };
@@ -1736,8 +1710,10 @@
               const overview = id && appStore?.GetAppOverviewByAppID
                   ? appStore.GetAppOverviewByAppID(Number(id))
                   : a;
-              if (overview)
+              if (overview) {
+                  restoreSavedPlaytimes();
                   applyRealSessionToOverview(overview);
+              }
           }
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
@@ -1749,18 +1725,14 @@
               const id = Number(m[1]);
               const ov = appStore.GetAppOverviewByAppID(id);
               if (ov) {
+                  restoreSavedPlaytimes();
                   applyRealSessionToOverview(ov);
                   appInfoStore?.OnAppOverviewChange?.([ov]);
               }
           }
       }
-      catch (err) {
-          console.warn("[Playtime] manualPatch error:", err);
-      }
+      catch { }
   }
-  // ------------------------------
-  // Initialization
-  // ------------------------------
   function initRealPlaytime(retryCount = 0) {
       if (!isEnvironmentReady()) {
           if (retryCount < 100) {
@@ -1769,15 +1741,14 @@
           return;
       }
       try {
-          restoreSavedPlaytimes();
-          patchAppStore();
-          patchAppInfoStore();
-          manualPatch();
-          console.log("[Playtime] RealPlaytime initialized");
+          setTimeout(() => {
+              restoreSavedPlaytimes();
+              patchAppStore();
+              patchAppInfoStore();
+              manualPatch();
+          }, 100); // 100ms delay
       }
-      catch (err) {
-          console.warn("[Playtime] Initialization failed:", err);
-      }
+      catch { }
   }
 
   const initialOptions = sitesList;
