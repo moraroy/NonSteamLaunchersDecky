@@ -10,7 +10,7 @@ interface PlaytimeDataEntry {
 // 🟢 In-memory cache to prevent overwrites during UI cycles
 let memoryCache: Record<string, PlaytimeDataEntry> | null = null;
 
-// 🟢 Track already applied sessions to prevent double counting
+// 🟢 Track applied sessions to avoid double counting
 const appliedSessions: Record<string, number> = {};
 
 function isValidPlaytimeDataEntry(entry: any): entry is PlaytimeDataEntry {
@@ -35,7 +35,8 @@ function sanitizePlaytimeData(data: any): Record<string, PlaytimeDataEntry> {
 
 function loadPlaytimeData(): Record<string, PlaytimeDataEntry> {
   try {
-    if (memoryCache) return memoryCache; // ✅ use memory cache if available
+    if (memoryCache) return memoryCache;
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       memoryCache = {};
@@ -58,8 +59,16 @@ function loadPlaytimeData(): Record<string, PlaytimeDataEntry> {
 }
 
 function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
-  memoryCache = data; // ✅ keep in-memory cache in sync
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    const latestFromStorage: Record<string, PlaytimeDataEntry> =
+      JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const merged: Record<string, PlaytimeDataEntry> = { ...latestFromStorage, ...data };
+    memoryCache = merged;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  } catch {
+    memoryCache = data;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
 }
 
 function isEnvironmentReady() {
@@ -83,12 +92,11 @@ function restoreSavedPlaytimes() {
   for (const [id, entry] of Object.entries(data)) {
     const ov = appStore.GetAppOverviewByAppID(Number(id));
     if (ov) {
-      ov.minutes_playtime_forever = entry.total;
-      ov.minutes_playtime_last_two_weeks = entry.total;
-      ov.nPlaytimeForever = entry.total;
-      if (typeof ov.TriggerChange === "function") {
-        ov.TriggerChange();
-      }
+      // Always apply the largest total
+      ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
+      ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
+      ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
+      ov.TriggerChange?.();
     } else {
       delete data[id];
       removedCount++;
@@ -106,13 +114,9 @@ function applyRealSessionToOverview(appOverview: any): boolean {
 
     const start = appOverview.rt_last_time_played;
     const end = appOverview.rt_last_time_locally_played;
-
     if (!start || !end || end <= start) return false;
 
-    // Prevent double-counting: check if this session has already been applied
     const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-    if (appliedSessions[appId] && appliedSessions[appId] >= end) return false;
-
     const sessionSeconds = end - start;
     const sessionMinutes = Math.floor(sessionSeconds / 60);
     if (sessionMinutes <= 0) return false;
@@ -120,20 +124,21 @@ function applyRealSessionToOverview(appOverview: any): boolean {
     const data = loadPlaytimeData();
     const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
 
-    if (end <= prevEntry.lastSessionEnd) return false;
+    // Only add new time if it extends lastSessionEnd
+    const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
+    const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
+    const newTotal = prevEntry.total + addedMinutes;
 
-    const newTotal = prevEntry.total + sessionMinutes;
-    data[appId] = { total: newTotal, lastSessionEnd: end };
+    if (newTotal === prevEntry.total) return false;
+
+    data[appId] = { total: newTotal, lastSessionEnd: effectiveEnd };
     savePlaytimeData(data);
-
-    appliedSessions[appId] = end; // ✅ mark this session as applied
+    appliedSessions[appId] = effectiveEnd;
 
     appOverview.minutes_playtime_forever = newTotal;
     appOverview.minutes_playtime_last_two_weeks = newTotal;
     appOverview.nPlaytimeForever = newTotal;
-    if (typeof appOverview.TriggerChange === "function") {
-      appOverview.TriggerChange();
-    }
+    appOverview.TriggerChange?.();
 
     return true;
   } catch {
@@ -162,9 +167,10 @@ function patchAppInfoStore() {
   appInfoStore.OnAppOverviewChange = function (apps) {
     for (const a of apps || []) {
       const id = typeof a?.appid === "function" ? a.appid() : a?.appid;
-      const overview = id && appStore?.GetAppOverviewByAppID
-        ? appStore.GetAppOverviewByAppID(Number(id))
-        : a;
+      const overview =
+        id && appStore?.GetAppOverviewByAppID
+          ? appStore.GetAppOverviewByAppID(Number(id))
+          : a;
       if (overview) {
         restoreSavedPlaytimes();
         applyRealSessionToOverview(overview);
@@ -203,6 +209,6 @@ export function initRealPlaytime(retryCount = 0) {
       patchAppStore();
       patchAppInfoStore();
       manualPatch();
-    }, 100); // 100ms delay
+    }, 100); // small delay for environment readiness
   } catch {}
 }
