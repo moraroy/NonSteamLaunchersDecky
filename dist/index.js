@@ -1563,7 +1563,9 @@
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
-  const STORAGE_KEY = "realPlaytimeData_Debug";
+  const STORAGE_KEY = "realPlaytimeData";
+  let memoryCache = null;
+  const appliedSessions = {};
   function isValidPlaytimeDataEntry(entry) {
       return (typeof entry === "object" &&
           entry !== null &&
@@ -1583,22 +1585,37 @@
   }
   function loadPlaytimeData() {
       try {
+          if (memoryCache)
+              return memoryCache;
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw)
-              return {};
+          if (!raw) {
+              memoryCache = {};
+              return memoryCache;
+          }
           const parsed = JSON.parse(raw);
           const cleaned = sanitizePlaytimeData(parsed);
           if (Object.keys(cleaned).length !== Object.keys(parsed || {}).length) {
               savePlaytimeData(cleaned);
           }
-          return cleaned;
+          memoryCache = cleaned;
+          return memoryCache;
       }
       catch {
-          return {};
+          memoryCache = {};
+          return memoryCache;
       }
   }
   function savePlaytimeData(data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      try {
+          const latestFromStorage = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+          const merged = { ...latestFromStorage, ...data };
+          memoryCache = merged;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      }
+      catch {
+          memoryCache = data;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
   }
   function isEnvironmentReady() {
       try {
@@ -1622,12 +1639,11 @@
       for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
-              ov.minutes_playtime_forever = entry.total;
-              ov.minutes_playtime_last_two_weeks = entry.total;
-              ov.nPlaytimeForever = entry.total;
-              if (typeof ov.TriggerChange === "function") {
-                  ov.TriggerChange();
-              }
+              // Always apply the largest total
+              ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
+              ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
+              ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
+              ov.TriggerChange?.();
           }
           else {
               delete data[id];
@@ -1646,24 +1662,26 @@
           const end = appOverview.rt_last_time_locally_played;
           if (!start || !end || end <= start)
               return false;
+          const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
           const sessionSeconds = end - start;
           const sessionMinutes = Math.floor(sessionSeconds / 60);
           if (sessionMinutes <= 0)
               return false;
           const data = loadPlaytimeData();
-          const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
           const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-          if (end <= prevEntry.lastSessionEnd)
+          // Only add new time if it extends lastSessionEnd
+          const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
+          const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
+          const newTotal = prevEntry.total + addedMinutes;
+          if (newTotal === prevEntry.total)
               return false;
-          const newTotal = prevEntry.total + sessionMinutes;
-          data[appId] = { total: newTotal, lastSessionEnd: end };
+          data[appId] = { total: newTotal, lastSessionEnd: effectiveEnd };
           savePlaytimeData(data);
+          appliedSessions[appId] = effectiveEnd;
           appOverview.minutes_playtime_forever = newTotal;
           appOverview.minutes_playtime_last_two_weeks = newTotal;
           appOverview.nPlaytimeForever = newTotal;
-          if (typeof appOverview.TriggerChange === "function") {
-              appOverview.TriggerChange();
-          }
+          appOverview.TriggerChange?.();
           return true;
       }
       catch {
@@ -1726,10 +1744,12 @@
           return;
       }
       try {
-          restoreSavedPlaytimes();
-          patchAppStore();
-          patchAppInfoStore();
-          manualPatch();
+          setTimeout(() => {
+              restoreSavedPlaytimes();
+              patchAppStore();
+              patchAppInfoStore();
+              manualPatch();
+          }, 100); // small delay for environment readiness
       }
       catch { }
   }
