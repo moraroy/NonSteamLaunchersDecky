@@ -1850,7 +1850,7 @@
                       overflow: "hidden",
                       wordWrap: "break-word", // Word wrap
                   } },
-                  window.SP_REACT.createElement("div", null, "New update found! :) Pressing update will restart Steam. If the update does not work, please run the NSLPlugin.desktop in Desktop Mode."),
+                  window.SP_REACT.createElement("div", null, "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe."),
                   window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
                       window.SP_REACT.createElement("div", null,
