@@ -138,7 +138,7 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
             >
                 {/* Browser Selection (using toggles) */}
                 <DialogBody>
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '1em', marginBottom: '1em', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '1em', marginBottom: '1em', alignItems: 'center' }}>
                         <ToggleField
                             label="Google Chrome"
                             checked={selectedBrowser === "Google Chrome"}
@@ -146,7 +146,7 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
                         />
                         <ToggleField
                             label="Mozilla Firefox"
-                            checked={selectedBrowser === "Mozilla Firefox"}
+                            checked={selectedBrowser === "Firefox"}
                             onChange={() => handleBrowserSelect("Mozilla Firefox")}
                         />
                         <ToggleField
