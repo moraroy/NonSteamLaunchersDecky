@@ -145,8 +145,8 @@ export const CustomSiteModal: VFC<CustomSiteModalProps> = ({ closeModal, serverA
                             onChange={() => handleBrowserSelect("Google Chrome")}
                         />
                         <ToggleField
-                            label="Mozilla Firefox"
-                            checked={selectedBrowser === "Firefox"}
+                            label="Firefox"
+                            checked={selectedBrowser === "Mozilla Firefox"}
                             onChange={() => handleBrowserSelect("Mozilla Firefox")}
                         />
                         <ToggleField
