@@ -1760,6 +1760,7 @@
   const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
   let themeMusicInitialized = false;
   let currentQuery = null;
+  let fadeInterval = null;
   const LOCAL_STORAGE_KEY = "ThemeMusicData"; // single key for all theme music
   const initThemeMusic = () => {
       if (themeMusicInitialized)
@@ -1778,20 +1779,26 @@
               return;
           }
           console.log("[Audio] Fading out previous YouTube player");
+          // Clear any existing fade interval
+          if (fadeInterval) {
+              clearInterval(fadeInterval);
+              fadeInterval = null;
+          }
           let volume = 100; // YouTube Player volume 0-100
-          const fadeInterval = setInterval(() => {
-              if (!ytPlayer) {
+          fadeInterval = window.setInterval(() => {
+              if (!ytPlayer || typeof ytPlayer.setVolume !== "function") {
                   clearInterval(fadeInterval);
+                  fadeInterval = null;
                   return;
               }
               volume -= 5;
               if (volume <= 0) {
                   clearInterval(fadeInterval);
-                  // Safe checks for YouTube API methods
+                  fadeInterval = null;
                   if (ytPlayer && typeof ytPlayer.stopVideo === "function") {
                       ytPlayer.stopVideo();
                   }
-                  ytPlayer.destroy?.(); // optional chaining in case destroy is missing
+                  ytPlayer.destroy?.();
                   ytPlayer = null;
                   if (ytAudioIframe) {
                       ytAudioIframe.remove();
@@ -1801,7 +1808,7 @@
                   console.log("[Audio] Previous music stopped");
               }
               else {
-                  ytPlayer?.setVolume(volume);
+                  ytPlayer.setVolume(volume);
               }
           }, 50); // adjust fade speed here
       };
@@ -1855,7 +1862,9 @@
               events: {
                   onReady: () => {
                       console.log("[Audio] Player ready, playing video...");
-                      ytPlayer?.setVolume(100); // start at full volume
+                      if (ytPlayer && typeof ytPlayer.setVolume === "function") {
+                          ytPlayer.setVolume(100); // start at full volume
+                      }
                   },
                   onStateChange: (e) => console.log("[Audio] Player state changed:", e.data),
                   onError: (e) => {
