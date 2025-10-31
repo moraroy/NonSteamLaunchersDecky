@@ -1,12 +1,13 @@
 let ytAudioIframe: HTMLDivElement | null = null;
 let ytPlayer: YT.Player | null = null;
+let ytPlayerReady = false;
+let fadeInterval: number | null = null;
 
 const sessionCache = new Map<string, string>();
 const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 let themeMusicInitialized = false;
 let currentQuery: string | null = null;
-let fadeInterval: number | null = null;
 
 const LOCAL_STORAGE_KEY = "ThemeMusicData"; // single key for all theme music
 
@@ -30,19 +31,14 @@ export const initThemeMusic = () => {
 
     console.log("[Audio] Fading out previous YouTube player");
 
-    // Clear any existing fade interval
     if (fadeInterval) {
       clearInterval(fadeInterval);
       fadeInterval = null;
     }
 
-    let volume = 100; // YouTube Player volume 0-100
+    let volume = 100;
     fadeInterval = window.setInterval(() => {
-      if (!ytPlayer || typeof ytPlayer.setVolume !== "function") {
-        clearInterval(fadeInterval!);
-        fadeInterval = null;
-        return;
-      }
+      if (!ytPlayer || !ytPlayerReady) return;
 
       volume -= 5;
       if (volume <= 0) {
@@ -55,6 +51,7 @@ export const initThemeMusic = () => {
 
         ytPlayer.destroy?.();
         ytPlayer = null;
+        ytPlayerReady = false;
 
         if (ytAudioIframe) {
           ytAudioIframe.remove();
@@ -70,7 +67,7 @@ export const initThemeMusic = () => {
   };
   // --- END FADE OUT ---
 
-  // --- LOCAL STORAGE CHANGES ---
+  // --- LOCAL STORAGE ---
   const saveToLocalStorage = (query: string, videoId: string) => {
     const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
     const data = rawData ? JSON.parse(rawData) : {};
@@ -96,8 +93,9 @@ export const initThemeMusic = () => {
       return null;
     }
   };
-  // --- END LOCAL STORAGE CHANGES ---
+  // --- END LOCAL STORAGE ---
 
+  // --- YOUTUBE PLAYER CREATION ---
   const createYTPlayer = (videoId: string) => {
     console.log("[Audio] Creating iframe player for video ID:", videoId);
     ytAudioIframe = document.createElement("div");
@@ -111,6 +109,7 @@ export const initThemeMusic = () => {
     });
     document.body.appendChild(ytAudioIframe);
 
+    ytPlayerReady = false;
     ytPlayer = new YT.Player("yt-audio-player", {
       height: '0',
       width: '0',
@@ -119,9 +118,8 @@ export const initThemeMusic = () => {
       events: {
         onReady: () => {
           console.log("[Audio] Player ready, playing video...");
-          if (ytPlayer && typeof ytPlayer.setVolume === "function") {
-            ytPlayer.setVolume(100); // start at full volume
-          }
+          ytPlayerReady = true;
+          ytPlayer?.setVolume?.(100);
         },
         onStateChange: (e) => console.log("[Audio] Player state changed:", e.data),
         onError: (e) => {
@@ -131,7 +129,9 @@ export const initThemeMusic = () => {
       }
     });
   };
+  // --- END YOUTUBE PLAYER CREATION ---
 
+  // --- PLAY AUDIO ---
   const playYouTubeAudio = (query: string) => {
     if (query === currentQuery) {
       console.log("[Audio] Already playing:", query);
@@ -173,7 +173,9 @@ export const initThemeMusic = () => {
       })
       .catch(err => console.error("[Audio] Failed to fetch video:", err));
   };
+  // --- END PLAY AUDIO ---
 
+  // --- URL HANDLING ---
   const updateMusicFromUrl = () => {
     const match = window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
     if (!match) return stopPreviousAudio();
