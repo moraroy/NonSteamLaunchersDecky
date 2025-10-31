@@ -24,6 +24,7 @@ import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime } from "./hooks/playTime";
+import { initThemeMusic } from "./hooks/themeMusic";
 
 const initialOptions = sitesList;
 
@@ -293,6 +294,7 @@ export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
   initRealPlaytime();
+  initThemeMusic();
   return {
     title: <div className={staticClasses.Title}>NonSteamLaunchers</div>,
     alwaysRender: true,
