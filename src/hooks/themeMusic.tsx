@@ -1,65 +1,108 @@
 let ytAudioIframe: HTMLDivElement | null = null;
-let ytPlayer: YT.Player | null = null;
+let ytPlayer: any = null; // untyped on purpose
 let ytPlayerReady = false;
 let fadeInterval: number | null = null;
+let currentQuery: string | null = null;
+let themeMusicInitialized = false;
+let debounceTimer: number | null = null;
 
 const sessionCache = new Map<string, string>();
 const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-let themeMusicInitialized = false;
-let currentQuery: string | null = null;
+const LOCAL_STORAGE_KEY = "ThemeMusicData";
 
-const LOCAL_STORAGE_KEY = "ThemeMusicData"; // single key for all theme music
-
+/* ---------------------------- INIT FUNCTION ---------------------------- */
 export const initThemeMusic = () => {
-  if (themeMusicInitialized) return;
+  // prevent double initialization (useful for hot reloads or SPA re-exec)
+  if (themeMusicInitialized || (window as any).__themeMusicInitialized) return;
   themeMusicInitialized = true;
+  (window as any).__themeMusicInitialized = true;
 
-  // --- LOAD YOUTUBE IFRAME API ---
+  console.log("[Init] Theme music initialized");
+
+  /* --- LOAD YOUTUBE API --- */
   if (!window.YT) {
-    console.log("[Init] Loading YouTube IFrame API...");
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(script);
+    console.log("[Init] Injected YouTube IFrame API script");
   }
 
-  // --- STOP PREVIOUS AUDIO (ASYNC WITH FADE) ---
-  const stopPreviousAudio = async () => {
-    if (!ytPlayer) {
-      currentQuery = null;
-      return;
+  /* ---------------------------- HELPERS ---------------------------- */
+
+  const debounce = (fn: () => void, delay = 300) => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(fn, delay);
+  };
+
+  const waitForYouTubeAPI = async () => {
+    if (window.YT && window.YT.Player) return;
+    console.log("[Init] Waiting for YouTube API to load...");
+    await new Promise<void>((resolve) => {
+      (window as any).onYouTubeIframeAPIReady = () => {
+        console.log("[Init] YouTube API ready");
+        resolve();
+      };
+    });
+  };
+
+  const loadCache = (): Record<string, { videoId: string; timestamp: number }> => {
+    try {
+      return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const saveCache = (data: Record<string, { videoId: string; timestamp: number }>) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+  };
+
+  const getCachedVideo = (query: string): string | null => {
+    const sessionHit = sessionCache.get(query);
+    if (sessionHit) return sessionHit;
+
+    const cache = loadCache();
+    const entry = cache[query];
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > CACHE_EXPIRATION) {
+      delete cache[query];
+      saveCache(cache);
+      return null;
     }
 
-    console.log("[Audio] Fading out previous YouTube player");
+    sessionCache.set(query, entry.videoId);
+    return entry.videoId;
+  };
 
-    return new Promise<void>((resolve) => {
-      if (fadeInterval) {
-        clearInterval(fadeInterval);
-        fadeInterval = null;
-      }
+  const storeCachedVideo = (query: string, videoId: string) => {
+    const cache = loadCache();
+    cache[query] = { videoId, timestamp: Date.now() };
+    saveCache(cache);
+    sessionCache.set(query, videoId);
+  };
+
+  /* ---------------------------- AUDIO CONTROL ---------------------------- */
+
+  const fadeOutAndStop = async () =>
+    new Promise<void>((resolve) => {
+      if (!ytPlayer) return resolve();
+
+      console.log("[Audio] Fading out...");
 
       let volume = 100;
+      clearInterval(fadeInterval!);
 
       fadeInterval = window.setInterval(() => {
-        if (!ytPlayer) {
-          clearInterval(fadeInterval!);
-          fadeInterval = null;
-          cleanup();
-          resolve();
-          return;
-        }
-
-        volume -= 5;
-        ytPlayer.setVolume?.(Math.max(0, volume));
-
-        if (volume <= 0) {
-          clearInterval(fadeInterval!);
-          fadeInterval = null;
-          cleanup();
-          resolve();
-        }
-      }, 50);
+        if (!ytPlayer) return cleanup();
+        volume = Math.max(0, volume - 5); // smoother fade
+        ytPlayer.setVolume?.(volume);
+        if (volume <= 0) cleanup();
+      }, 100); // slower steps
 
       const cleanup = () => {
+        clearInterval(fadeInterval!);
+        fadeInterval = null;
+
         try {
           ytPlayer?.stopVideo?.();
           ytPlayer?.destroy?.();
@@ -67,48 +110,23 @@ export const initThemeMusic = () => {
           console.warn("[Audio] Cleanup error:", err);
         }
 
-        ytPlayer = null;
-        ytPlayerReady = false;
-
         ytAudioIframe?.remove();
         ytAudioIframe = null;
-
+        ytPlayer = null;
+        ytPlayerReady = false;
         currentQuery = null;
-        console.log("[Audio] Previous music stopped");
+
+        console.log("[Audio] Previous track stopped");
+        resolve();
       };
     });
-  };
 
-  // --- LOCAL STORAGE HELPERS ---
-  const saveToLocalStorage = (query: string, videoId: string) => {
-    const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const data = rawData ? JSON.parse(rawData) : {};
-    data[query] = { videoId, timestamp: Date.now() };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-  };
+  const createYTPlayer = async (videoId: string) => {
+    // Wait until the YouTube IFrame API is ready
+    await waitForYouTubeAPI();
 
-  const loadFromLocalStorage = (query: string): string | null => {
-    const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!rawData) return null;
-    try {
-      const data = JSON.parse(rawData) as Record<string, { videoId: string; timestamp: number }>;
-      const entry = data[query];
-      if (!entry) return null;
-      if (Date.now() - entry.timestamp > CACHE_EXPIRATION) {
-        console.log("[Audio] LocalStorage cache expired for:", query);
-        delete data[query];
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-        return null;
-      }
-      return entry.videoId;
-    } catch {
-      return null;
-    }
-  };
-
-  // --- YOUTUBE PLAYER CREATION ---
-  const createYTPlayer = (videoId: string) => {
-    console.log("[Audio] Creating iframe player for video ID:", videoId);
+    // Remove old iframe first
+    ytAudioIframe?.remove();
 
     ytAudioIframe = document.createElement("div");
     ytAudioIframe.id = "yt-audio-player";
@@ -117,87 +135,85 @@ export const initThemeMusic = () => {
       height: "0",
       position: "absolute",
       opacity: "0",
-      pointerEvents: "none"
+      pointerEvents: "none",
     });
     document.body.appendChild(ytAudioIframe);
 
     ytPlayerReady = false;
 
     ytPlayer = new YT.Player("yt-audio-player", {
-      height: '0',
-      width: '0',
+      height: "0",
+      width: "0",
       videoId,
       playerVars: { autoplay: 1 },
       events: {
         onReady: () => {
-          console.log("[Audio] Player ready, playing video...");
           ytPlayerReady = true;
           ytPlayer?.setVolume?.(100);
+          console.log("[Audio] Player ready & playing:", videoId);
         },
-        onStateChange: (e) => console.log("[Audio] Player state changed:", e.data),
-        onError: (e) => {
-          console.error("[Audio] YouTube Player error:", e);
-          stopPreviousAudio();
-        }
-      }
+        onError: (e: any) => {
+          console.error("[Audio] Player error:", e);
+          fadeOutAndStop();
+        },
+      },
     });
   };
 
-  // --- PLAY AUDIO (WITH AWAITED CLEANUP) ---
   const playYouTubeAudio = async (query: string) => {
     if (query === currentQuery) {
       console.log("[Audio] Already playing:", query);
       return;
     }
 
-    console.log("[Audio] Requested:", query);
-    await stopPreviousAudio(); // wait until old music fully stops
-
     currentQuery = query;
+    console.log("[Audio] Playing query:", query);
 
-    // Check session cache first
-    if (sessionCache.has(query)) {
-      console.log("[Audio] Playing from session cache:", query);
-      createYTPlayer(sessionCache.get(query)!);
+    // Stop any previous track before starting
+    await fadeOutAndStop();
+
+    // Check in-memory or local cache
+    const cachedId = getCachedVideo(query);
+    if (cachedId) {
+      console.log("[Audio] Using cached video:", cachedId);
+      await createYTPlayer(cachedId);
       return;
     }
 
-    // Check local storage cache
-    const cachedVideoId = loadFromLocalStorage(query);
-    if (cachedVideoId) {
-      console.log("[Audio] Playing from localStorage cache:", query);
-      sessionCache.set(query, cachedVideoId);
-      createYTPlayer(cachedVideoId);
-      return;
-    }
-
-    // Fetch new video
+    // Fetch from API
     const apiUrl = `https://nonsteamlaunchers.onrender.com/api/x7a9/${encodeURIComponent(query)}`;
-    console.log("[Audio] Fetching video ID from API URL:", apiUrl);
+    console.log("[Audio] Fetching video ID:", apiUrl);
 
     try {
       const res = await fetch(apiUrl);
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("[Audio] Invalid JSON response:", text);
+        return;
+      }
+
       const videoId = data.videoId;
-      if (!videoId) return console.error("[Audio] No video found");
+      if (!videoId) return console.warn("[Audio] No video found for:", query);
 
-      sessionCache.set(query, videoId);
-      saveToLocalStorage(query, videoId);
-      console.log("[Audio] Video ID fetched and cached:", videoId);
-
-      createYTPlayer(videoId);
+      storeCachedVideo(query, videoId);
+      console.log("[Audio] Video fetched & cached:", videoId);
+      await createYTPlayer(videoId);
     } catch (err) {
       console.error("[Audio] Failed to fetch video:", err);
     }
   };
 
-  // --- DETECT AND HANDLE URL CHANGES ---
+  /* ---------------------------- ROUTE HANDLING ---------------------------- */
+
   const updateMusicFromUrl = async () => {
     const match = window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
 
     if (!match) {
-      // If leaving a game page, stop music
-      await stopPreviousAudio();
+      await fadeOutAndStop();
       return;
     }
 
@@ -207,25 +223,23 @@ export const initThemeMusic = () => {
     const appInfo = appStore.m_mapApps.get(appId);
     if (!appInfo?.display_name) return;
 
-    const query = appInfo.display_name + " Theme Music";
-    playYouTubeAudio(query);
+    const query = `${appInfo.display_name} Theme Music`;
+    debounce(() => playYouTubeAudio(query));
   };
 
-  // Monkey patch history methods to detect all navigations
-  const interceptHistory = (method: 'pushState' | 'replaceState') => {
+  const interceptHistory = (method: "pushState" | "replaceState") => {
     const original = history[method];
     history[method] = function (...args: any[]) {
       const result = original.apply(this, args);
-      updateMusicFromUrl();
+      debounce(updateMusicFromUrl);
       return result;
     };
   };
 
-  interceptHistory('pushState');
-  interceptHistory('replaceState');
+  interceptHistory("pushState");
+  interceptHistory("replaceState");
 
-  // Also handle browser back/forward buttons
-  window.addEventListener('popstate', () => updateMusicFromUrl());
+  window.addEventListener("popstate", () => debounce(updateMusicFromUrl));
 
   // Initial page load
   updateMusicFromUrl();
