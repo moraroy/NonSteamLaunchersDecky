@@ -94,10 +94,10 @@ export const initThemeMusic = () => {
 
       fadeInterval = window.setInterval(() => {
         if (!ytPlayer) return cleanup();
-        volume = Math.max(0, volume - 5); // smoother fade
+        volume = Math.max(0, volume - 10); // smoother fade
         ytPlayer.setVolume?.(volume);
         if (volume <= 0) cleanup();
-      }, 100); // slower steps
+      }, 50); // slower steps
 
       const cleanup = () => {
         clearInterval(fadeInterval!);
