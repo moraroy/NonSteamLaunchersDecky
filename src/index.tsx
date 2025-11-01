@@ -23,7 +23,7 @@ import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
-import { initRealPlaytime } from "./hooks/playTime";
+import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
 import { initThemeMusic } from "./hooks/themeMusic";
 
 const initialOptions = sitesList;
@@ -36,7 +36,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
-  const { settings, setAutoScan } = useSettings(serverAPI);
+  const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
 
   // Random Greetings
   const greetings = [
@@ -248,6 +248,14 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <ButtonItem layout="below" onClick={handleScanClick} disabled={isLoading || settings.autoscan}>
           {isLoading ? 'Scanning...' : 'Manual Scan'}
         </ButtonItem>
+        <ToggleField
+          label="Playtime"
+          checked={settings.playtimeEnabled}
+          onChange={(value) => {
+            setPlaytimeEnabled(value);
+            if (value) initRealPlaytime(true);
+          }}
+        />
       </PanelSection>
 
       <PanelSection title="For Support and Donations">
@@ -293,14 +301,29 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
-  initRealPlaytime();
   initThemeMusic();
+
+  // Fetch saved settings first, then decide whether to start Playtime
+  (async () => {
+    const savedSettings = (
+      await serverApi.callPluginMethod('get_setting', {
+        key: 'settings',
+        default: { autoscan: false, customSites: "", playtimeEnabled: true },
+      })
+    ).result as { playtimeEnabled: boolean };
+
+    if (savedSettings.playtimeEnabled) {
+      initRealPlaytime();
+    } else {
+      setPlaytimeEnabled(false); // disables tracking instead of calling a non-existent function
+    }
+
+  })();
+
   return {
     title: <div className={staticClasses.Title}>NonSteamLaunchers</div>,
     alwaysRender: true,
-    content: (
-      <Content serverAPI={serverApi} />
-    ),
+    content: <Content serverAPI={serverApi} />,
     icon: <RxRocket />,
   };
 });

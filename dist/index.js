@@ -392,8 +392,10 @@
   const useSettings = (serverApi) => {
       const [settings, setSettings] = React.useState({
           autoscan: false,
-          customSites: ""
+          customSites: "",
+          playtimeEnabled: true, // default ON
       });
+      // Load saved settings on mount
       React.useEffect(() => {
           const getData = async () => {
               const savedSettings = (await serverApi.callPluginMethod('get_setting', {
@@ -404,6 +406,7 @@
           };
           getData();
       }, []);
+      // Generic update helper
       async function updateSettings(key, value) {
           setSettings((oldSettings) => {
               const newSettings = { ...oldSettings, [key]: value };
@@ -414,13 +417,18 @@
               return newSettings;
           });
       }
+      // Existing setters
       function setAutoScan(value) {
           updateSettings('autoscan', value);
       }
       function setCustomSites(value) {
           updateSettings('customSites', value);
       }
-      return { settings, setAutoScan, setCustomSites };
+      // New setter for Playtime
+      function setPlaytimeEnabled(value) {
+          updateSettings('playtimeEnabled', value);
+      }
+      return { settings, setAutoScan, setCustomSites, setPlaytimeEnabled };
   };
 
   async function setupWebSocket(url, onMessage, onComplete) {
@@ -1566,6 +1574,8 @@
   const STORAGE_KEY = "realPlaytimeData";
   let memoryCache = null;
   const appliedSessions = {};
+  let playtimeEnabled = true;
+  // --- Utility functions ---
   function isValidPlaytimeDataEntry(entry) {
       return (typeof entry === "object" &&
           entry !== null &&
@@ -1577,9 +1587,8 @@
           return {};
       const cleaned = {};
       for (const [key, value] of Object.entries(data)) {
-          if (isValidPlaytimeDataEntry(value)) {
+          if (isValidPlaytimeDataEntry(value))
               cleaned[key] = value;
-          }
       }
       return cleaned;
   }
@@ -1631,7 +1640,10 @@
           return false;
       }
   }
+  // --- Playtime logic ---
   function restoreSavedPlaytimes() {
+      if (!playtimeEnabled)
+          return;
       const data = loadPlaytimeData();
       if (!window.appStore?.GetAppOverviewByAppID)
           return;
@@ -1639,7 +1651,6 @@
       for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
-              // Always apply the largest total
               ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
               ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
               ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
@@ -1650,11 +1661,12 @@
               removedCount++;
           }
       }
-      if (removedCount > 0) {
+      if (removedCount > 0)
           savePlaytimeData(data);
-      }
   }
   function applyRealSessionToOverview(appOverview) {
+      if (!playtimeEnabled)
+          return false;
       try {
           if (!appOverview || appOverview.app_type !== 1073741824)
               return false;
@@ -1669,7 +1681,6 @@
               return false;
           const data = loadPlaytimeData();
           const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-          // Only add new time if it extends lastSessionEnd
           const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
           const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
           const newTotal = prevEntry.total + addedMinutes;
@@ -1688,6 +1699,7 @@
           return false;
       }
   }
+  // --- Patch/unpatch functions ---
   function patchAppStore() {
       if (!window.appStore?.m_mapApps)
           return;
@@ -1700,6 +1712,12 @@
           applyRealSessionToOverview(appOverview);
           return result;
       };
+  }
+  function unpatchAppStore() {
+      if (window.appStore?.m_mapApps?._originalSet) {
+          appStore.m_mapApps.set = appStore.m_mapApps._originalSet;
+          delete appStore.m_mapApps._originalSet;
+      }
   }
   function patchAppInfoStore() {
       if (!window.appInfoStore)
@@ -1721,7 +1739,15 @@
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
   }
+  function unpatchAppInfoStore() {
+      if (window.appInfoStore?._originalOnAppOverviewChange) {
+          appInfoStore.OnAppOverviewChange = appInfoStore._originalOnAppOverviewChange;
+          delete appInfoStore._originalOnAppOverviewChange;
+      }
+  }
   function manualPatch() {
+      if (!playtimeEnabled)
+          return;
       try {
           const m = location.pathname.match(/\/library\/app\/(\d+)/);
           if (m) {
@@ -1736,10 +1762,26 @@
       }
       catch { }
   }
-  function initRealPlaytime(retryCount = 0) {
+  // --- Public API ---
+  function setPlaytimeEnabled(enabled) {
+      playtimeEnabled = enabled;
+      if (!enabled) {
+          // unpatch if disabled
+          unpatchAppStore();
+          unpatchAppInfoStore();
+      }
+      else {
+          // re-patch if enabled
+          patchAppStore();
+          patchAppInfoStore();
+          manualPatch();
+      }
+  }
+  function initRealPlaytime(enabled = true, retryCount = 0) {
+      setPlaytimeEnabled(enabled);
       if (!isEnvironmentReady()) {
           if (retryCount < 100) {
-              setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
+              setTimeout(() => initRealPlaytime(enabled, retryCount + 1), 1000);
           }
           return;
       }
@@ -1749,7 +1791,7 @@
               patchAppStore();
               patchAppInfoStore();
               manualPatch();
-          }, 100); // small delay for environment readiness
+          }, 100);
       }
       catch { }
   }
@@ -1970,7 +2012,7 @@
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-      const { settings, setAutoScan } = useSettings(serverAPI);
+      const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -2117,7 +2159,12 @@
                           autoscan();
                       }
                   }, disabled: isAutoScanDisabled }),
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan'),
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Playtime", checked: settings.playtimeEnabled, onChange: (value) => {
+                      setPlaytimeEnabled(value);
+                      if (value)
+                          initRealPlaytime(true);
+                  } })),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "For Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
@@ -2144,12 +2191,24 @@
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
       notify.setServer(serverApi);
-      initRealPlaytime();
       initThemeMusic();
+      // Fetch saved settings first, then decide whether to start Playtime
+      (async () => {
+          const savedSettings = (await serverApi.callPluginMethod('get_setting', {
+              key: 'settings',
+              default: { autoscan: false, customSites: "", playtimeEnabled: true },
+          })).result;
+          if (savedSettings.playtimeEnabled) {
+              initRealPlaytime();
+          }
+          else {
+              setPlaytimeEnabled(false); // disables tracking instead of calling a non-existent function
+          }
+      })();
       return {
           title: window.SP_REACT.createElement("div", { className: deckyFrontendLib.staticClasses.Title }, "NonSteamLaunchers"),
           alwaysRender: true,
-          content: (window.SP_REACT.createElement(Content, { serverAPI: serverApi })),
+          content: window.SP_REACT.createElement(Content, { serverAPI: serverApi }),
           icon: window.SP_REACT.createElement(RxRocket, null),
       };
   });
