@@ -7,12 +7,11 @@ interface PlaytimeDataEntry {
   lastSessionEnd: number;
 }
 
-
 let memoryCache: Record<string, PlaytimeDataEntry> | null = null;
-
-
 const appliedSessions: Record<string, number> = {};
+let playtimeEnabled = true;
 
+// --- Utility functions ---
 function isValidPlaytimeDataEntry(entry: any): entry is PlaytimeDataEntry {
   return (
     typeof entry === "object" &&
@@ -26,9 +25,7 @@ function sanitizePlaytimeData(data: any): Record<string, PlaytimeDataEntry> {
   if (typeof data !== "object" || data === null) return {};
   const cleaned: Record<string, PlaytimeDataEntry> = {};
   for (const [key, value] of Object.entries(data)) {
-    if (isValidPlaytimeDataEntry(value)) {
-      cleaned[key] = value;
-    }
+    if (isValidPlaytimeDataEntry(value)) cleaned[key] = value;
   }
   return cleaned;
 }
@@ -83,7 +80,9 @@ function isEnvironmentReady() {
   }
 }
 
+// --- Playtime logic ---
 function restoreSavedPlaytimes() {
+  if (!playtimeEnabled) return;
   const data = loadPlaytimeData();
   if (!window.appStore?.GetAppOverviewByAppID) return;
 
@@ -92,7 +91,6 @@ function restoreSavedPlaytimes() {
   for (const [id, entry] of Object.entries(data)) {
     const ov = appStore.GetAppOverviewByAppID(Number(id));
     if (ov) {
-      // Always apply the largest total
       ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
       ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
       ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
@@ -103,12 +101,11 @@ function restoreSavedPlaytimes() {
     }
   }
 
-  if (removedCount > 0) {
-    savePlaytimeData(data);
-  }
+  if (removedCount > 0) savePlaytimeData(data);
 }
 
 function applyRealSessionToOverview(appOverview: any): boolean {
+  if (!playtimeEnabled) return false;
   try {
     if (!appOverview || appOverview.app_type !== 1073741824) return false;
 
@@ -124,7 +121,6 @@ function applyRealSessionToOverview(appOverview: any): boolean {
     const data = loadPlaytimeData();
     const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
 
-    // Only add new time if it extends lastSessionEnd
     const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
     const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
     const newTotal = prevEntry.total + addedMinutes;
@@ -146,6 +142,7 @@ function applyRealSessionToOverview(appOverview: any): boolean {
   }
 }
 
+// --- Patch/unpatch functions ---
 function patchAppStore() {
   if (!window.appStore?.m_mapApps) return;
   if (appStore.m_mapApps._originalSet) return;
@@ -157,6 +154,13 @@ function patchAppStore() {
     applyRealSessionToOverview(appOverview);
     return result;
   };
+}
+
+function unpatchAppStore() {
+  if (window.appStore?.m_mapApps?._originalSet) {
+    appStore.m_mapApps.set = appStore.m_mapApps._originalSet;
+    delete appStore.m_mapApps._originalSet;
+  }
 }
 
 function patchAppInfoStore() {
@@ -180,7 +184,15 @@ function patchAppInfoStore() {
   };
 }
 
+function unpatchAppInfoStore() {
+  if (window.appInfoStore?._originalOnAppOverviewChange) {
+    appInfoStore.OnAppOverviewChange = appInfoStore._originalOnAppOverviewChange;
+    delete appInfoStore._originalOnAppOverviewChange;
+  }
+}
+
 function manualPatch() {
+  if (!playtimeEnabled) return;
   try {
     const m = location.pathname.match(/\/library\/app\/(\d+)/);
     if (m) {
@@ -195,10 +207,27 @@ function manualPatch() {
   } catch {}
 }
 
-export function initRealPlaytime(retryCount = 0) {
+// --- Public API ---
+export function setPlaytimeEnabled(enabled: boolean) {
+  playtimeEnabled = enabled;
+  if (!enabled) {
+    // unpatch if disabled
+    unpatchAppStore();
+    unpatchAppInfoStore();
+  } else {
+    // re-patch if enabled
+    patchAppStore();
+    patchAppInfoStore();
+    manualPatch();
+  }
+}
+
+export function initRealPlaytime(enabled = true, retryCount = 0) {
+  setPlaytimeEnabled(enabled);
+
   if (!isEnvironmentReady()) {
     if (retryCount < 100) {
-      setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
+      setTimeout(() => initRealPlaytime(enabled, retryCount + 1), 1000);
     }
     return;
   }
@@ -209,6 +238,6 @@ export function initRealPlaytime(retryCount = 0) {
       patchAppStore();
       patchAppInfoStore();
       manualPatch();
-    }, 100); // small delay for environment readiness
+    }, 100);
   } catch {}
 }

@@ -23,7 +23,9 @@ import { useUpdateInfo } from "./hooks/getUpdate";
 import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
-import { initRealPlaytime } from "./hooks/playTime";
+import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
+import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
+
 
 const initialOptions = sitesList;
 
@@ -35,7 +37,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
-  const { settings, setAutoScan } = useSettings(serverAPI);
+  const { settings, setAutoScan, setPlaytimeEnabled, setThemeMusicEnabled } = useSettings(serverAPI);
 
   // Random Greetings
   const greetings = [
@@ -224,7 +226,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
       <PanelSection title="Game Scanner">
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
-          NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
+          NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time, track playtime, auto download boot videos and play game theme music. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
         
         {/* Moved description of supported launchers */}
@@ -247,6 +249,24 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
         <ButtonItem layout="below" onClick={handleScanClick} disabled={isLoading || settings.autoscan}>
           {isLoading ? 'Scanning...' : 'Manual Scan'}
         </ButtonItem>
+        <ToggleField
+          label="Playtime"
+          checked={settings.playtimeEnabled}
+          onChange={(value) => {
+            setPlaytimeEnabled(value);
+            if (value) initRealPlaytime(true);
+          }}
+        />
+        <ToggleField
+          label="Game Theme Music"
+          checked={settings.thememusicEnabled}
+          onChange={(value) => {
+            setThemeMusicEnabled(value);
+            if (value) {
+              initThemeMusic();
+            }
+          }}
+        />
       </PanelSection>
 
       <PanelSection title="For Support and Donations">
@@ -292,13 +312,37 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
-  initRealPlaytime();
+
+  // Fetch saved settings first, then decide whether to start Playtime or Theme Music
+  (async () => {
+    const savedSettings = (
+      await serverApi.callPluginMethod('get_setting', {
+        key: 'settings',
+        default: {
+          autoscan: false,
+          customSites: "",
+          playtimeEnabled: true,
+          thememusicEnabled: true,
+        },
+      })
+    ).result as { playtimeEnabled: boolean; thememusicEnabled: boolean };
+
+    if (savedSettings.playtimeEnabled) {
+      initRealPlaytime();
+    } else {
+      setPlaytimeEnabled(false);
+    }
+
+    if (savedSettings.thememusicEnabled) {
+      initThemeMusic();
+    }
+  })();
+
   return {
     title: <div className={staticClasses.Title}>NonSteamLaunchers</div>,
     alwaysRender: true,
-    content: (
-      <Content serverAPI={serverApi} />
-    ),
+    content: <Content serverAPI={serverApi} />,
     icon: <RxRocket />,
   };
 });
+

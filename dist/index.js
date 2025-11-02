@@ -392,8 +392,11 @@
   const useSettings = (serverApi) => {
       const [settings, setSettings] = React.useState({
           autoscan: false,
-          customSites: ""
+          customSites: "",
+          playtimeEnabled: true,
+          thememusicEnabled: true,
       });
+      // Load saved settings on mount
       React.useEffect(() => {
           const getData = async () => {
               const savedSettings = (await serverApi.callPluginMethod('get_setting', {
@@ -403,7 +406,8 @@
               setSettings(savedSettings);
           };
           getData();
-      }, []);
+      }, [serverApi]);
+      // Generic update helper
       async function updateSettings(key, value) {
           setSettings((oldSettings) => {
               const newSettings = { ...oldSettings, [key]: value };
@@ -414,13 +418,26 @@
               return newSettings;
           });
       }
+      // Setters
       function setAutoScan(value) {
           updateSettings('autoscan', value);
       }
       function setCustomSites(value) {
           updateSettings('customSites', value);
       }
-      return { settings, setAutoScan, setCustomSites };
+      function setPlaytimeEnabled(value) {
+          updateSettings('playtimeEnabled', value);
+      }
+      function setThemeMusicEnabled(value) {
+          updateSettings('thememusicEnabled', value);
+      }
+      return {
+          settings,
+          setAutoScan,
+          setCustomSites,
+          setPlaytimeEnabled,
+          setThemeMusicEnabled,
+      };
   };
 
   async function setupWebSocket(url, onMessage, onComplete) {
@@ -1566,6 +1583,8 @@
   const STORAGE_KEY = "realPlaytimeData";
   let memoryCache = null;
   const appliedSessions = {};
+  let playtimeEnabled = true;
+  // --- Utility functions ---
   function isValidPlaytimeDataEntry(entry) {
       return (typeof entry === "object" &&
           entry !== null &&
@@ -1577,9 +1596,8 @@
           return {};
       const cleaned = {};
       for (const [key, value] of Object.entries(data)) {
-          if (isValidPlaytimeDataEntry(value)) {
+          if (isValidPlaytimeDataEntry(value))
               cleaned[key] = value;
-          }
       }
       return cleaned;
   }
@@ -1631,7 +1649,10 @@
           return false;
       }
   }
+  // --- Playtime logic ---
   function restoreSavedPlaytimes() {
+      if (!playtimeEnabled)
+          return;
       const data = loadPlaytimeData();
       if (!window.appStore?.GetAppOverviewByAppID)
           return;
@@ -1639,7 +1660,6 @@
       for (const [id, entry] of Object.entries(data)) {
           const ov = appStore.GetAppOverviewByAppID(Number(id));
           if (ov) {
-              // Always apply the largest total
               ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
               ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
               ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
@@ -1650,11 +1670,12 @@
               removedCount++;
           }
       }
-      if (removedCount > 0) {
+      if (removedCount > 0)
           savePlaytimeData(data);
-      }
   }
   function applyRealSessionToOverview(appOverview) {
+      if (!playtimeEnabled)
+          return false;
       try {
           if (!appOverview || appOverview.app_type !== 1073741824)
               return false;
@@ -1669,7 +1690,6 @@
               return false;
           const data = loadPlaytimeData();
           const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-          // Only add new time if it extends lastSessionEnd
           const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
           const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
           const newTotal = prevEntry.total + addedMinutes;
@@ -1688,6 +1708,7 @@
           return false;
       }
   }
+  // --- Patch/unpatch functions ---
   function patchAppStore() {
       if (!window.appStore?.m_mapApps)
           return;
@@ -1700,6 +1721,12 @@
           applyRealSessionToOverview(appOverview);
           return result;
       };
+  }
+  function unpatchAppStore() {
+      if (window.appStore?.m_mapApps?._originalSet) {
+          appStore.m_mapApps.set = appStore.m_mapApps._originalSet;
+          delete appStore.m_mapApps._originalSet;
+      }
   }
   function patchAppInfoStore() {
       if (!window.appInfoStore)
@@ -1721,7 +1748,15 @@
           return appInfoStore._originalOnAppOverviewChange.call(this, apps);
       };
   }
+  function unpatchAppInfoStore() {
+      if (window.appInfoStore?._originalOnAppOverviewChange) {
+          appInfoStore.OnAppOverviewChange = appInfoStore._originalOnAppOverviewChange;
+          delete appInfoStore._originalOnAppOverviewChange;
+      }
+  }
   function manualPatch() {
+      if (!playtimeEnabled)
+          return;
       try {
           const m = location.pathname.match(/\/library\/app\/(\d+)/);
           if (m) {
@@ -1736,10 +1771,26 @@
       }
       catch { }
   }
-  function initRealPlaytime(retryCount = 0) {
+  // --- Public API ---
+  function setPlaytimeEnabled(enabled) {
+      playtimeEnabled = enabled;
+      if (!enabled) {
+          // unpatch if disabled
+          unpatchAppStore();
+          unpatchAppInfoStore();
+      }
+      else {
+          // re-patch if enabled
+          patchAppStore();
+          patchAppInfoStore();
+          manualPatch();
+      }
+  }
+  function initRealPlaytime(enabled = true, retryCount = 0) {
+      setPlaytimeEnabled(enabled);
       if (!isEnvironmentReady()) {
           if (retryCount < 100) {
-              setTimeout(() => initRealPlaytime(retryCount + 1), 1000);
+              setTimeout(() => initRealPlaytime(enabled, retryCount + 1), 1000);
           }
           return;
       }
@@ -1749,17 +1800,218 @@
               patchAppStore();
               patchAppInfoStore();
               manualPatch();
-          }, 100); // small delay for environment readiness
+          }, 100);
       }
       catch { }
   }
+
+  let ytAudioIframe = null;
+  let ytPlayer = null; // untyped on purpose
+  let fadeInterval = null;
+  let currentQuery = null;
+  let themeMusicInitialized = false;
+  let debounceTimer = null;
+  const sessionCache = new Map();
+  const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+  const LOCAL_STORAGE_KEY = "ThemeMusicData";
+  const initThemeMusic = () => {
+      // prevent double initialization (useful for hot reloads or SPA re-exec)
+      if (themeMusicInitialized || window.__themeMusicInitialized)
+          return;
+      themeMusicInitialized = true;
+      window.__themeMusicInitialized = true;
+      console.log("[Init] Theme music initialized");
+      if (!window.YT) {
+          const script = document.createElement("script");
+          script.src = "https://www.youtube.com/iframe_api";
+          document.head.appendChild(script);
+          console.log("[Init] Injected YouTube IFrame API script");
+      }
+      const debounce = (fn, delay = 300) => {
+          if (debounceTimer)
+              clearTimeout(debounceTimer);
+          debounceTimer = window.setTimeout(fn, delay);
+      };
+      const waitForYouTubeAPI = async () => {
+          if (window.YT && window.YT.Player)
+              return;
+          console.log("[Init] Waiting for YouTube API to load...");
+          await new Promise((resolve) => {
+              window.onYouTubeIframeAPIReady = () => {
+                  console.log("[Init] YouTube API ready");
+                  resolve();
+              };
+          });
+      };
+      const loadCache = () => {
+          try {
+              return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+          }
+          catch {
+              return {};
+          }
+      };
+      const saveCache = (data) => {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+      };
+      const getCachedVideo = (query) => {
+          const sessionHit = sessionCache.get(query);
+          if (sessionHit)
+              return sessionHit;
+          const cache = loadCache();
+          const entry = cache[query];
+          if (!entry)
+              return null;
+          if (Date.now() - entry.timestamp > CACHE_EXPIRATION) {
+              delete cache[query];
+              saveCache(cache);
+              return null;
+          }
+          sessionCache.set(query, entry.videoId);
+          return entry.videoId;
+      };
+      const storeCachedVideo = (query, videoId) => {
+          const cache = loadCache();
+          cache[query] = { videoId, timestamp: Date.now() };
+          saveCache(cache);
+          sessionCache.set(query, videoId);
+      };
+      const fadeOutAndStop = async () => new Promise((resolve) => {
+          if (!ytPlayer)
+              return resolve();
+          console.log("[Audio] Fading out...");
+          let volume = 100;
+          clearInterval(fadeInterval);
+          fadeInterval = window.setInterval(() => {
+              if (!ytPlayer)
+                  return cleanup();
+              volume = Math.max(0, volume - 10); // smoother fade
+              ytPlayer.setVolume?.(volume);
+              if (volume <= 0)
+                  cleanup();
+          }, 50); // slower steps
+          const cleanup = () => {
+              clearInterval(fadeInterval);
+              fadeInterval = null;
+              try {
+                  ytPlayer?.stopVideo?.();
+                  ytPlayer?.destroy?.();
+              }
+              catch (err) {
+                  console.warn("[Audio] Cleanup error:", err);
+              }
+              ytAudioIframe?.remove();
+              ytAudioIframe = null;
+              ytPlayer = null;
+              currentQuery = null;
+              console.log("[Audio] Previous track stopped");
+              resolve();
+          };
+      });
+      const createYTPlayer = async (videoId) => {
+          await waitForYouTubeAPI();
+          ytAudioIframe?.remove();
+          ytAudioIframe = document.createElement("div");
+          ytAudioIframe.id = "yt-audio-player";
+          Object.assign(ytAudioIframe.style, {
+              width: "0",
+              height: "0",
+              position: "absolute",
+              opacity: "0",
+              pointerEvents: "none",
+          });
+          document.body.appendChild(ytAudioIframe);
+          ytPlayer = new YT.Player("yt-audio-player", {
+              height: "0",
+              width: "0",
+              videoId,
+              playerVars: { autoplay: 1 },
+              events: {
+                  onReady: () => {
+                      ytPlayer?.setVolume?.(100);
+                      console.log("[Audio] Player ready & playing:", videoId);
+                  },
+                  onError: (e) => {
+                      console.error("[Audio] Player error:", e);
+                      fadeOutAndStop();
+                  },
+              },
+          });
+      };
+      const playYouTubeAudio = async (query) => {
+          if (query === currentQuery) {
+              console.log("[Audio] Already playing:", query);
+              return;
+          }
+          currentQuery = query;
+          console.log("[Audio] Playing query:", query);
+          await fadeOutAndStop();
+          const cachedId = getCachedVideo(query);
+          if (cachedId) {
+              console.log("[Audio] Using cached video:", cachedId);
+              await createYTPlayer(cachedId);
+              return;
+          }
+          const apiUrl = `https://nonsteamlaunchers.onrender.com/api/x7a9/${encodeURIComponent(query)}`;
+          try {
+              const res = await fetch(apiUrl);
+              const text = await res.text();
+              let data;
+              try {
+                  data = JSON.parse(text);
+              }
+              catch {
+                  console.error("[Audio] Invalid JSON response:", text);
+                  return;
+              }
+              const videoId = data.videoId;
+              if (!videoId)
+                  return console.warn("[Audio] No video found for:", query);
+              storeCachedVideo(query, videoId);
+              console.log("[Audio] Video fetched & cached:", videoId);
+              await createYTPlayer(videoId);
+          }
+          catch (err) {
+              console.error("[Audio] Failed to fetch video:", err);
+          }
+      };
+      const updateMusicFromUrl = async () => {
+          const match = window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
+          if (!match) {
+              await fadeOutAndStop();
+              return;
+          }
+          const appId = Number(match[1]);
+          if (!window.appStore?.m_mapApps)
+              return;
+          const appStore = window.appStore;
+          const appInfo = appStore.m_mapApps.get(appId);
+          if (!appInfo?.display_name)
+              return;
+          const query = `${appInfo.display_name} Theme Music`;
+          debounce(() => playYouTubeAudio(query));
+      };
+      const interceptHistory = (method) => {
+          const original = history[method];
+          history[method] = function (...args) {
+              const result = original.apply(this, args);
+              debounce(updateMusicFromUrl);
+              return result;
+          };
+      };
+      interceptHistory("pushState");
+      interceptHistory("replaceState");
+      window.addEventListener("popstate", () => debounce(updateMusicFromUrl));
+      // Initial page load
+      updateMusicFromUrl();
+  };
 
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-      const { settings, setAutoScan } = useSettings(serverAPI);
+      const { settings, setAutoScan, setPlaytimeEnabled, setThemeMusicEnabled } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -1897,7 +2149,7 @@
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateRestartModal, { serverAPI: serverAPI })) }, "Update UMU/Proton-GE"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(RestoreGameSavesModal, { serverAPI: serverAPI })) }, "Restore Game Saves")),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Game Scanner" },
-              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
+              window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time, track playtime, auto download boot videos and play game theme music. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves."),
               window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "12px", marginBottom: "10px" } }, "The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now & Amazon Luna games, The Native Linux NVIDIA GeForce NOW App by favoriting the game \"\u2665\", Waydroid Applications and Native Xbox App Games on Windows OS."),
               window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Auto Scan Games", checked: settings.autoscan, onChange: (value) => {
                       setAutoScan(value);
@@ -1906,7 +2158,18 @@
                           autoscan();
                       }
                   }, disabled: isAutoScanDisabled }),
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan')),
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleScanClick, disabled: isLoading || settings.autoscan }, isLoading ? 'Scanning...' : 'Manual Scan'),
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Playtime", checked: settings.playtimeEnabled, onChange: (value) => {
+                      setPlaytimeEnabled(value);
+                      if (value)
+                          initRealPlaytime(true);
+                  } }),
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Game Theme Music", checked: settings.thememusicEnabled, onChange: (value) => {
+                      setThemeMusicEnabled(value);
+                      if (value) {
+                          initThemeMusic();
+                      }
+                  } })),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "For Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "transparent",
@@ -1933,11 +2196,31 @@
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
       notify.setServer(serverApi);
-      initRealPlaytime();
+      // Fetch saved settings first, then decide whether to start Playtime or Theme Music
+      (async () => {
+          const savedSettings = (await serverApi.callPluginMethod('get_setting', {
+              key: 'settings',
+              default: {
+                  autoscan: false,
+                  customSites: "",
+                  playtimeEnabled: true,
+                  thememusicEnabled: true,
+              },
+          })).result;
+          if (savedSettings.playtimeEnabled) {
+              initRealPlaytime();
+          }
+          else {
+              setPlaytimeEnabled(false);
+          }
+          if (savedSettings.thememusicEnabled) {
+              initThemeMusic();
+          }
+      })();
       return {
           title: window.SP_REACT.createElement("div", { className: deckyFrontendLib.staticClasses.Title }, "NonSteamLaunchers"),
           alwaysRender: true,
-          content: (window.SP_REACT.createElement(Content, { serverAPI: serverApi })),
+          content: window.SP_REACT.createElement(Content, { serverAPI: serverApi }),
           icon: window.SP_REACT.createElement(RxRocket, null),
       };
   });
