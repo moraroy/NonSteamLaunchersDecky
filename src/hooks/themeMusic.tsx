@@ -5,10 +5,32 @@ let fadeInterval: number | null = null;
 let currentQuery: string | null = null;
 let themeMusicInitialized = false;
 let debounceTimer: number | null = null;
+let themeMusicEnabled = true; // <-- respects toggle
 
 const sessionCache = new Map<string, string>();
 const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 const LOCAL_STORAGE_KEY = "ThemeMusicData";
+
+/* ---------------------------- CONTROL ---------------------------- */
+
+// Called by the toggle in UI
+export const setThemeMusicEnabled = (enabled: boolean) => {
+  themeMusicEnabled = enabled;
+  console.log(`[ThemeMusic] ${enabled ? "Enabled" : "Disabled"}`);
+
+  if (!enabled) {
+    stopThemeMusic();
+  } else {
+    // Optionally refresh to play again if user re-enables
+    updateMusicFromUrl?.();
+  }
+};
+
+// Stop playback but keep cache/localStorage intact
+export const stopThemeMusic = async () => {
+  console.log("[ThemeMusic] Stopping playback due to toggle off");
+  await fadeOutAndStop();
+};
 
 /* ---------------------------- INIT FUNCTION ---------------------------- */
 export const initThemeMusic = () => {
@@ -122,10 +144,9 @@ export const initThemeMusic = () => {
     });
 
   const createYTPlayer = async (videoId: string) => {
-    // Wait until the YouTube IFrame API is ready
+    if (!themeMusicEnabled) return; // <-- respect toggle
     await waitForYouTubeAPI();
 
-    // Remove old iframe first
     ytAudioIframe?.remove();
 
     ytAudioIframe = document.createElement("div");
@@ -148,6 +169,7 @@ export const initThemeMusic = () => {
       playerVars: { autoplay: 1 },
       events: {
         onReady: () => {
+          if (!themeMusicEnabled) return fadeOutAndStop();
           ytPlayerReady = true;
           ytPlayer?.setVolume?.(100);
           console.log("[Audio] Player ready & playing:", videoId);
@@ -161,6 +183,11 @@ export const initThemeMusic = () => {
   };
 
   const playYouTubeAudio = async (query: string) => {
+    if (!themeMusicEnabled) {
+      console.log("[Audio] Skipping playback; theme music disabled.");
+      return;
+    }
+
     if (query === currentQuery) {
       console.log("[Audio] Already playing:", query);
       return;
@@ -169,10 +196,8 @@ export const initThemeMusic = () => {
     currentQuery = query;
     console.log("[Audio] Playing query:", query);
 
-    // Stop any previous track before starting
     await fadeOutAndStop();
 
-    // Check in-memory or local cache
     const cachedId = getCachedVideo(query);
     if (cachedId) {
       console.log("[Audio] Using cached video:", cachedId);
@@ -180,7 +205,6 @@ export const initThemeMusic = () => {
       return;
     }
 
-    // Fetch from API
     const apiUrl = `https://nonsteamlaunchers.onrender.com/api/x7a9/${encodeURIComponent(query)}`;
     console.log("[Audio] Fetching video ID:", apiUrl);
 
@@ -210,6 +234,12 @@ export const initThemeMusic = () => {
   /* ---------------------------- ROUTE HANDLING ---------------------------- */
 
   const updateMusicFromUrl = async () => {
+    if (!themeMusicEnabled) {
+      console.log("[Audio] Theme music disabled; skipping route change.");
+      await fadeOutAndStop();
+      return;
+    }
+
     const match = window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
 
     if (!match) {
@@ -218,8 +248,9 @@ export const initThemeMusic = () => {
     }
 
     const appId = Number(match[1]);
-    if (!appStore?.m_mapApps) return;
+    if (!(window as any).appStore?.m_mapApps) return;
 
+    const appStore = (window as any).appStore;
     const appInfo = appStore.m_mapApps.get(appId);
     if (!appInfo?.display_name) return;
 
@@ -238,7 +269,6 @@ export const initThemeMusic = () => {
 
   interceptHistory("pushState");
   interceptHistory("replaceState");
-
   window.addEventListener("popstate", () => debounce(updateMusicFromUrl));
 
   // Initial page load

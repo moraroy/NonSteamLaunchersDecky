@@ -24,7 +24,8 @@ import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
-import { initThemeMusic } from "./hooks/themeMusic";
+import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
+
 
 const initialOptions = sitesList;
 
@@ -36,7 +37,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
-  const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
+  const { settings, setAutoScan, setPlaytimeEnabled, setThemeMusicEnabled } = useSettings(serverAPI);
 
   // Random Greetings
   const greetings = [
@@ -256,6 +257,16 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             if (value) initRealPlaytime(true);
           }}
         />
+        <ToggleField
+          label="Theme Music"
+          checked={settings.thememusicEnabled}
+          onChange={(value) => {
+            setThemeMusicEnabled(value);
+            if (value) {
+              initThemeMusic();
+            }
+          }}
+        />
       </PanelSection>
 
       <PanelSection title="For Support and Donations">
@@ -301,23 +312,30 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
-  initThemeMusic();
 
-  // Fetch saved settings first, then decide whether to start Playtime
+  // Fetch saved settings first, then decide whether to start Playtime or Theme Music
   (async () => {
     const savedSettings = (
       await serverApi.callPluginMethod('get_setting', {
         key: 'settings',
-        default: { autoscan: false, customSites: "", playtimeEnabled: true },
+        default: {
+          autoscan: false,
+          customSites: "",
+          playtimeEnabled: true,
+          thememusicEnabled: true,
+        },
       })
-    ).result as { playtimeEnabled: boolean };
+    ).result as { playtimeEnabled: boolean; thememusicEnabled: boolean };
 
     if (savedSettings.playtimeEnabled) {
       initRealPlaytime();
     } else {
-      setPlaytimeEnabled(false); // disables tracking instead of calling a non-existent function
+      setPlaytimeEnabled(false);
     }
 
+    if (savedSettings.thememusicEnabled) {
+      initThemeMusic();
+    }
   })();
 
   return {
@@ -327,3 +345,4 @@ export default definePlugin((serverApi: ServerAPI) => {
     icon: <RxRocket />,
   };
 });
+

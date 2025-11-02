@@ -393,7 +393,8 @@
       const [settings, setSettings] = React.useState({
           autoscan: false,
           customSites: "",
-          playtimeEnabled: true, // default ON
+          playtimeEnabled: true,
+          thememusicEnabled: true,
       });
       // Load saved settings on mount
       React.useEffect(() => {
@@ -405,7 +406,7 @@
               setSettings(savedSettings);
           };
           getData();
-      }, []);
+      }, [serverApi]);
       // Generic update helper
       async function updateSettings(key, value) {
           setSettings((oldSettings) => {
@@ -417,18 +418,26 @@
               return newSettings;
           });
       }
-      // Existing setters
+      // Setters
       function setAutoScan(value) {
           updateSettings('autoscan', value);
       }
       function setCustomSites(value) {
           updateSettings('customSites', value);
       }
-      // New setter for Playtime
       function setPlaytimeEnabled(value) {
           updateSettings('playtimeEnabled', value);
       }
-      return { settings, setAutoScan, setCustomSites, setPlaytimeEnabled };
+      function setThemeMusicEnabled(value) {
+          updateSettings('thememusicEnabled', value);
+      }
+      return {
+          settings,
+          setAutoScan,
+          setCustomSites,
+          setPlaytimeEnabled,
+          setThemeMusicEnabled,
+      };
   };
 
   async function setupWebSocket(url, onMessage, onComplete) {
@@ -1904,9 +1913,7 @@
           };
       });
       const createYTPlayer = async (videoId) => {
-          // Wait until the YouTube IFrame API is ready
           await waitForYouTubeAPI();
-          // Remove old iframe first
           ytAudioIframe?.remove();
           ytAudioIframe = document.createElement("div");
           ytAudioIframe.id = "yt-audio-player";
@@ -1942,16 +1949,13 @@
           }
           currentQuery = query;
           console.log("[Audio] Playing query:", query);
-          // Stop any previous track before starting
           await fadeOutAndStop();
-          // Check in-memory or local cache
           const cachedId = getCachedVideo(query);
           if (cachedId) {
               console.log("[Audio] Using cached video:", cachedId);
               await createYTPlayer(cachedId);
               return;
           }
-          // Fetch from API
           const apiUrl = `https://nonsteamlaunchers.onrender.com/api/x7a9/${encodeURIComponent(query)}`;
           console.log("[Audio] Fetching video ID:", apiUrl);
           try {
@@ -1984,8 +1988,9 @@
               return;
           }
           const appId = Number(match[1]);
-          if (!appStore?.m_mapApps)
+          if (!window.appStore?.m_mapApps)
               return;
+          const appStore = window.appStore;
           const appInfo = appStore.m_mapApps.get(appId);
           if (!appInfo?.display_name)
               return;
@@ -2012,7 +2017,7 @@
       console.log('Content rendered');
       const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-      const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
+      const { settings, setAutoScan, setPlaytimeEnabled, setThemeMusicEnabled } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -2164,6 +2169,12 @@
                       setPlaytimeEnabled(value);
                       if (value)
                           initRealPlaytime(true);
+                  } }),
+              window.SP_REACT.createElement(deckyFrontendLib.ToggleField, { label: "Theme Music", checked: settings.thememusicEnabled, onChange: (value) => {
+                      setThemeMusicEnabled(value);
+                      if (value) {
+                          initThemeMusic();
+                      }
                   } })),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "For Support and Donations" },
               window.SP_REACT.createElement("div", { style: {
@@ -2191,18 +2202,25 @@
   var index = deckyFrontendLib.definePlugin((serverApi) => {
       autoscan();
       notify.setServer(serverApi);
-      initThemeMusic();
-      // Fetch saved settings first, then decide whether to start Playtime
+      // Fetch saved settings first, then decide whether to start Playtime or Theme Music
       (async () => {
           const savedSettings = (await serverApi.callPluginMethod('get_setting', {
               key: 'settings',
-              default: { autoscan: false, customSites: "", playtimeEnabled: true },
+              default: {
+                  autoscan: false,
+                  customSites: "",
+                  playtimeEnabled: true,
+                  thememusicEnabled: true,
+              },
           })).result;
           if (savedSettings.playtimeEnabled) {
               initRealPlaytime();
           }
           else {
-              setPlaytimeEnabled(false); // disables tracking instead of calling a non-existent function
+              setPlaytimeEnabled(false);
+          }
+          if (savedSettings.thememusicEnabled) {
+              initThemeMusic();
           }
       })();
       return {

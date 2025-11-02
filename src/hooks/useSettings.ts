@@ -4,14 +4,16 @@ import { ServerAPI } from 'decky-frontend-lib';
 export type Settings = {
   autoscan: boolean;
   customSites: string;
-  playtimeEnabled: boolean; // <-- new setting
+  playtimeEnabled: boolean;
+  thememusicEnabled: boolean;
 };
 
 export const useSettings = (serverApi: ServerAPI) => {
   const [settings, setSettings] = useState<Settings>({
     autoscan: false,
     customSites: "",
-    playtimeEnabled: true, // default ON
+    playtimeEnabled: true,
+    thememusicEnabled: true,
   });
 
   // Load saved settings on mount
@@ -26,7 +28,7 @@ export const useSettings = (serverApi: ServerAPI) => {
       setSettings(savedSettings);
     };
     getData();
-  }, []);
+  }, [serverApi]);
 
   // Generic update helper
   async function updateSettings(
@@ -43,7 +45,7 @@ export const useSettings = (serverApi: ServerAPI) => {
     });
   }
 
-  // Existing setters
+  // Setters
   function setAutoScan(value: Settings['autoscan']) {
     updateSettings('autoscan', value);
   }
@@ -52,10 +54,19 @@ export const useSettings = (serverApi: ServerAPI) => {
     updateSettings('customSites', value);
   }
 
-  // New setter for Playtime
   function setPlaytimeEnabled(value: Settings['playtimeEnabled']) {
     updateSettings('playtimeEnabled', value);
   }
 
-  return { settings, setAutoScan, setCustomSites, setPlaytimeEnabled };
+  function setThemeMusicEnabled(value: Settings['thememusicEnabled']) {
+    updateSettings('thememusicEnabled', value);
+  }
+
+  return {
+    settings,
+    setAutoScan,
+    setCustomSites,
+    setPlaytimeEnabled,
+    setThemeMusicEnabled,
+  };
 };
