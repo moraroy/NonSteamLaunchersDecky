@@ -227,6 +227,7 @@ class Plugin:
                         await asyncio.sleep(1)
 
                     decky_plugin.logger.info("Exiting AutoScan loop")
+                    import desktopTM
 
             except Exception as e:
                 decky_plugin.logger.error(f"Error during AutoScan: {e}")
