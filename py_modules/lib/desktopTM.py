@@ -186,22 +186,50 @@ THEMEMUSIC_CODE = r"""(function () {
   }
 
   function playYouTubeAudio(query) {
-    if (!isThemeMusicEnabled()) return;
-    if (query === currentQuery) return;
-    currentQuery = query;
+      if (!isThemeMusicEnabled()) return;
+      if (query === currentQuery) return;
+      currentQuery = query;
 
-    return fadeOutAndStop().then(function () {
-      var cachedId = getCachedVideo(query);
-      if (cachedId) return createYTPlayer(cachedId);
+      // Step 1: Immediately set currentlyPlaying with cached or placeholder
+      try {
+          const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+          const cachedTrack = themeData[query] || {};
+          themeData.currentlyPlaying = {
+              name: query,
+              videoId: cachedTrack.videoId || "loading", // temporary placeholder
+              timestamp: cachedTrack.timestamp || Date.now()
+          };
+          originalSetItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData));
+      } catch {}
 
-      return fetch("https://nonsteamlaunchers.onrender.com/api/x7a9/" + encodeURIComponent(query))
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-          if (!data || !data.videoId) return;
-          storeCachedVideo(query, data.videoId);
-          return createYTPlayer(data.videoId);
-        }).catch(function () { });
-    });
+      // Step 2: Stop current track
+      return fadeOutAndStop().then(function () {
+          var cachedId = getCachedVideo(query);
+          if (cachedId) return createYTPlayer(cachedId);
+
+          // Step 3: Fetch new track from API
+          return fetch("https://nonsteamlaunchers.onrender.com/api/x7a9/" + encodeURIComponent(query))
+              .then(function (res) { return res.json(); })
+              .then(function (data) {
+                  if (!data || !data.videoId) return;
+
+                  // Cache the track
+                  storeCachedVideo(query, data.videoId);
+
+                  // Step 4: Update currentlyPlaying with real videoId
+                  try {
+                      const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+                      themeData.currentlyPlaying = {
+                          name: query,
+                          videoId: data.videoId,
+                          timestamp: Date.now()
+                      };
+                      originalSetItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData));
+                  } catch {}
+
+                  return createYTPlayer(data.videoId);
+              }).catch(function () { });
+      });
   }
 
   function handleAppId(appId) {
@@ -346,7 +374,7 @@ THEMEMUSIC_BUTTON = r"""const THEMEMUSIC_BUTTON = (() => {
 
     // Insert button when panel exists
     const insert = () => {
-        const panel = document.querySelector("div.MediumRightPanel") || document.body;
+        const panel = document.querySelector("div.MediumRightPanel");
         if (panel) {
             panel.style.position = panel.style.position || "relative";
             panel.appendChild(btn);
@@ -512,81 +540,79 @@ def recv_ws_message_for_id(sock, expected_id):
 eval_id_counter = itertools.count(1000)
 
 
-def inject_thememusic_code(ws_socket, code):
-    inject_id = next(eval_id_counter)
-    wrapped_code = f"(async () => {{ {code}; return 'Injection done'; }})()"
-
-    send_ws_text(ws_socket, json.dumps({
-        "id": inject_id,
-        "method": "Runtime.evaluate",
-        "params": {
-            "expression": wrapped_code,
-            "awaitPromise": True
-        }
-    }))
-
-    response = recv_ws_message_for_id(ws_socket, inject_id)
-    print("Injection response:", response)
-    return response
-
-
-
-
 ###THEMEMUSIC ONLY
+# Usage
+eval_id_counter = iter(range(1, 1000000))  # Ensure counter exists
+
 def inject_thememusic_code(ws_socket):
-    inject_id = next(eval_id_counter)
+    try:
+        inject_id = next(eval_id_counter)
 
-    wrapped_code = f"(async () => {{ {THEMEMUSIC_CODE}; return 'ThemeMusic injection done'; }})()"
+        wrapped_code = f"(async () => {{ {THEMEMUSIC_CODE}; return 'ThemeMusic injection done'; }})()"
 
-    send_ws_text(ws_socket, json.dumps({
-        "id": inject_id,
-        "method": "Runtime.evaluate",
-        "params": {
-            "expression": wrapped_code,
-            "awaitPromise": True
-        }
-    }))
+        send_ws_text(ws_socket, json.dumps({
+            "id": inject_id,
+            "method": "Runtime.evaluate",
+            "params": {
+                "expression": wrapped_code,
+                "awaitPromise": True
+            }
+        }))
 
-    response = recv_ws_message_for_id(ws_socket, inject_id)
-    print("ThemeMusic injection response:", response)
-    return response
-
+        response = recv_ws_message_for_id(ws_socket, inject_id)
+        print("ThemeMusic injection response:", response)
+        return response
+    except Exception as e:
+        print("Error during ThemeMusic injection:", e)
+        return None
 
 # Usage
-ws_url = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE)
-ws_socket = create_websocket_connection(ws_url)
+try:
+    ws_url = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE)
+    ws_socket = create_websocket_connection(ws_url)
 
-send_ws_text(ws_socket, json.dumps({"id": 1, "method": "Runtime.enable"}))
-recv_ws_message_for_id(ws_socket, 1)
+    send_ws_text(ws_socket, json.dumps({"id": 1, "method": "Runtime.enable"}))
+    recv_ws_message_for_id(ws_socket, 1)
 
-inject_thememusic_code(ws_socket)
+    inject_thememusic_code(ws_socket)
+except Exception as e:
+    print("Failed to connect or inject ThemeMusic code:", e)
+
 #END OF THEMEMUSIC
 
 
 
-###Theme Music Button
-# Connect to the Steam target
-ws_url_steam = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE2)
-ws_socket_steam = create_websocket_connection(ws_url_steam)
+###Theme Music Button# Ensure counter exists
+eval_id_counter = iter(range(1, 1000000))
 
-# Enable Runtime
-send_ws_text(ws_socket_steam, json.dumps({"id": 1, "method": "Runtime.enable"}))
-recv_ws_message_for_id(ws_socket_steam, 1)
+try:
+    # Connect to the Steam target
+    ws_url_steam = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE2)
+    ws_socket_steam = create_websocket_connection(ws_url_steam)
 
-# Inject ThemeMusic button JS into Steam
-inject_id = next(eval_id_counter)
+    # Enable Runtime
+    send_ws_text(ws_socket_steam, json.dumps({"id": 1, "method": "Runtime.enable"}))
+    recv_ws_message_for_id(ws_socket_steam, 1)
 
-wrapped_code = f"(async () => {{ {THEMEMUSIC_BUTTON}; return 'ThemeMusic button injection done'; }})()"
+    # Inject ThemeMusic button JS into Steam
+    inject_id = next(eval_id_counter)
+    wrapped_code = f"(async () => {{ {THEMEMUSIC_BUTTON}; return 'ThemeMusic button injection done'; }})()"
 
-send_ws_text(ws_socket_steam, json.dumps({
-    "id": inject_id,
-    "method": "Runtime.evaluate",
-    "params": {
-        "expression": wrapped_code,
-        "awaitPromise": True
-    }
-}))
+    send_ws_text(ws_socket_steam, json.dumps({
+        "id": inject_id,
+        "method": "Runtime.evaluate",
+        "params": {
+            "expression": wrapped_code,
+            "awaitPromise": True
+        }
+    }))
 
-response = recv_ws_message_for_id(ws_socket_steam, inject_id)
-print("ThemeMusic button injection response:", response)
+    response = recv_ws_message_for_id(ws_socket_steam, inject_id)
+    print("ThemeMusic button injection response:", response)
+except Exception as e:
+    print("Failed to connect or inject ThemeMusic button:", e)
+
 ###End of theme music button
+
+
+
