@@ -38,6 +38,7 @@ flavor_mapping = {
     "Aqua": "Avowed",
     "LBRA": "Tony Hawk's Pro Skater 3 + 4",
     "SCOR": "Sea of Thieves",
+    "ARK": "The Outer Worlds 2",
 }
 
 def parse_battlenet_config(config_file_path):
