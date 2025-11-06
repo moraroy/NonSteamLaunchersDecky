@@ -153,9 +153,13 @@ THEMEMUSIC_CODE = r"""(function () {
 
   function storeCachedVideo(query, videoId) {
     var cache = loadCache();
-    cache[query] = { videoId: videoId, timestamp: Date.now() };
+    const entry = { videoId: videoId, timestamp: Date.now() };
+
+    cache[query] = entry;
     saveCache(cache);
-    sessionCache.set(query, videoId);
+
+
+    sessionCache.set(query, entry);
   }
 
   function fadeOutAndStop() {
@@ -242,7 +246,10 @@ THEMEMUSIC_CODE = r"""(function () {
       // Stop current track
       return fadeOutAndStop().then(function () {
           var cachedId = getCachedVideo(query);
-          if (cachedId) return createYTPlayer(cachedId);
+          if (cachedId) {
+              updateCurrentlyPlaying(query, cachedId);
+              return createYTPlayer(cachedId);
+          }
 
           // Fetch new track from API
           return fetch("https://nonsteamlaunchers.onrender.com/api/x7a9/" + encodeURIComponent(query))
@@ -257,8 +264,12 @@ THEMEMUSIC_CODE = r"""(function () {
                   updateCurrentlyPlaying(query, data.videoId);
 
                   return createYTPlayer(data.videoId);
-              }).catch(function () { });
-      });
+               })
+               .catch(function () {
+                   console.error("Theme music fetch failed");
+                   updateCurrentlyPlaying(query, null); // optional: clear 'loading' state on error
+               });
+       });
   }
 
   // Handle the event when "currentlyPlaying" changes
