@@ -513,13 +513,23 @@ const THEMEMUSIC_BUTTON = (() => {
 
     // Insert container into page
     const insert = () => {
-        const panel = document.querySelector("div.MediumRightPanel");
+        // Try to find either panel
+        const panel = document.querySelector("div.MediumRightPanel, div.WideRightPanel");
+
         if (panel) {
+            // Ensure panel has a position set
             panel.style.position = panel.style.position || "relative";
+
+            // Append container if not already appended
             if (!container.parentNode) panel.appendChild(container);
-        } else requestAnimationFrame(insert);
+        } else {
+            // Retry on next animation frame
+            requestAnimationFrame(insert);
+        }
     };
+
     insert();
+
 
     // Start glow & float only if music is on
     if(on){
