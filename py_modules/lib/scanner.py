@@ -445,25 +445,26 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
 
 
 # Descriptions file logic
-# Define the path for descriptions.json
+
+# Descriptions file path
 descriptions_file_path = f"{DECKY_USER_HOME}/.config/systemd/user/descriptions.json"
 
-# Function to create descriptions.json if it doesn't exist
+# --- Create descriptions.json if it doesn't exist ---
 def create_descriptions_file():
     if not os.path.exists(descriptions_file_path):
         try:
-            # Create an empty list inside the JSON file if it doesn't exist
-            with open(descriptions_file_path, 'w') as file:
-                json.dump([], file, indent=4)
+            os.makedirs(os.path.dirname(descriptions_file_path), exist_ok=True)
+            with open(descriptions_file_path, 'w', encoding='utf-8') as file:
+                json.dump([], file, indent=4, ensure_ascii=False)
             decky_plugin.logger.info(f"{descriptions_file_path} created successfully with an empty list.")
         except IOError as e:
             decky_plugin.logger.error(f"Error creating {descriptions_file_path}: {e}")
 
-# Function to load existing game data from descriptions.json
+# --- Load existing game data ---
 def load_game_data():
-    create_descriptions_file()  # Ensure the file is created if it doesn't exist
+    create_descriptions_file()
     try:
-        with open(descriptions_file_path, 'r') as file:
+        with open(descriptions_file_path, 'r', encoding='utf-8') as file:
             return json.load(file)
     except FileNotFoundError:
         decky_plugin.logger.info(f"File not found: {descriptions_file_path}, returning empty data.")
@@ -472,14 +473,15 @@ def load_game_data():
         decky_plugin.logger.error(f"Error decoding JSON: {e}, returning empty data.")
         return []
 
-# Function to check if a game already exists in descriptions.json
+# --- Check if a game exists ---
 def game_exists_in_data(existing_data, game_name):
     return any(game['game_name'] == game_name for game in existing_data)
 
+# --- Fetch game details from API ---
 def get_game_details(game_name):
     url = f"https://nonsteamlaunchers.onrender.com/api/details/{game_name}"
     try:
-        response = requests.get(url, timeout=10)  # Optional: set a timeout
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return response.json()
         else:
@@ -489,43 +491,46 @@ def get_game_details(game_name):
         decky_plugin.logger.error(f"Request failed for {game_name}: {e}")
         return None
 
-# Function to strip HTML tags from a string
+# --- Strip HTML tags ---
 def strip_html_tags(text):
-    clean_text = re.sub(r'<[^>]*>', '', text)
-    return clean_text
+    if not text:
+        return text
+    return re.sub(r'<[^>]*>', '', text)
 
-# Function to decode HTML entities like \u00a0 (non-breaking space) and \u2013 (en dash)
+# --- Decode HTML entities ---
 def decode_html_entities(text):
-    text = text.replace("\u00a0", " ")
-    text = text.replace("\u2013", "-")
-    text = text.replace("\u2019", "'")
-    text = text.replace("\u2122", "™")
+    if not text:
+        return text
+    replacements = {
+        "\u00a0": " ",
+        "\u2013": "-",
+        "\u2019": "'",
+        "\u2122": "™"
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
     return text
 
-# Function to write game details to descriptions.json (only if it's not already present)
+# --- Write game details safely ---
 def write_game_details(existing_data, game_details):
     if not game_details:
         decky_plugin.logger.info("No game details to write.")
         return existing_data
 
-    # Only process 'about_the_game' if it's not None
+    # Process about_the_game
     if 'about_the_game' in game_details:
         if game_details['about_the_game'] is not None:
             game_details['about_the_game'] = strip_html_tags(game_details['about_the_game'])
             game_details['about_the_game'] = decode_html_entities(game_details['about_the_game'])
         else:
-            # Explicitly set 'about_the_game' as None if it's missing (this will become null in JSON)
             game_details['about_the_game'] = None
 
-    # Ensure that 'game_details' key does not exist before adding
+    # Remove 'game_details' key if it exists
     if 'game_details' in game_details:
-        del game_details['game_details']  # Remove 'game_details' key
+        del game_details['game_details']
 
-    # Check if the game details already exist in the data based on game_name
-    game_exists = any(game['game_name'] == game_details['game_name'] for game in existing_data)
-
-    if not game_exists:
-        # Append new data if it doesn't already exist
+    # Append only if not already in data
+    if not any(game['game_name'] == game_details['game_name'] for game in existing_data):
         existing_data.append(game_details)
         decky_plugin.logger.info(f"Game details for {game_details['game_name']} added successfully.")
     else:
@@ -533,65 +538,55 @@ def write_game_details(existing_data, game_details):
 
     return existing_data
 
-# Function to update descriptions.json for new games
+# --- Update descriptions.json for new games ---
 def update_game_details(games_to_check):
-    # Load the existing game data
     existing_data = load_game_data()
 
-    # Dynamically build the list of app names to exclude from API requests
+    # Excluded apps list from siteList.ts
     excluded_apps = []
     try:
-        with open(f"{DECKY_PLUGIN_DIR}/src/hooks/siteList.ts", 'r', encoding='utf-8') as f:
+        site_list_path = f"{DECKY_PLUGIN_DIR}/src/hooks/siteList.ts"
+        with open(site_list_path, 'r', encoding='utf-8') as f:
             content = f.read()
             excluded_apps = re.findall(r"label:\s*'([^']+)'", content)
-    except Exception as e:
-        #decky_plugin.logger.error(f"Failed to read siteList.ts for excluded apps: {e}")
+    except Exception:
         excluded_apps = []
 
-    # Always include "Repair EA App"
     if "Repair EA App" not in excluded_apps:
         excluded_apps.append("Repair EA App")
 
-    # Iterate through the list of games to check and update game details
     for game_name in games_to_check:
-        # Skip the API call for excluded app names
         if game_name.lower() in (label.lower() for label in excluded_apps):
+            continue
 
-            #decky_plugin.logger.info(f"Skipping API call for {game_name} as it is in the exclusion list.")
-            continue  # Skip this iteration and move to the next game
-
-        # Check if the game already exists in the data
         existing_game = next((game for game in existing_data if game['game_name'] == game_name), None)
 
-        # If game exists and 'about_the_game' is null, skip the API call
+        # Skip if about_the_game is null
         if existing_game and existing_game.get('about_the_game') is None:
             decky_plugin.logger.warning(f"Skipping API call for {game_name} as 'about_the_game' is null.")
-            continue  # Skip this iteration and move to the next game
+            continue
 
-        # If game details are missing, fetch details
         if not game_exists_in_data(existing_data, game_name):
-            #decky_plugin.logger.info(f"Fetching details for {game_name} as details were missing...")
             game_details = get_game_details(game_name)
-
-            # Check if game details were fetched successfully
             if game_details:
                 existing_data = write_game_details(existing_data, game_details)
             else:
-                # If details could not be fetched, add a placeholder with null for 'about_the_game'
                 existing_data = write_game_details(existing_data, {
                     "game_name": game_name,
-                    "about_the_game": None  # Use None to ensure it's converted to null in JSON
+                    "about_the_game": None
                 })
                 decky_plugin.logger.warning(f"Inserted placeholder with null for {game_name} as no details were found.")
 
-    # Only write back to descriptions.json if new data was added
-    if existing_data != load_game_data():  # Check if data was changed
+    # Write back if data changed
+    if existing_data != load_game_data():
         with open(descriptions_file_path, 'w', encoding='utf-8') as file:
             json.dump(existing_data, file, indent=4, ensure_ascii=False)
         decky_plugin.logger.info(f"Updated {descriptions_file_path} with new game details (if applicable).")
     else:
         decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
-# End of Descriptions file logic
+
+
+
 
 
 # Boot video files
