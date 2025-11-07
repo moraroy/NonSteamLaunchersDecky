@@ -19,7 +19,19 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
             "Get-AppxPackage | Where-Object { -not $_.IsFramework } | ConvertTo-Json -Depth 3"
         ]
         try:
-            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            # --- Simple Fix: prevent PowerShell popup on Windows ---
+            creationflags = 0
+            if platform.system() == "Windows":
+                creationflags = subprocess.CREATE_NO_WINDOW
+            # -------------------------------------------------------
+
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                check=True,
+                creationflags=creationflags
+            )
             packages = json.loads(result.stdout)
             if isinstance(packages, dict):
                 packages = [packages]

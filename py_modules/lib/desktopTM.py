@@ -442,108 +442,99 @@ const THEMEMUSIC_BUTTON = (() => {
         opacity: "0",
         transform: "translateY(-10px)",
         transition: "opacity 0.3s ease, transform 0.3s ease",
-        pointerEvents: "none"
+        pointerEvents: "auto"
+    });
+
+    // Bubble hover
+    bubble.addEventListener("mouseenter", () => { if(on) bubble.style.opacity = "1"; });
+    bubble.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+            if (!on || ![musicBtn, pasteBtn, bubble].some(el => el.matches(':hover'))) {
+                hideBubble(); hidePaste();
+            }
+        }, 150);
     });
 
     const showBubble = (text, isError = false) => {
-        bubble.textContent = text || "Don't like what you hear? Change it with paste!";
+        if(!on) return; // Only show if music is ON
+        const themeData = load();
+        const current = themeData.currentlyPlaying;
+        let linkHTML = "hear";
+        if (current?.videoId) {
+            const videoUrl = `https://youtu.be/${current.videoId}`;
+            linkHTML = `<a href="${videoUrl}" target="_blank" style="color:#0af;text-decoration:underline;cursor:pointer;">hear</a>`;
+        }
+        const msg = text || `Don't like what you ${linkHTML}? Change it with paste!`;
+        bubble.innerHTML = msg;
+
         bubble.style.opacity = "1";
         bubble.style.transform = "translateY(0)";
-
-        // Set color based on whether it's an error or success
-        if (isError) {
-            bubble.style.backgroundColor = "#F44336";  // Invalid YouTube link -> red
-        } else if (text && text.startsWith("Updated")) {
-            bubble.style.backgroundColor = "#4CAF50";  // Updated theme message -> green
-        } else {
-            bubble.style.backgroundColor = "#222";  // Default bubble
-        }
+        if (isError) bubble.style.backgroundColor = "#F44336";
+        else if (text && text.startsWith("Updated")) bubble.style.backgroundColor = "#4CAF50";
+        else bubble.style.backgroundColor = "#222";
     };
+
     const hideBubble = () => { bubble.style.opacity = "0"; bubble.style.transform = "translateY(-10px)"; };
     const showPaste = () => { pasteBtn.style.opacity = "1"; pasteBtn.style.pointerEvents = "auto"; };
     const hidePaste = () => { pasteBtn.style.opacity = "0"; pasteBtn.style.pointerEvents = "none"; };
 
+    // Paste button logic
     pasteBtn.onclick = async () => {
         try {
             const text = await navigator.clipboard.readText();
             const match = text.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-            if (!match) return showBubble("Invalid YouTube link!", true);  // Pass true for error (red)
+            if (!match) return showBubble("Invalid YouTube link!", true);
 
             const newVideoId = match[1];
             const themeData = load();
             const currentThemeName = themeData.currentlyPlaying?.name;
-            if (!currentThemeName || !themeData[currentThemeName]) {
-                return showBubble("No theme currently playing!");
-            }
+            if (!currentThemeName || !themeData[currentThemeName]) return showBubble("No theme currently playing!");
 
-            // Update stored entry with videoId and timestamp
             themeData[currentThemeName].videoId = newVideoId;
-            themeData[currentThemeName].timestamp = Date.now(); // Add the current timestamp
+            themeData[currentThemeName].timestamp = Date.now();
             save(themeData);
 
-            // UI feedback
             musicBtn.textContent = "🎵";
             showButton(musicBtn);
             startGlow(musicBtn);
             startFloat([musicBtn]);
 
             showBubble(`Updated "${currentThemeName}"!`);
-
-            // Delay hiding the paste button so the hover state stays active briefly
-            setTimeout(() => {
-                hidePaste();
-            }, 3000);
-
+            setTimeout(() => { hidePaste(); }, 3000);
         } catch (e) {
             console.error(e);
             showBubble("Failed to read clipboard.", true);
         }
     };
 
-    // Append buttons and bubble
     container.appendChild(musicBtn);
     container.appendChild(bubble);
     container.appendChild(pasteBtn);
 
-    // Hide button if music is off
     if(!on){
         hideButton(musicBtn);
         hidePaste();
-    }
-
-    // Insert container into page
-    const insert = () => {
-        // Try to find either panel
-        const panel = document.querySelector("div.MediumRightPanel, div.WideRightPanel");
-
-        if (panel) {
-            // Ensure panel has a position set
-            panel.style.position = panel.style.position || "relative";
-
-            // Append container if not already appended
-            if (!container.parentNode) panel.appendChild(container);
-        } else {
-            // Retry on next animation frame
-            requestAnimationFrame(insert);
-        }
-    };
-
-    insert();
-
-
-    // Start glow & float only if music is on
-    if(on){
+    } else {
         showButton(musicBtn);
         startGlow(musicBtn);
         startFloat([musicBtn]);
     }
 
+    const insert = () => {
+        const panel = document.querySelector("div.MediumRightPanel");
+        if (panel) {
+            panel.style.position = panel.style.position || "relative";
+            if (!container.parentNode) panel.appendChild(container);
+        } else requestAnimationFrame(insert);
+    };
+    insert();
+
     // Hover logic
-    [musicBtn, pasteBtn, bubble].forEach(el => {
+    [musicBtn, pasteBtn].forEach(el => {
         el.addEventListener("mouseenter", () => { if(on) { showBubble(); showPaste(); } });
         el.addEventListener("mouseleave", () => {
             setTimeout(() => {
-                if (![musicBtn, pasteBtn, bubble].some(el => el.matches(':hover'))) {
+                if (!on || ![musicBtn, pasteBtn, bubble].some(el => el.matches(':hover'))) {
                     hideBubble(); hidePaste();
                 }
             }, 150);
@@ -558,27 +549,18 @@ const THEMEMUSIC_BUTTON = (() => {
         savedData.themeMusic = on;
         save(savedData);
 
-        if (on) {
+        if(on){
             showButton(musicBtn);
             startGlow(musicBtn);
             startFloat([musicBtn]);
         } else {
-            // Show the 🔇 icon first and keep it visible for 3 seconds
-            musicBtn.textContent = "🔇";
-            showButton(musicBtn);
             stopGlow(musicBtn);
             stopFloat([musicBtn]);
-
-            // After 3 seconds, resume normal hide logic
-            setTimeout(() => {
-
-                hideButton(musicBtn);
-                hideBubble();
-                hidePaste();
-            }, 2000);
+            hideButton(musicBtn);
+            hideBubble();
+            hidePaste();
         }
     };
-
 })();
 """
 
