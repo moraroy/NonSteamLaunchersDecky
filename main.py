@@ -22,6 +22,7 @@ import subprocess
 import shutil
 import json
 import requests
+import platform
 from collections import defaultdict
 from datetime import datetime
 from aiohttp import web
@@ -227,7 +228,13 @@ class Plugin:
                         await asyncio.sleep(1)
 
                     decky_plugin.logger.info("Exiting AutoScan loop")
-                    import desktopTM
+
+
+                    try:
+                        import desktopTM
+                        decky_plugin.logger.info("desktopTM imported successfully")
+                    except ImportError:
+                        decky_plugin.logger.warning("desktopTM module not found, skipping import")
 
             except Exception as e:
                 decky_plugin.logger.error(f"Error during AutoScan: {e}")
@@ -569,7 +576,6 @@ class Plugin:
 
 
 
-
     async def _migration(self):
         decky_plugin.logger.info("Starting migration process")
 
@@ -582,177 +588,212 @@ class Plugin:
         nslgamescanner_py = os.path.join(decky_user_home, '.config/systemd/user/NSLGameScanner.py')
         env_vars_file = os.path.join(decky_user_home, '.config/systemd/user/env_vars')
 
-        # Define the required directories leading up to the files
+        # Required directories
         required_dirs = [
             os.path.join(decky_user_home, '.config/systemd/user'),
             os.path.join(decky_user_home, '.config/systemd/user/default.target.wants')
         ]
 
-        # Ensure required directories exist (but not the files themselves)
         for dir_path in required_dirs:
             if not os.path.exists(dir_path):
-                os.makedirs(dir_path)  # Create the directories if they do not exist
+                os.makedirs(dir_path)
                 decky_plugin.logger.info(f"Directory created: {dir_path}")
             else:
                 decky_plugin.logger.info(f"Directory already exists: {dir_path}")
 
-        # Check if the env_vars file exists, and create it if it doesn't
+        # Create env_vars file if missing
         if not os.path.exists(env_vars_file):
-            with open(env_vars_file, 'w') as file:
-                # Create an empty file
+            with open(env_vars_file, 'w', encoding='utf-8') as file:
                 pass
             decky_plugin.logger.info(f"env_vars file created at {env_vars_file}")
         else:
             decky_plugin.logger.info(f"env_vars file already exists at {env_vars_file}")
 
-        # Define the environment variable entries to add
         env_vars_to_add = [
             f'export logged_in_home={decky_user_home}',
             'export chromedirectory="/usr/bin/flatpak"',
             'export chrome_startdir="/usr/bin"',
         ]
 
-        # Read the existing env_vars file to check for duplicates
-        with open(env_vars_file, 'r') as file:
-            existing_lines = [line.strip() for line in file.readlines()]  # Remove trailing whitespace/newlines
+        try:
+            with open(env_vars_file, 'r', encoding='utf-8') as file:
+                existing_lines = [line.strip() for line in file.readlines()]
+        except Exception as e:
+            decky_plugin.logger.error(f"Error reading env_vars file: {e}")
+            existing_lines = []
 
-        # Check if the environment variable lines already exist in the file
         for env_var in env_vars_to_add:
-            env_var_clean = env_var.strip()  # Clean up leading/trailing spaces
-
-            # Check if the environment variable already exists in the file
-            if not any(env_var_clean == line.strip() for line in existing_lines):
-                with open(env_vars_file, 'a') as file:
-                    file.write(f"{env_var_clean}\n")
-                decky_plugin.logger.info(f"Added {env_var_clean} to {env_vars_file}")
+            env_var_clean = env_var.strip()
+            if env_var_clean not in existing_lines:
+                try:
+                    with open(env_vars_file, 'a', encoding='utf-8') as file:
+                        file.write(f"{env_var_clean}\n")
+                    decky_plugin.logger.info(f"Added {env_var_clean} to {env_vars_file}")
+                except Exception as e:
+                    decky_plugin.logger.error(f"Error writing to env_vars file: {e}")
             else:
                 decky_plugin.logger.info(f"{env_var_clean} already exists in {env_vars_file}")
 
-        # Now process the Steam ID from loginusers.vdf
-        paths = [
-            os.path.join(decky_user_home, ".steam/root/config/loginusers.vdf"),
-            os.path.join(decky_user_home, ".local/share/Steam/config/loginusers.vdf")
-        ]
+        system = platform.system()
+        current_user = ""
+        current_steamid = ""
+        steamid3 = None
 
-        # Find the first existing file
-        file_path = next((p for p in paths if os.path.isfile(p)), None)
-
-        if file_path:
+        # --- Windows Steam detection ---
+        if system == "Windows":
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+                import winreg
+            except ImportError:
+                decky_plugin.logger.error("Failed to import winreg on Windows environment")
+                winreg = None
 
-                users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+            possible_paths = [
+                os.path.join(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"), "Steam", "config", "loginusers.vdf"),
+                os.path.join(os.environ.get("PROGRAMFILES", r"C:\Program Files"), "Steam", "config", "loginusers.vdf"),
+            ]
+            file_path = next((p for p in possible_paths if os.path.isfile(p)), None)
 
-                max_timestamp = 0
-                current_user = ""
-                current_steamid = ""
+            if file_path:
+                decky_plugin.logger.info(f"Found loginusers.vdf: {file_path}")
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
 
-                for steamid, block in users:
-                    account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
-                    timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+                    max_timestamp = 0
+                    for steamid, block in users:
+                        account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
+                        timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+                        if account_match and timestamp_match:
+                            account = account_match.group(1)
+                            timestamp = int(timestamp_match.group(1))
+                            if timestamp > max_timestamp:
+                                max_timestamp = timestamp
+                                current_user = account
+                                current_steamid = steamid
+                except Exception as e:
+                    decky_plugin.logger.error(f"Error processing loginusers.vdf: {e}")
 
-                    if account_match and timestamp_match:
-                        account = account_match.group(1)
-                        timestamp = int(timestamp_match.group(1))
+            # Registry fallback if vdf missing or empty
+            if not current_steamid and winreg:
+                try:
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess")
+                    steamid_reg, _ = winreg.QueryValueEx(key, "SteamID")
+                    current_steamid = str(steamid_reg)
+                    current_user = "Unknown"
+                    decky_plugin.logger.info(f"SteamID64 found from registry: {current_steamid}")
+                except FileNotFoundError:
+                    decky_plugin.logger.warning("No SteamID found in registry")
+                except Exception as e:
+                    decky_plugin.logger.error(f"Registry read error: {e}")
 
-                        if timestamp > max_timestamp:
-                            max_timestamp = timestamp
-                            current_user = account
-                            current_steamid = steamid
-
-                if current_user:
-                    decky_plugin.logger.info(f"SteamID: {current_steamid}")
-                    steamid3 = int(current_steamid) - 76561197960265728
-                    userdata_path = os.path.join(decky_user_home, f".steam/root/userdata/{steamid3}")
-
-                    if os.path.isdir(userdata_path):
-                        decky_plugin.logger.info(f"Found userdata folder for user with SteamID {current_steamid}: {userdata_path}")
-
-                        # Before writing steamid3, check if it already exists
-                        if f'export steamid3={steamid3}' not in existing_lines:
-                            with open(env_vars_file, "a") as file:
-                                file.write(f'export steamid3={steamid3}\n')
-                            decky_plugin.logger.info(f'Set steamid3="{steamid3}" in {env_vars_file}')
-                        else:
-                            decky_plugin.logger.info(f"steamid3={steamid3} already exists in {env_vars_file}")
-                    else:
-                        decky_plugin.logger.info(f"Could not find userdata folder for user with SteamID {current_steamid}")
-                else:
-                    decky_plugin.logger.info("No valid users found in the file.")
-            except Exception as e:
-                decky_plugin.logger.error(f"Error processing the loginusers.vdf file: {e}")
+        # --- Linux / macOS Steam detection ---
         else:
-            decky_plugin.logger.info("Could not find loginusers.vdf file")
-#End of Env_vars first run
+            possible_paths = [
+                os.path.join(decky_user_home, ".steam", "root", "config", "loginusers.vdf"),
+                os.path.join(decky_user_home, ".local", "share", "Steam", "config", "loginusers.vdf")
+            ]
+            file_path = next((p for p in possible_paths if os.path.isfile(p)), None)
 
+            if file_path:
+                decky_plugin.logger.info(f"Found loginusers.vdf: {file_path}")
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
 
+                    max_timestamp = 0
+                    for steamid, block in users:
+                        account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
+                        timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+                        if account_match and timestamp_match:
+                            account = account_match.group(1)
+                            timestamp = int(timestamp_match.group(1))
+                            if timestamp > max_timestamp:
+                                max_timestamp = timestamp
+                                current_user = account
+                                current_steamid = steamid
+                except Exception as e:
+                    decky_plugin.logger.error(f"Error processing loginusers.vdf: {e}")
 
+        # Convert to SteamID3
+        if current_steamid:
+            try:
+                steamid3 = int(current_steamid) - 76561197960265728
+                if f'export steamid3={steamid3}' not in existing_lines:
+                    with open(env_vars_file, "a", encoding="utf-8") as file:
+                        file.write(f'export steamid3={steamid3}\n')
+                    decky_plugin.logger.info(f"Set steamid3={steamid3} in {env_vars_file}")
+                else:
+                    decky_plugin.logger.info(f"steamid3={steamid3} already exists in {env_vars_file}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error converting SteamID to steamid3: {e}")
 
-        # Flags to check if any action was taken
+        # --- Clean up service files ---
         service_file_deleted = False
         symlink_removed = False
         nslgamescanner_py_deleted = False
 
-        # Delete the service file
         if os.path.exists(service_file):
-            os.remove(service_file)
-            service_file_deleted = True
-            decky_plugin.logger.info(f"Deleted service file: {service_file}")
-        else:
-            decky_plugin.logger.info(f"Service file not found: {service_file}")
+            try:
+                os.remove(service_file)
+                service_file_deleted = True
+                decky_plugin.logger.info(f"Deleted service file: {service_file}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error deleting service file: {e}")
 
-        # Remove the symlink
         if os.path.islink(symlink):
-            os.unlink(symlink)
-            symlink_removed = True
-            decky_plugin.logger.info(f"Removed symlink: {symlink}")
-        else:
-            decky_plugin.logger.info(f"Symlink not found: {symlink}")
+            try:
+                os.unlink(symlink)
+                symlink_removed = True
+                decky_plugin.logger.info(f"Removed symlink: {symlink}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error removing symlink: {e}")
 
-        # Delete the NSLGameScanner.py file
         if os.path.exists(nslgamescanner_py):
-            os.remove(nslgamescanner_py)
-            nslgamescanner_py_deleted = True
-            decky_plugin.logger.info(f"Deleted NSLGameScanner.py: {nslgamescanner_py}")
-        else:
-            decky_plugin.logger.info(f"NSLGameScanner.py not found: {nslgamescanner_py}")
+            try:
+                os.remove(nslgamescanner_py)
+                nslgamescanner_py_deleted = True
+                decky_plugin.logger.info(f"Deleted NSLGameScanner.py: {nslgamescanner_py}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error deleting NSLGameScanner.py: {e}")
 
-        # Reload the systemd daemon only if any action was taken
         if service_file_deleted or symlink_removed or nslgamescanner_py_deleted:
-            subprocess.run(['systemctl', '--user', 'daemon-reload'])
-            decky_plugin.logger.info("Reloaded systemd daemon")
+            if system != "Windows":
+                try:
+                    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=True)
+                    decky_plugin.logger.info("Reloaded systemd daemon")
+                except Exception as e:
+                    decky_plugin.logger.error(f"Error reloading systemd daemon: {e}")
+            else:
+                decky_plugin.logger.info("Windows detected; skipping systemd daemon reload")
         else:
             decky_plugin.logger.info("No changes made, skipping daemon reload")
 
-
-        if shutil.which("flatpak"):
-            decky_plugin.logger.info("Flatpak found, starting migration Game Save backup...")
-            try:
-                process = await asyncio.create_subprocess_exec(
-                    "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config",
-                    f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/",
-                    "backup", "--force",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env={**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
-                )
-
-                stdout, stderr = await process.communicate()
-
-                await process.wait()
-                decky_plugin.logger.info("Migration Game Save backup completed successfully")
-
-            except Exception as e:
-                decky_plugin.logger.error(f"Error during Flatpak migration backup: {e}")
-
+        # --- Flatpak backup for Linux ---
+        if system != "Windows":
+            if shutil.which("flatpak"):
+                decky_plugin.logger.info("Flatpak found, starting backup...")
+                try:
+                    process = await asyncio.create_subprocess_exec(
+                        "flatpak", "run", "com.github.mtkennerly.ludusavi", "--config",
+                        f"{decky_user_home}/.var/app/com.github.mtkennerly.ludusavi/config/ludusavi/NSLconfig/",
+                        "backup", "--force",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        env={**os.environ, 'LD_LIBRARY_PATH': '/usr/lib:/lib'}
+                    )
+                    stdout, stderr = await process.communicate()
+                    await process.wait()
+                    decky_plugin.logger.info("Migration Game Save backup completed successfully")
+                except Exception as e:
+                    decky_plugin.logger.error(f"Error during Flatpak backup: {e}")
+            else:
+                decky_plugin.logger.warning("Flatpak not found, skipping backup process")
         else:
-            decky_plugin.logger.warning("Flatpak not found, skipping backup process")
+            decky_plugin.logger.info("Windows detected; skipping Flatpak migration backup")
 
-
-
-
-
+        decky_plugin.logger.info("Migration process completed")
 
 
     async def _unload(self):

@@ -1,122 +1,176 @@
 import os
 import platform
-import decky_plugin
 import logging
 import vdf
+import decky_plugin
 from decky_plugin import DECKY_USER_HOME
 
-# Path to the env_vars file for Linux
 env_vars_path = f"{DECKY_USER_HOME}/.config/systemd/user/env_vars"
 env_vars = {}
 
+# Detect OS
+SYSTEM = platform.system()
+WINREG_AVAILABLE = False
+
+# Conditionally import winreg for Windows
+if SYSTEM == "Windows":
+    try:
+        import winreg
+        WINREG_AVAILABLE = True
+    except ImportError:
+        decky_plugin.logger.warning("winreg not available, skipping Windows registry access")
+
+# ---------- Helpers ----------
 def check_and_set_path(env_vars, key, path):
-    if os.path.exists(path):
+    if path and os.path.exists(path):
         env_vars[key] = path
 
+# ---------- Windows Registry Helpers ----------
+def get_reg_value(root, subkey, name):
+    if not WINREG_AVAILABLE:
+        return None
+    try:
+        with winreg.OpenKey(root, subkey) as key:
+            value, _ = winreg.QueryValueEx(key, name)
+            return value
+    except Exception:
+        return None
+
+# ---------- Launcher Detection (Windows only) ----------
+def find_launcher_path():
+    if not WINREG_AVAILABLE:
+        return {}
+
+    launchers = {}
+
+    registry_paths = [
+        ("epic", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Epic Games\EpicGamesLauncher", "AppDataPath", "EpicGamesLauncher.exe"),
+        ("gog", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\GOG.com\GalaxyClient", "path", "GalaxyClient.exe"),
+        ("uplay", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Ubisoft\Launcher", "InstallDir", "upc.exe"),
+        ("battlenet", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Battle.net", "InstallPath", "Battle.net Launcher.exe"),
+        ("eaapp", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Electronic Arts\EA Desktop", "InstallDir", "EADesktop.exe"),
+        ("rockstar", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Rockstar Games\Launcher", "InstallFolder", "Launcher.exe"),
+        ("hoyoplay", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\HoYoPlay", "InstallPath", "launcher.exe"),
+        ("amazon", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Amazon Games", "InstallPath", "App/Amazon Games.exe"),
+        ("itchio", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\itch", "InstallLocation", "itch.exe"),
+        ("legacy", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Legacy Games\Launcher", "InstallDir", "Legacy Games Launcher.exe"),
+        ("humble", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Humble App", "InstallDir", "Humble App.exe"),
+        ("indie", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\IGClient", "InstallDir", "IGClient.exe"),
+        ("psplus", winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\PlayStationPlus", "InstallDir", "pspluslauncher.exe")
+    ]
+
+    for name, root, key, reg_name, exe_name in registry_paths:
+        path = get_reg_value(root, key, reg_name)
+        if path:
+            exe_path = os.path.join(path, exe_name)
+            launchers[f"{name}shortcutdirectory"] = exe_path
+            launchers[f"{name}startingdir"] = os.path.dirname(exe_path)
+
+    return launchers
+
+# ---------- Steam Detection ----------
+def get_steam_userdata_dir():
+    if SYSTEM != "Windows" or not WINREG_AVAILABLE:
+        return None
+
+    possible_paths = []
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
+            install_path, _ = winreg.QueryValueEx(key, "SteamPath")
+            if install_path:
+                possible_paths.append(os.path.join(install_path, "userdata"))
+    except Exception:
+        pass
+
+    # Fallback common paths
+    for drive in "CDEFGHIJKLMNOPQRSTUVWXYZ":
+        possible_paths.append(fr"{drive}:\Steam\userdata")
+
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+# ---------- Main Refresh Function ----------
 def refresh_env_vars():
     global env_vars
     env_vars = {}
     decky_plugin.logger.info("Refreshing environment variables...")
 
-    if platform.system() == "Windows":  # Check if the system is Windows
-        decky_plugin.logger.info("Running on Windows")
-        # Define paths for Windows
-        paths = {
-            'epicshortcutdirectory': "C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe",
-            'epicstartingdir': "C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32",
-            'gogshortcutdirectory': "C:\\Program Files (x86)\\GOG Galaxy\\GalaxyClient.exe",
-            'gogstartingdir': "C:\\Program Files (x86)\\GOG Galaxy",
-            'uplayshortcutdirectory': "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\upc.exe",
-            'uplaystartingdir': "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher",
-            'battlenetshortcutdirectory': "C:\\Program Files (x86)\\Battle.net\\Battle.net Launcher.exe",
-            'battlenetstartingdir': "C:\\Program Files (x86)\\Battle.net",
-            'eaappshortcutdirectory': "C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EADesktop.exe",
-            'eaappstartingdir': "C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop",
-            'amazonshortcutdirectory': "C:\\Users\\steamuser\\AppData\\Local\\Amazon Games\\App\\Amazon Games.exe",
-            'amazonstartingdir': "C:\\Users\\steamuser\\AppData\\Local\\Amazon Games\\App",
-            'itchioshortcutdirectory': "C:\\Users\\steamuser\\AppData\\Local\\itch\\app-26.1.9\\itch.exe",
-            'itchiostartingdir': "C:\\Users\\steamuser\\AppData\\Local\\itch\\app-26.1.9",
-            'legacyshortcutdirectory': "C:\\Program Files\\Legacy Games\\Legacy Games Launcher\\Legacy Games Launcher.exe",
-            'legacystartingdir': "C:\\Program Files\\Legacy Games\\Legacy Games Launcher",
-            'humbleshortcutdirectory': "C:\\Program Files\\Humble App\\Humble App.exe",
-            'humblestartingdir': "C:\\Program Files\\Humble App",
-            'indieshortcutdirectory': "C:\\Program Files\\IGClient\\IGClient.exe",
-            'indiestartingdir': "C:\\Program Files\\IGClient",
-            'rockstarshortcutdirectory': "C:\\Program Files\\Rockstar Games\\Launcher\\Launcher.exe",
-            'rockstarstartingdir': "C:\\Program Files\\Rockstar Games\\Launcher",
-            'psplusshortcutdirectory': "C:\\Program Files (x86)\\PlayStationPlus\\pspluslauncher.exe",
-            'psplusstartingdir': "C:\\Program Files (x86)\\PlayStationPlus",
-            'hoyoplayshortcutdirectory': "C:\\Program Files\\HoYoPlay\\launcher.exe",
-            'hoyoplaystartingdir': "C:\\Program Files\\HoYoPlay"
-        }
+    if SYSTEM == "Windows" and WINREG_AVAILABLE:
+        decky_plugin.logger.info("Running Windows-specific logic")
 
-        # Check each path and set in env_vars if it exists
-        for key, path in paths.items():
+        # Launcher detection
+        launcher_paths = find_launcher_path()
+        for key, path in launcher_paths.items():
             check_and_set_path(env_vars, key, path)
 
-        # Steam ID retrieval function
-        USERS_DATA_DIR = "C:\\Program Files (x86)\\Steam\\userdata"
+        # Steam detection
+        USERS_DATA_DIR = get_steam_userdata_dir()
         decky_plugin.logger.info(f"Steam userdata directory: {USERS_DATA_DIR}")
 
-        def get_users():
-            users = [item for item in os.listdir(USERS_DATA_DIR) if os.path.isdir(os.path.join(USERS_DATA_DIR, item)) and item != '0']
-            decky_plugin.logger.info(f"Found users: {users}")
-            return users
-
-        def get_current_user():
-            try:
-                current_user = max(get_users(), key=lambda user: os.path.getmtime(os.path.join(USERS_DATA_DIR, user, 'config', 'shortcuts.vdf')))
-                decky_plugin.logger.info(f"Current user: {current_user}")
-                return current_user
-            except FileNotFoundError:
-                # If the file is not found, create it
-                current_user = max(get_users(), key=lambda user: os.path.getmtime(os.path.join(USERS_DATA_DIR, user, 'config')))
-                shortcuts_path = os.path.join(USERS_DATA_DIR, current_user, 'config', 'shortcuts.vdf')
-                decky_plugin.logger.info(f"VDF file not found at: {shortcuts_path}, creating and initializing it.")
-                try:
-                    os.makedirs(os.path.dirname(shortcuts_path), exist_ok=True)
-                    with open(shortcuts_path, 'wb') as file:
-                        file.write(vdf.binary_dumps({'shortcuts': {}}))
-                    os.chmod(shortcuts_path, 0o755)
-                except Exception as e:
-                    decky_plugin.logger.info(f"Error creating shortcuts file: {e}")
-                    return None
-                return current_user
-            except Exception as e:
-                logging.error(f'Failed to get current user: {str(e)}')
-                return None
-
-        users = get_users()
-        current_user = get_current_user()
-        if current_user:
-            env_vars['steamid3'] = current_user
+        if not USERS_DATA_DIR or not os.path.exists(USERS_DATA_DIR):
+            decky_plugin.logger.warning("Steam userdata directory not found.")
+            env_vars["steamid3"] = None
         else:
-            env_vars['steamid3'] = None
-        decky_plugin.logger.info(f"Steam ID3: {env_vars['steamid3']}")
+            try:
+                users = [
+                    u for u in os.listdir(USERS_DATA_DIR)
+                    if os.path.isdir(os.path.join(USERS_DATA_DIR, u)) and u != "0"
+                ]
+                decky_plugin.logger.info(f"Found Steam users: {users}")
 
-        # Miscellaneous Variables
-        env_vars['logged_in_home'] = DECKY_USER_HOME
+                if users:
+                    def get_user_timestamp(uid):
+                        cfg = os.path.join(USERS_DATA_DIR, uid, "config")
+                        return os.path.getmtime(cfg) if os.path.exists(cfg) else 0
+
+                    current_user = max(users, key=get_user_timestamp)
+                    env_vars["steamid3"] = current_user
+                    decky_plugin.logger.info(f"Active Steam user: {current_user}")
+
+                    shortcuts_path = os.path.join(USERS_DATA_DIR, current_user, "config", "shortcuts.vdf")
+                    if not os.path.exists(shortcuts_path):
+                        os.makedirs(os.path.dirname(shortcuts_path), exist_ok=True)
+                        with open(shortcuts_path, "wb") as file:
+                            file.write(vdf.binary_dumps({"shortcuts": {}}))
+                        os.chmod(shortcuts_path, 0o755)
+                        decky_plugin.logger.info(f"Created missing shortcuts.vdf at {shortcuts_path}")
+                else:
+                    env_vars["steamid3"] = None
+                    decky_plugin.logger.warning("No Steam users found in userdata.")
+            except Exception as e:
+                decky_plugin.logger.error(f"Error reading Steam userdata: {e}")
+                env_vars["steamid3"] = None
+
+        env_vars["logged_in_home"] = DECKY_USER_HOME
+
     else:
-        decky_plugin.logger.info("Running on Linux or other OS")
-
-        # Check if the env_vars file exists
+        # Linux / other OS
+        decky_plugin.logger.info("Running Linux/other OS logic")
         if not os.path.exists(env_vars_path):
-            decky_plugin.logger.error(f"Error: {env_vars_path} does not exist.")
-            return
+            decky_plugin.logger.warning(f"{env_vars_path} does not exist. Creating empty env vars file.")
+            os.makedirs(os.path.dirname(env_vars_path), exist_ok=True)
+            with open(env_vars_path, "w") as f:
+                f.write("")
+            return env_vars
 
-        # Read variables from the file
-        with open(env_vars_path, 'r') as f:
+        with open(env_vars_path, "r") as f:
             lines = f.readlines()
-        for line in lines:
-            if line.startswith('export '):
-                line = line[7:]  # Remove 'export '
-            name, value = line.strip().split('=', 1)
-            env_vars[name] = value
 
-        # Delete env_vars entries for Chrome shortcuts so that they're only added once
-        with open(env_vars_path, 'w') as f:
+        for line in lines:
+            if line.startswith("export "):
+                line = line[7:]
+            if "=" in line:
+                name, value = line.strip().split("=", 1)
+                env_vars[name] = value
+
+        # Rewrite file without certain keys
+        with open(env_vars_path, "w") as f:
             for line in lines:
-                if 'chromelaunchoptions' not in line and 'websites_str' not in line:
+                if "chromelaunchoptions" not in line and "websites_str" not in line:
                     f.write(line)
+
+        env_vars["logged_in_home"] = DECKY_USER_HOME
 
     return env_vars

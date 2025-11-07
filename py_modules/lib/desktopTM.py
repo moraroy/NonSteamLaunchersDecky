@@ -724,10 +724,7 @@ def recv_ws_message_for_id(sock, expected_id):
             continue
 
 
-
-
 eval_id_counter = itertools.count(1000)
-
 
 def inject_thememusic_code(ws_socket, code):
     inject_id = next(eval_id_counter)
@@ -747,12 +744,9 @@ def inject_thememusic_code(ws_socket, code):
     return response
 
 
-
-
-###THEMEMUSIC ONLY
+### THEMEMUSIC ONLY
 def inject_thememusic_code(ws_socket):
     inject_id = next(eval_id_counter)
-
     wrapped_code = f"(async () => {{ {THEMEMUSIC_CODE}; return 'ThemeMusic injection done'; }})()"
 
     send_ws_text(ws_socket, json.dumps({
@@ -769,7 +763,7 @@ def inject_thememusic_code(ws_socket):
     return response
 
 
-# Usage
+# Usage for main ThemeMusic target
 ws_url = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE)
 ws_socket = create_websocket_connection(ws_url)
 
@@ -777,33 +771,36 @@ send_ws_text(ws_socket, json.dumps({"id": 1, "method": "Runtime.enable"}))
 recv_ws_message_for_id(ws_socket, 1)
 
 inject_thememusic_code(ws_socket)
-#END OF THEMEMUSIC
+# END OF THEMEMUSIC
 
 
+### Theme Music Button for Steam
+try:
+    # Connect to the Steam target
+    ws_url_steam = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE2)
+    ws_socket_steam = create_websocket_connection(ws_url_steam)
 
-###Theme Music Button
-# Connect to the Steam target
-ws_url_steam = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE2)
-ws_socket_steam = create_websocket_connection(ws_url_steam)
+    # Enable Runtime
+    send_ws_text(ws_socket_steam, json.dumps({"id": 1, "method": "Runtime.enable"}))
+    recv_ws_message_for_id(ws_socket_steam, 1)
 
-# Enable Runtime
-send_ws_text(ws_socket_steam, json.dumps({"id": 1, "method": "Runtime.enable"}))
-recv_ws_message_for_id(ws_socket_steam, 1)
+    # Inject ThemeMusic button JS into Steam
+    inject_id = next(eval_id_counter)
+    wrapped_code = f"(async () => {{ {THEMEMUSIC_BUTTON}; return 'ThemeMusic button injection done'; }})()"
 
-# Inject ThemeMusic button JS into Steam
-inject_id = next(eval_id_counter)
+    send_ws_text(ws_socket_steam, json.dumps({
+        "id": inject_id,
+        "method": "Runtime.evaluate",
+        "params": {
+            "expression": wrapped_code,
+            "awaitPromise": True
+        }
+    }))
 
-wrapped_code = f"(async () => {{ {THEMEMUSIC_BUTTON}; return 'ThemeMusic button injection done'; }})()"
+    response = recv_ws_message_for_id(ws_socket_steam, inject_id)
+    print("ThemeMusic button injection response:", response)
 
-send_ws_text(ws_socket_steam, json.dumps({
-    "id": inject_id,
-    "method": "Runtime.evaluate",
-    "params": {
-        "expression": wrapped_code,
-        "awaitPromise": True
-    }
-}))
-
-response = recv_ws_message_for_id(ws_socket_steam, inject_id)
-print("ThemeMusic button injection response:", response)
-###End of theme music button
+except Exception as e:
+    print(f"Steam target not found or injection failed: {e}")
+    # Optional: log this to decky_plugin.logger if desired
+# End of ThemeMusic button
