@@ -273,75 +273,47 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
 
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
-    # --- Dynamic Steam userdata detection ---
-    def get_steam_userdata_dir():
-        import winreg
-        possible_paths = []
 
-        # Try registry first
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
-                install_path, _ = winreg.QueryValueEx(key, "SteamPath")
-                if install_path:
-                    possible_paths.append(os.path.join(install_path, "userdata"))
-        except Exception:
-            pass
-
-        # Fallbacks for safety
-        for drive in "CDEFGHIJKLMNOPQRSTUVWXYZ":
-            possible_paths.append(fr"{drive}:\Steam\userdata")
-
-        for path in possible_paths:
-            if os.path.exists(path):
-                return path
-
-        return None
-
-    # --- Determine correct shortcuts.vdf path ---
+    # Determine the path based on the operating system
     if platform.system() == "Windows":
-        USERS_DATA_DIR = get_steam_userdata_dir()
-        if USERS_DATA_DIR and steamid3:
-            vdf_path = os.path.join(USERS_DATA_DIR, steamid3, "config", "shortcuts.vdf")
-        else:
-            decky_plugin.logger.warning("Unable to determine valid Steam userdata path for current user.")
-            return False
+        vdf_path = f"C:\\Program Files (x86)\\Steam\\userdata\\{steamid3}\\config\\shortcuts.vdf"
     else:
-        if logged_in_home and steamid3:
-            vdf_path = os.path.join(logged_in_home, ".steam", "root", "userdata", steamid3, "config", "shortcuts.vdf")
-        else:
-            decky_plugin.logger.warning("Unable to determine valid Linux Steam userdata path.")
-            return False
+        vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
 
-    # --- Continue with your existing logic unchanged ---
+    # Check if the shortcuts file exists
     if os.path.exists(vdf_path):
-        # Ensure file exists and can be read
-        if not os.access(vdf_path, os.R_OK):
-            decky_plugin.logger.info(f"VDF file is not readable, initializing: {vdf_path}")
+
+        # If the file is not executable, write the shortcuts dictionary and make it executable
+        if not os.access(vdf_path, os.X_OK):
+            decky_plugin.logger.info(f"VDF file is not executable, initializing: {vdf_path}")
             with open(vdf_path, 'wb') as file:
                 vdf.binary_dumps({'shortcuts': {}}, file)
             os.chmod(vdf_path, 0o755)
         else:
+            # If the file exists, try to load it
             try:
                 with open(vdf_path, 'rb') as file:
                     shortcuts = vdf.binary_loads(file.read())
 
                 for s in shortcuts['shortcuts'].values():
-                    stripped_exe_path = exe_path.strip('"') if exe_path else exe_path
-                    stripped_start_dir = start_dir.strip('"') if start_dir else start_dir
+                    stripped_exe_path = exe_path.strip('\"') if exe_path else exe_path
+                    stripped_start_dir = start_dir.strip('\"') if start_dir else start_dir
 
-                    # Regular non-Chrome shortcut
+
+                    # Non-Chrome shortcut check: We remove the launch options comparison for non-Chrome shortcuts
                     if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                       (s.get('exe') and s.get('exe').strip('"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('"') == stripped_exe_path) and \
-                       s.get('StartDir') and s.get('StartDir').strip('"') == stripped_start_dir:
+                       (s.get('exe') and s.get('exe').strip('\"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('\"') == stripped_exe_path) and \
+                       s.get('StartDir') and s.get('StartDir').strip('\"') == stripped_start_dir:
 
+                        # Check if the launch options are different (for non-Chrome, no comparison is done, so add a warning here)
                         if s.get('LaunchOptions') != launch_options:
-                            decky_plugin.logger.warning(f"Launch options for {display_name} differ. Skipping creation.")
-                        decky_plugin.logger.info(f"Existing shortcut found for {display_name}. Skipping creation.")
+                            decky_plugin.logger.warning(f"Launch options for {display_name} differ from the default. This could be due to the user manually modifying the launch options. Will skip creation")
+
+                        decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
                         return True
 
-                    # Chrome/website shortcut
                     if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                       (s.get('exe') and s.get('exe').strip('"') == '/app/bin/chrome') and \
+                       (s.get('exe') and s.get('exe').strip('\"') == '/app/bin/chrome') and \
                        s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
                         decky_plugin.logger.info(f"Existing website shortcut found for {display_name}. Skipping creation.")
                         return True

@@ -10,14 +10,14 @@ def epic_games_scanner(logged_in_home, epic_games_launcher, create_new_entry):
     if platform.system() == "Windows":
         item_dir = r"C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests"
         dat_file_path = r"C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat"
-        exe_template = r"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win32\EpicGamesLauncher.exe"
-        start_dir_template = r"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win32"
+        exe_template = r"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe"
+        start_dir_template = r"C:\Program Files (x86)\Epic Games\Launcher\Portal\Binaries\Win64"
         launch_options_template = "-'com.epicgames.launcher://apps/{app_name}?action=launch&silent=true'"
     else:
         item_dir = f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Manifests/"
         dat_file_path = f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/ProgramData/Epic/UnrealEngineLauncher/LauncherInstalled.dat"
-        exe_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe\""
-        start_dir_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/\""
+        exe_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe\""
+        start_dir_template = f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win64/\""
         launch_options_template = f"STEAM_COMPAT_DATA_PATH=\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{epic_games_launcher}/\" %command% -'com.epicgames.launcher://apps/{{app_name}}?action=launch&silent=true'"
 
     if os.path.exists(dat_file_path) and os.path.exists(item_dir):
