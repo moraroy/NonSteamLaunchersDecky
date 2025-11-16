@@ -176,6 +176,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/b2619bbe281deeefea3675dfed719fd7.jpg'
   },
   {
+    name: 'moonlightGameStreaming',
+    label: 'Moonlight Game Streaming',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/c4733f77978b2975811dbd622d32553c.png'
+  },
+  {
     name: 'remotePlayWhatever',
     label: 'RemotePlayWhatever',
     URL: '',

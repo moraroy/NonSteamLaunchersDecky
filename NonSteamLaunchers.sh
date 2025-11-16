@@ -249,7 +249,7 @@ fi
 exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.2.1
+version=v4.2.74
 #NSL DECKY VERSION (NO RCE)
 
 
@@ -371,8 +371,8 @@ fi
 
 # TODO: parameterize hard-coded client versions (cf. 'app-26.1.9')
 # Set the paths to the launcher executables
-epic_games_launcher_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe"
-epic_games_launcher_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe"
+epic_games_launcher_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe"
+epic_games_launcher_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher/pfx/drive_c/Program Files/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe"
 gog_galaxy_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/GOG Galaxy/GalaxyClient.exe"
 gog_galaxy_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GogGalaxyLauncher/pfx/drive_c/Program Files (x86)/GOG Galaxy/GalaxyClient.exe"
 uplay_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Ubisoft/Ubisoft Game Launcher/upc.exe"
@@ -724,6 +724,7 @@ launcher_entries=(
   "$stove_value|$stove_text"
   "FALSE|RemotePlayWhatever"
   "FALSE|NVIDIA GeForce NOW"
+  "FALSE|Moonlight Game Streaming"
 )
 
 chrome_entries=(
@@ -1831,9 +1832,19 @@ process_uninstall_options() {
             killall zenity
         fi
 
+        if [[ $uninstall_options == *"Uninstall Moonlight Game Streaming"* ]]; then
+
+            flatpak uninstall -y --force-remove --user com.moonlight_stream.Moonlight
+
+            zenity --info --text="Moonlight Game Streaming has been uninstalled." --width=250 --height=150 &
+            sleep 3
+            killall zenity
+        fi
+
+
         uninstall_launcher "$uninstall_options" "Uplay" "$uplay_path1" "$uplay_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Ubisoft" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" "uplay" "ubisoft"
         uninstall_launcher "$uninstall_options" "Battle.net" "$battlenet_path1" "$battlenet_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Battle.net" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" "battle" "bnet"
-        uninstall_launcher "$uninstall_options" "Epic Games" "$epic_games_launcher_path1" "$epic_games_launcher_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Epic Games" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" "epic"
+        uninstall_launcher "$uninstall_options" "Epic Games" "$epic_games_launcher_path1" "$epic_games_launcher_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Epic Games" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" "epic"
         uninstall_launcher "$uninstall_options" "Amazon Games" "$amazongames_path1" "$amazongames_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/Amazon Games" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" "amazon"
         uninstall_launcher "$uninstall_options" "itch.io" "$itchio_path1" "$itchio_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/itch" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/itchioLauncher" "itchio"
         uninstall_launcher "$uninstall_options" "Humble Games Collection" "$humblegames_path1" "$humblegames_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Humble App" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/HumbleGamesLauncher" "humble"
@@ -1919,6 +1930,7 @@ else
             FALSE "RemotePlayWhatever" \
             FALSE "NVIDIA GeForce NOW" \
             FALSE "STOVE Client" \
+            FALSE "Moonlight Game Streaming" \
         )
         # Convert the returned string to an array
         IFS='|' read -r -a uninstall_options_array <<< "$uninstall_options"
@@ -2737,13 +2749,29 @@ fi
 
 
 
-
-
-
-
-
-
 echo "99.2"
+echo "# Installing Moonlight Game Streaming...please wait..."
+
+if [[ $options == *"Moonlight Game Streaming"* ]]; then
+    if flatpak info --user com.moonlight_stream.Moonlight &>/dev/null || flatpak info --system com.moonlight_stream.Moonlight &>/dev/null; then
+        echo "Moonlight Game Streaming is already installed (user or system)."
+    else
+        echo "Installing Moonlight Flatpak app (user scope)..."
+        if flatpak install -y --user flathub com.moonlight_stream.Moonlight; then
+            echo "Moonlight installed successfully."
+        else
+            echo "Failed to install Moonlight."
+        fi
+    fi
+fi
+
+
+
+
+
+
+
+echo "99.3"
 echo "# Checking if Ludusavi is installed...please wait..."
 
 # AutoInstall Ludusavi
