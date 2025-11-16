@@ -70,7 +70,7 @@ for arg in "${args[@]}"; do
     fi
 
     # Set version check variables
-    GITHUB_URL="https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/refs/heads/main/package.json"
+    GITHUB_URL="https://raw.githubusercontent.com/moraroy/NonSteamLaunchersDecky/main/package.json"
 
     # Function to fetch GitHub package.json
     fetch_github_version() {
