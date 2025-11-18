@@ -77,8 +77,9 @@ export async function createShortcut(game: any) {
 
     // Set "Sort As" title to match the collection name (if present)
     if (Launcher && typeof Launcher === "string" && Launcher.trim().length > 0) {
-      await SteamClient.Apps.SetShortcutSortAs(appId, Launcher.trim());
-      console.log("Sort As title set to:", Launcher.trim());
+      const sortName = `${appname} ${Launcher.trim()}`;
+      await SteamClient.Apps.SetShortcutSortAs(appId, sortName);
+      console.log("Sort As title set to:", sortName);
     }
 
 
