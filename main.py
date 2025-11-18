@@ -558,7 +558,8 @@ class Plugin:
                 await ws.close()
                 return ws
 
-        app = web.Application()
+        app = decky_plugin.App()
+
         app.router.add_get('/autoscan', handleAutoScan)
         app.router.add_get('/scan', handleScan)
         app.router.add_get('/customSite', handleCustomSite)
@@ -566,14 +567,9 @@ class Plugin:
         app.router.add_get('/check_update', handle_check_update)
         app.router.add_get('/launcher_status', handle_launcher_status)
 
-        runner = web.AppRunner(app)
-        await runner.setup()
-        decky_plugin.logger.info("Server runner setup")
-        site = web.TCPSite(runner, 'localhost', 8675)
-        await site.start()
-        decky_plugin.logger.info("Server started at http://localhost:8675")
+        decky_plugin.logger.info("Routes registered with Decky.")
 
-
+        return app
 
 
     async def _migration(self):
