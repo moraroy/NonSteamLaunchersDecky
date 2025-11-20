@@ -7,7 +7,7 @@ import time
 from scanners.game_tracker import track_game
 
 
-def getGogGameInfoDB(db_path):
+def getGogGameInfoDB(db_path, logged_in_home=None, gog_galaxy_launcher=None):
     if not os.path.exists(db_path):
         decky_plugin.logger.info(f"GOG Galaxy DB not found: {db_path}")
         return {}
@@ -34,21 +34,17 @@ def getGogGameInfoDB(db_path):
         def score(exe):
             exe_norm = exe.replace("\\", "/")
             name = os.path.basename(exe_norm).lower()
-
             if name in junk:
                 return None
-
             name_key = name.translate(str.maketrans('', '', ' :-_'))
             if title_key in name_key:
                 return (1, exe)
-
             folder = os.path.dirname(exe_norm).lower()
             if folder.startswith(base):
                 rel = folder[len(base):].strip("/")
                 rel_key = rel.replace(" ", "").replace("_", "").replace("-", "")
                 if not rel or title_key in rel_key:
                     return (2, exe)
-
             return (3, exe)
 
         scored = filter(None, (score(e) for e in executables))
@@ -86,9 +82,28 @@ def getGogGameInfoDB(db_path):
 
                 best = filter_executables(set(exes), title, install_path)
                 if best:
+                    # Keep the original Windows-style path
+                    exe_win_path = best[0]
+
+                    if platform.system() != "Windows" and logged_in_home and gog_galaxy_launcher:
+                        proton_root = (
+                            f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/"
+                            f"{gog_galaxy_launcher}/pfx"
+                        )
+                        win_path_no_drive = re.sub(r"^[A-Za-z]:/", "", exe_win_path.replace("\\", "/"))
+                        exe_proton_path = os.path.join(proton_root, "drive_c", win_path_no_drive)
+                    else:
+                        exe_proton_path = exe_win_path
+
+                    if not os.path.exists(exe_proton_path):
+                        decky_plugin.logger.info(
+                            f"Skipping {title}: EXE not found on disk -> {exe_proton_path}"
+                        )
+                        continue
+
                     game_dict[title] = {
                         "id": pid,
-                        "exe": best[0]
+                        "exe": exe_win_path
                     }
 
     except sqlite3.Error as e:
@@ -97,15 +112,11 @@ def getGogGameInfoDB(db_path):
     return game_dict
 
 
-
 def getGogGameInfoWindows():
     if platform.system() != "Windows":
         return {}
-
     db_path = r"C:\ProgramData\GOG.com\Galaxy\storage\galaxy-2.0.db"
-
     return getGogGameInfoDB(db_path)
-
 
 
 def adjust_dosbox_launch_options(launch_command, game_id, logged_in_home, gog_galaxy_launcher, is_windows, launch_params=None):
@@ -148,15 +159,13 @@ def adjust_dosbox_launch_options(launch_command, game_id, logged_in_home, gog_ga
 
 def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
 
-    if platform.system() == "Windows":
-        # Windows DB path
+    is_windows = platform.system() == "Windows"
+
+    if is_windows:
         game_dict = getGogGameInfoWindows()
         exe_template = r"C:\Program Files (x86)\GOG Galaxy\GalaxyClient.exe"
         start_dir_template = r"C:\Program Files (x86)\GOG Galaxy"
-        is_windows = True
-
     else:
-        # Linux DB path
         db_path = (
             f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/"
             f"{gog_galaxy_launcher}/pfx/drive_c/ProgramData/GOG.com/Galaxy/storage/galaxy-2.0.db"
@@ -166,7 +175,7 @@ def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
             decky_plugin.logger.info(f"GOG DB not found: {db_path}")
             return
 
-        game_dict = getGogGameInfoDB(db_path)
+        game_dict = getGogGameInfoDB(db_path, logged_in_home, gog_galaxy_launcher)
 
         exe_template = (
             f"\"{logged_in_home}/.local/share/Steam/steamapps/compatdata/"
@@ -177,11 +186,8 @@ def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
             f"{gog_galaxy_launcher}/pfx/drive_c/Program Files (x86)/GOG Galaxy/\""
         )
 
-        is_windows = False
-
     for game, game_info in game_dict.items():
         if game_info['id']:
-
             exe_path = game_info['exe'].strip()
             launch_params = game_info.get('launchParams', None)
 
@@ -204,5 +210,3 @@ def gog_scanner(logged_in_home, gog_galaxy_launcher, create_new_entry):
 
             track_game(game, "GOG Galaxy")
             time.sleep(0.1)
-
-# End of Gog Galaxy Scanner
