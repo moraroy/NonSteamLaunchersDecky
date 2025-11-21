@@ -43,6 +43,9 @@ def waydroid_scanner(logged_in_home, create_new_entry):
         decky_plugin.logger.info(f"Applications directory not found: {applications_dir}")
         return
 
+    # Detect whether Waydroid Cage is installed
+    use_cage = os.path.isfile(exe_path)
+
     for file_name in os.listdir(applications_dir):
         time.sleep(0.1)
         if not file_name.endswith(".desktop") or file_name in ignored_files:
@@ -69,13 +72,26 @@ def waydroid_scanner(logged_in_home, create_new_entry):
             if not app_name:
                 continue
 
+
+            if use_cage:
+
+                target = f'"{exe_path}"'
+                start_in = start_dir
+                launch_opts = f'"{app_name}"'
+            else:
+
+                target = '"waydroid"'
+                start_in = '"./"'
+                launch_opts = f'"app" "launch" "{app_name}"'
+
             create_new_entry(
-                f'"{exe_path}"',
+                target,
                 display_name,
-                f'"{app_name}"',
-                start_dir,
+                launch_opts,
+                start_in,
                 "Waydroid"
             )
+
             track_game(display_name, "Waydroid")
 
         except Exception as e:
