@@ -155,6 +155,7 @@ def load_shortcuts_appid_map():
         return {}
 
 
+
 def uninstall_removed_apps(removed_appnames, appid_map):
     for appname in removed_appnames:
         norm_name = normalize_appname(appname)
@@ -168,7 +169,6 @@ def uninstall_removed_apps(removed_appnames, appid_map):
 
         uninstall_uri = f"steam://uninstall/{appid}"
 
-        # Common environment for subprocesses
         env = os.environ.copy()
         env.update({
             'PATH': '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
@@ -185,7 +185,7 @@ def uninstall_removed_apps(removed_appnames, appid_map):
                 subprocess.run(cmd, check=True, env=env)
                 decky_plugin.logger.info(f"Successfully ran uninstall command: {' '.join(cmd)}")
                 success = True
-                time.sleep(2)  # Give Steam time to process the URI
+                time.sleep(2)
                 break
             except subprocess.CalledProcessError as e:
                 decky_plugin.logger.warning(f"Failed command: {' '.join(cmd)} | Error: {e}")
@@ -193,7 +193,40 @@ def uninstall_removed_apps(removed_appnames, appid_map):
                 decky_plugin.logger.warning(f"Command not found: {cmd[0]}")
 
         if not success:
-            decky_plugin.logger.error(f"All uninstall attempts failed for '{appname}' (AppID {appid}). Manual removal may be needed.")
+            decky_plugin.logger.error(
+                f"All uninstall attempts failed for '{appname}' (AppID {appid}). "
+                "Manual removal may be needed."
+            )
+
+
+    desktop_dir = os.path.join(DECKY_USER_HOME, "Desktop")
+
+    try:
+        desktop_files = os.listdir(desktop_dir)
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to list Desktop directory: {e}")
+        return
+
+    for game_name in removed_appnames:
+        base_game_name = game_name.split(' (')[0].strip().lower()
+        desktop_filename = f"{base_game_name}.desktop"
+
+        found_path = None
+        for f in desktop_files:
+            if f.lower() == desktop_filename:
+                found_path = os.path.join(desktop_dir, f)
+                break
+
+        if found_path:
+            try:
+                os.remove(found_path)
+                decky_plugin.logger.info(f"Deleted the .desktop file for removed game: {game_name}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Failed to delete .desktop file for {game_name}: {e}")
+        else:
+            decky_plugin.logger.warning(f"No .desktop file found for removed game: {game_name}")
+
+
 
 def finalize_game_tracking():
     now = datetime.utcnow().isoformat() + "Z"

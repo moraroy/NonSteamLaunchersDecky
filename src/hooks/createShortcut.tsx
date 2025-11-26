@@ -99,6 +99,11 @@ export async function createShortcut(game: any) {
   SteamClient.Apps.SetCustomArtworkForApp(appId, Grid, 'png', 0);
   SteamClient.Apps.SetCustomArtworkForApp(appId, WideGrid, 'png', 3);
 
+
+
+  await SteamClient.Apps.CreateDesktopShortcutForApp(appId);
+  console.log("Desktop shortcut created for shortcut:", appId);
+
   // -------- Sort As --------
   if (Launcher && typeof Launcher === "string" && Launcher.trim().length > 0) {
     const sortName = `${appname} ${Launcher.trim()}`;
