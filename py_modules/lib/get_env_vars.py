@@ -148,13 +148,18 @@ def refresh_env_vars():
     else:
         # Linux / other OS
         decky_plugin.logger.info("Running Linux/other OS logic")
+
+        # Ensure the env_vars file exists
         if not os.path.exists(env_vars_path):
             decky_plugin.logger.warning(f"{env_vars_path} does not exist. Creating empty env vars file.")
             os.makedirs(os.path.dirname(env_vars_path), exist_ok=True)
             with open(env_vars_path, "w") as f:
-                f.write("")
+                f.write("")  # create empty file
+            # Return an empty dict (valid)
+            env_vars["logged_in_home"] = DECKY_USER_HOME
             return env_vars
 
+        # File exists (may be empty, may have values)
         with open(env_vars_path, "r") as f:
             lines = f.readlines()
 
@@ -165,12 +170,15 @@ def refresh_env_vars():
                 name, value = line.strip().split("=", 1)
                 env_vars[name] = value
 
-        # Rewrite file without certain keys
         with open(env_vars_path, "w") as f:
             for line in lines:
-                if "chromelaunchoptions" not in line and "websites_str" not in line:
+                if (
+                    "chromelaunchoptions" not in line
+                    and "websites_str" not in line
+                ):
                     f.write(line)
 
+        # Always include logged_in_home
         env_vars["logged_in_home"] = DECKY_USER_HOME
 
     return env_vars

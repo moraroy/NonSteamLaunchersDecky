@@ -160,7 +160,7 @@ def scan():
 
     # Refresh env_vars once at the start
     env_vars = refresh_env_vars()
-    if env_vars:
+    if env_vars is not None:
         initialiseVariables(env_vars)
         add_launchers()
 
