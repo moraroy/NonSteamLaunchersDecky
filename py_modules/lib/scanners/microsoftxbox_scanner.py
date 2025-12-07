@@ -136,7 +136,7 @@ def microsoftxbox_scanner(logged_in_home, microsoftxbox_launcher, create_new_ent
         windows_apps_dir = f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{microsoftxbox_launcher}/pfx/drive_c/Program Files/WindowsApps"
 
         if not os.path.exists(windows_apps_dir):
-            decky_plugin.logger.warning("WindowsApps folder not found in Proton prefix.")
+            decky_plugin.logger.info("WindowsApps folder not found in Proton prefix. Skipping Xbox Scanner.")
             return
 
         for item in os.listdir(windows_apps_dir):
