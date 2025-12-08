@@ -387,20 +387,20 @@ def get_steam_store_appid(steam_store_game_name):
 
 
 
-
 def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_name):
-    steamapps_dir = f"{logged_in_home}/.steam/root/steamapps/"
-    appmanifest_path = os.path.join(steamapps_dir, f"appmanifest_{steam_store_appid}.acf")
-
-    # Ensure the directory exists
-    os.makedirs(steamapps_dir, exist_ok=True)
-
-    # Check if the file already exists
-    if os.path.exists(appmanifest_path):
-        decky_plugin.logger.info(f"Manifest file for {steam_store_appid} already exists.")
+    if not steam_store_appid:
+        decky_plugin.logger.error(f"Cannot create manifest for '{steam_store_game_name}': no AppID found.")
         return
 
-    # Prepare the appmanifest data
+    steamapps_dir = os.path.join(logged_in_home, ".steam/root/steamapps/")
+    appmanifest_path = os.path.join(steamapps_dir, f"appmanifest_{steam_store_appid}.acf")
+
+    os.makedirs(steamapps_dir, exist_ok=True)
+
+    if os.path.exists(appmanifest_path):
+        decky_plugin.logger.info(f"Manifest file for AppID {steam_store_appid} already exists at {appmanifest_path}.")
+        return
+
     app_manifest_data = {
         "AppState": {
             "AppID": str(steam_store_appid),
@@ -410,11 +410,13 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         }
     }
 
-    # Write the manifest to the file
-    with open(appmanifest_path, 'w') as file:
-        json.dump(app_manifest_data, file, indent=2)
+    try:
+        with open(appmanifest_path, 'w') as file:
+            json.dump(app_manifest_data, file, indent=2)
+        decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
+    except Exception as e:
+        decky_plugin.logger.error(f"Failed to write manifest for '{steam_store_game_name}': {e}")
 
-    decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
 #End of manifest file logic
 
 
