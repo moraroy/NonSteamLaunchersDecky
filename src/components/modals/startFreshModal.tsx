@@ -73,7 +73,7 @@ export const StartFreshModal: VFC<startFreshModalProps> = ({ closeModal, serverA
         firstConfirm ?
             <ConfirmModal
                 strTitle="Oops... That Might Have Been a Mistake"
-                strDescription="This is your last chance! By continuing, you will be totally deleting the prefixes, which include the launchers and the games you downloaded, as well as your game saves. If you aren't sure if your game saves are backed up or if you have downloaded a very large game and would not like to have to re-download, please DO NOT CONTINUE. Everything will be wiped!"
+                strDescription="This is your last chance! By continuing, you will be totally deleting the prefixes, which include the launchers and the games you downloaded, as well as your games. If you aren't sure if your game saves are backed up or if you have downloaded a very large game and would not like to have to re-download, please DO NOT CONTINUE. Everything will be wiped!"
                 strOKButtonText="Yes, I'm sure!"
                 strCancelButtonText="No, go back!"
                 onOK={handleStartFreshClick}
@@ -81,7 +81,7 @@ export const StartFreshModal: VFC<startFreshModalProps> = ({ closeModal, serverA
             /> :
             <ConfirmModal
                 strTitle="Are You Sure?"
-                strDescription="Starting fresh will wipe all installed launchers and their games along with your game saves and NSL files. This is irreversible! You'll need to manually remove any shortcuts created."
+                strDescription="Pressing Start Fresh will essentially uninstall NSL. It will delete and wipe all installed launchers and their games along with your game saves and NSL files. This is irreversible! You'll need to manually remove any shortcuts created."
                 strOKButtonText="Yes, wipe!"
                 strCancelButtonText="No, go back!"
                 onOK={() => setFirstConfirm(true)}

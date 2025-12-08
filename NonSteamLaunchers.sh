@@ -3374,6 +3374,18 @@ fi
 
 
 
+
+
+# JSON escape helper (NEW)
+json_escape() {
+    printf '%s' "$1" | \
+        sed -e 's/\\/\\\\/g' \
+            -e 's/"/\\"/g' \
+            -e ':a;N;$!ba;s/\n/\\n/g' \
+            -e 's/\t/\\t/g' \
+            -e 's/\r/\\r/g'
+}
+
 # Send Notes
 if [[ $options == *"❤️"* ]]; then
     echo "Sending any #nsl notes to the community!<3"
@@ -3430,8 +3442,14 @@ if [[ $options == *"❤️"* ]]; then
 
             file_name=$(basename "$note_file")
 
-            # Construct JSON object manually
-            note_json_entry="{\"ID\":\"$id\",\"Shortcut Name\":\"$shortcut_name\",\"Time Created\":$time_created,\"Time Modified\":$time_modified,\"Title\":\"$title\",\"Content\":\"$cleaned_content\",\"File Name\":\"$file_name\"}"
+            # JSON ESCAPE HERE (NEW)
+            id_esc=$(json_escape "$id")
+            shortcut_name_esc=$(json_escape "$shortcut_name")
+            title_esc=$(json_escape "$title")
+            content_esc=$(json_escape "$cleaned_content")
+
+            # Construct JSON object manually (unchanged except escaped vars)
+            note_json_entry="{\"ID\":\"$id_esc\",\"Shortcut Name\":\"$shortcut_name_esc\",\"Time Created\":$time_created,\"Time Modified\":$time_modified,\"Title\":\"$title_esc\",\"Content\":\"$content_esc\",\"File Name\":\"$file_name\"}"
 
             if [[ -n "$collected_notes" ]]; then
                 collected_notes="$collected_notes,$note_json_entry"
@@ -3551,9 +3569,11 @@ update_notes_in_file() {
     # Start with an empty string to hold the formatted content for all notes
     nsl_content=""
 
+
     # Loop through the filtered notes for this game
-    while IFS= read -r note; do
-        # Decode the note from base64
+    # Loop through the filtered notes for this game
+    for note in $(echo "$filtered_notes" | jq -r '@base64'); do
+        # Decode the note
         note_decoded=$(echo "$note" | base64 --decode)
 
         # Extract the relevant information for each note
@@ -3561,12 +3581,17 @@ update_notes_in_file() {
         content=$(echo "$note_decoded" | jq -r '."Content"')
         time_created=$(echo "$note_decoded" | jq -r '."Time Created"')
 
-        # Clean up content by replacing newline characters with <br> tags
-        content_cleaned=$(echo "$content" | sed 's/\n/<br>/g')
+        # Sanitize content: remove any existing [p] tags
+        content_sanitized=$(echo "$content" | sed 's/\[\/\?p\]//g')
 
-        # Construct the content block for this note
-        nsl_content+=$"[p][i]A note called \"$user\" says,[/i][/p][p][b]$content_cleaned[/b][/p][p]$time_created[/p][p][/p]"
-    done <<< "$(echo "$filtered_notes" | jq -r '@base64')"
+        # Replace newlines with Steam-friendly line breaks (or leave as plain text)
+        content_sanitized=$(echo "$content_sanitized" | sed 's/\n/<br>/g')
+
+        # Construct the content block for this note using **only [p]…[/p]**
+        nsl_content+=$"[p][i]A note called \"$user\" says,[/i][/p]"
+        nsl_content+=$"[p]$content_sanitized[/p]"
+        nsl_content+=$"[p]$time_created[/p]"
+    done
 
     # Generate the current timestamp
     local current_time=$(get_current_timestamp)
@@ -3710,9 +3735,6 @@ done
 
 echo "Notes execution complete."
 echo "Notes have been recieved!"
-
-
-
 
 
 
