@@ -347,7 +347,6 @@ def add_compat_tool(launchoptions):
 
 
 
-
 #Manifest File Logic
 steam_applist_cache = None
 
@@ -910,52 +909,55 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     steam_store_appid = get_steam_store_appid(appname)
     needs_fallback = any(x is None for x in [icon, logo64, hero64, gridp64, grid64])
 
-    if steam_store_appid and needs_fallback:
-        decky_plugin.logger.info(f"Some artwork missing for {appname}. Checking fallback sources...")
+    if steam_store_appid:
         decky_plugin.logger.info(f"Found Steam App ID for {appname}: {steam_store_appid}")
         create_steam_store_app_manifest_file(steam_store_appid, appname)
 
-        if not gridp64:
-            gridp64 = get_steam_fallback_artwork(steam_store_appid, "grid")
-        if not grid64:
-            grid64 = get_steam_fallback_artwork(steam_store_appid, "widegrid")
-        if not hero64:
-            hero64 = get_steam_fallback_artwork(steam_store_appid, "hero")
-        if not logo64:
-            logo64 = get_steam_fallback_artwork(steam_store_appid, "logo")
-        if not icon:
-            icon = get_steam_fallback_artwork(steam_store_appid, "icon")
-            if icon:
-                # Save fallback to file if needed
-                fallback_path = f"/tmp/{appname}_icon.ico"
-                with open(fallback_path, "wb") as f:
-                    f.write(base64.b64decode(icon))
-                pathtoiconfile = fallback_path
-            else:
-                decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
+        if needs_fallback:
+            decky_plugin.logger.info(f"Some artwork missing for {appname}. Checking fallback sources...")
 
-    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
 
-    decky_entry = {
-        'appname': appname,
-        'exe': formatted_exe,
-        'StartDir': formatted_start_dir,
-        'LaunchOptions': formatted_launch_options,
-        'CompatTool': compatTool,
-        'WideGrid': grid64,
-        'Grid': gridp64,
-        'Hero': hero64,
-        'Logo': logo64,
-        'Icon': pathtoiconfile,
-        'Icon64': icon,
-        'LauncherIcon': launcher_icon,
-        'Launcher': launcher,
-    }
+            if not gridp64:
+                gridp64 = get_steam_fallback_artwork(steam_store_appid, "grid")
+            if not grid64:
+                grid64 = get_steam_fallback_artwork(steam_store_appid, "widegrid")
+            if not hero64:
+                hero64 = get_steam_fallback_artwork(steam_store_appid, "hero")
+            if not logo64:
+                logo64 = get_steam_fallback_artwork(steam_store_appid, "logo")
+            if not icon:
+                icon = get_steam_fallback_artwork(steam_store_appid, "icon")
+                if icon:
+                    # Save fallback to file if needed
+                    fallback_path = f"/tmp/{appname}_icon.ico"
+                    with open(fallback_path, "wb") as f:
+                        f.write(base64.b64decode(icon))
+                    pathtoiconfile = fallback_path
+                else:
+                    decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
 
-    decky_shortcuts[appname] = decky_entry
-    decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
+        compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
 
-    get_movies(appname)
+        decky_entry = {
+            'appname': appname,
+            'exe': formatted_exe,
+            'StartDir': formatted_start_dir,
+            'LaunchOptions': formatted_launch_options,
+            'CompatTool': compatTool,
+            'WideGrid': grid64,
+            'Grid': gridp64,
+            'Hero': hero64,
+            'Logo': logo64,
+            'Icon': pathtoiconfile,
+            'Icon64': icon,
+            'LauncherIcon': launcher_icon,
+            'Launcher': launcher,
+        }
+
+        decky_shortcuts[appname] = decky_entry
+        decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
+
+        get_movies(appname)
 
 
 
