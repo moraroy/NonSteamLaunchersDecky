@@ -9,6 +9,7 @@ from decky_plugin import DECKY_PLUGIN_DIR, DECKY_USER_HOME
 import platform
 import time
 import urllib
+import urllib.parse
 import subprocess
 import base64
 from base64 import b64encode
@@ -36,6 +37,9 @@ from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
 from scanners.flatpak_scanner import flatpak_scanner
 from scanners.microsoftxbox_scanner import microsoftxbox_scanner
+
+
+
 
 
 from scanners.game_tracker import load_master_list, track_game, finalize_game_tracking
@@ -345,43 +349,68 @@ def add_compat_tool(launchoptions):
 
 
 #Manifest File Logic
-
 steam_applist_cache = None
 
 def get_steam_store_appid(steam_store_game_name):
     search_url = f"{proxy_url}/search/{steam_store_game_name}"
     try:
-        response = requests.get(search_url)
+        response = requests.get(search_url, timeout=10)
         response.raise_for_status()
         data = response.json()
         if 'data' in data and data['data']:
             steam_store_appid = data['data'][0].get('steam_store_appid')
             if steam_store_appid:
-                decky_plugin.logger.info(f"Found App ID for {steam_store_game_name} via primary source: {steam_store_appid}")
+                decky_plugin.logger.info(
+                    f"Found App ID for {steam_store_game_name} via primary source: {steam_store_appid}"
+                )
                 return steam_store_appid
     except requests.exceptions.RequestException as e:
-        decky_plugin.logger.warning(f"Primary store App ID lookup failed for {steam_store_game_name}: {e}")
+        decky_plugin.logger.warning(
+            f"Primary store App ID lookup failed for {steam_store_game_name}: {e}"
+        )
 
-    # Fallback using Steam AppList (cached)
+    def normalize_name(name):
+        name = name.lower()
+        name = re.sub(r'[®™]', '', name)
+        name = ' '.join(name.split())
+        return name
+
     global steam_applist_cache
     if steam_applist_cache is None:
+        steam_applist_cache = {}
+
+    if steam_store_game_name not in steam_applist_cache:
+        time.sleep(0.5)  # Small delay to avoid spamming Steam
+        query = urllib.parse.quote(steam_store_game_name)
+        url = f"https://store.steampowered.com/api/storesearch/?term={query}&l=english&cc=US"
         try:
-            STEAM_BASE_URL = "https://api.steampowered.com"
-            app_list_url = f"{STEAM_BASE_URL}/ISteamApps/GetAppList/v2/"
-            response = requests.get(app_list_url)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
-            steam_applist_cache = response.json()['applist']['apps']
-            decky_plugin.logger.info("Cached Steam app list from Steam API.")
+            data = response.json()
         except requests.exceptions.RequestException as e:
-            decky_plugin.logger.error(f"Steam AppList fallback failed for {steam_store_game_name}: {e}")
+            decky_plugin.logger.error(
+                f"Fallback Steam lookup failed for {steam_store_game_name}: {e}"
+            )
             return None
 
-    for app in steam_applist_cache:
-        if steam_store_game_name.lower() in app['name'].lower():
-            decky_plugin.logger.info(f"Found App ID for {steam_store_game_name} via cached Steam AppList: {app['appid']}")
-            return app['appid']
+        target = normalize_name(steam_store_game_name)
+        fallback_appid = None
+        for item in data.get("items", []):
+            if normalize_name(item.get("name", "")) == target:
+                fallback_appid = str(item.get("id"))
+                break
 
-    decky_plugin.logger.warning(f"No App ID found for {steam_store_game_name} in cached Steam AppList.")
+        steam_applist_cache[steam_store_game_name] = fallback_appid
+
+    if steam_applist_cache[steam_store_game_name]:
+        decky_plugin.logger.info(
+            f"Found App ID for {steam_store_game_name} via fallback Steam search API: {steam_applist_cache[steam_store_game_name]}"
+        )
+        return steam_applist_cache[steam_store_game_name]
+
+    decky_plugin.logger.warning(
+        f"No App ID found for {steam_store_game_name} in fallback Steam search API."
+    )
     return None
 
 
