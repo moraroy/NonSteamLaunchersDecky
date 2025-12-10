@@ -1842,7 +1842,7 @@ process_uninstall_options() {
         fi
 
 
-        uninstall_launcher "$uninstall_options" "Uplay" "$uplay_path1" "$uplay_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Ubisoft" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" "uplay" "ubisoft"
+        uninstall_launcher "$uninstall_options" "Ubisoft Connect" "$uplay_path1" "$uplay_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Ubisoft" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" "uplay" "ubisoft"
         uninstall_launcher "$uninstall_options" "Battle.net" "$battlenet_path1" "$battlenet_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Battle.net" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" "battle" "bnet"
         uninstall_launcher "$uninstall_options" "Epic Games" "$epic_games_launcher_path1" "$epic_games_launcher_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Epic Games" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" "epic"
         uninstall_launcher "$uninstall_options" "Amazon Games" "$amazongames_path1" "$amazongames_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/Amazon Games" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" "amazon"
@@ -1903,7 +1903,7 @@ else
             --width=508 --height=507 \
             FALSE "Epic Games" \
             FALSE "GOG Galaxy" \
-            FALSE "Uplay" \
+            FALSE "Ubisoft Connect" \
             FALSE "Battle.net" \
             FALSE "EA App" \
             FALSE "Amazon Games" \

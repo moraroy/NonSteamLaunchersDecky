@@ -936,28 +936,28 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
                 else:
                     decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
 
-        compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
+    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
 
-        decky_entry = {
-            'appname': appname,
-            'exe': formatted_exe,
-            'StartDir': formatted_start_dir,
-            'LaunchOptions': formatted_launch_options,
-            'CompatTool': compatTool,
-            'WideGrid': grid64,
-            'Grid': gridp64,
-            'Hero': hero64,
-            'Logo': logo64,
-            'Icon': pathtoiconfile,
-            'Icon64': icon,
-            'LauncherIcon': launcher_icon,
-            'Launcher': launcher,
-        }
+    decky_entry = {
+        'appname': appname,
+        'exe': formatted_exe,
+        'StartDir': formatted_start_dir,
+        'LaunchOptions': formatted_launch_options,
+        'CompatTool': compatTool,
+        'WideGrid': grid64,
+        'Grid': gridp64,
+        'Hero': hero64,
+        'Logo': logo64,
+        'Icon': pathtoiconfile,
+        'Icon64': icon,
+        'LauncherIcon': launcher_icon,
+        'Launcher': launcher,
+    }
 
-        decky_shortcuts[appname] = decky_entry
-        decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
+    decky_shortcuts[appname] = decky_entry
+    decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
 
-        get_movies(appname)
+    get_movies(appname)
 
 
 
