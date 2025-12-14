@@ -200,11 +200,13 @@ def uninstall_removed_apps(removed_appnames, appid_map):
 
 
     desktop_dir = os.path.join(DECKY_USER_HOME, "Desktop")
+    applications_dir = os.path.join(DECKY_USER_HOME, '.local', 'share', 'applications')
 
     try:
         desktop_files = os.listdir(desktop_dir)
+        applications_files = os.listdir(applications_dir)
     except Exception as e:
-        decky_plugin.logger.error(f"Failed to list Desktop directory: {e}")
+        decky_plugin.logger.error(f"Failed to list Desktop or Applications directory: {e}")
         return
 
     for game_name in removed_appnames:
@@ -220,12 +222,26 @@ def uninstall_removed_apps(removed_appnames, appid_map):
         if found_path:
             try:
                 os.remove(found_path)
-                decky_plugin.logger.info(f"Deleted the .desktop file for removed game: {game_name}")
+                decky_plugin.logger.info(f"Deleted the .desktop file from Desktop for removed game: {game_name}")
             except Exception as e:
-                decky_plugin.logger.error(f"Failed to delete .desktop file for {game_name}: {e}")
+                decky_plugin.logger.error(f"Failed to delete .desktop file from Desktop for {game_name}: {e}")
         else:
-            decky_plugin.logger.warning(f"No .desktop file found for removed game: {game_name}")
+            decky_plugin.logger.warning(f"No .desktop file found on Desktop for removed game: {game_name}")
 
+        found_path = None
+        for f in applications_files:
+            if f.lower() == desktop_filename:
+                found_path = os.path.join(applications_dir, f)
+                break
+
+        if found_path:
+            try:
+                os.remove(found_path)
+                decky_plugin.logger.info(f"Deleted the .desktop file from Applications for removed game: {game_name}")
+            except Exception as e:
+                decky_plugin.logger.error(f"Failed to delete .desktop file from Applications for {game_name}: {e}")
+        else:
+            decky_plugin.logger.warning(f"No .desktop file found in Applications for removed game: {game_name}")
 
 
 def finalize_game_tracking():
