@@ -25,7 +25,7 @@ import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
 import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
-
+import { initGameWatcher } from './hooks/gamewatcher';
 
 const initialOptions = sitesList;
 
@@ -312,6 +312,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
+  initGameWatcher();
 
   // Fetch saved settings first, then decide whether to start Playtime or Theme Music
   (async () => {
