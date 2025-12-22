@@ -2054,13 +2054,23 @@
       updateMusicFromUrl();
   };
 
-  async function initGameWatcher() {
-      if (!window.SteamClient || !SteamClient.Overlay || !SteamClient.Apps)
+  let watcherInitialized = false;
+  // Prevent duplicate termination attempts per app
+  const terminatingApps = new Set();
+  function initGameWatcher() {
+      if (watcherInitialized)
           return;
+      watcherInitialized = true;
+      if (!window.SteamClient?.Overlay || !window.SteamClient?.Apps) {
+          console.warn("[Watcher] SteamClient not ready");
+          return;
+      }
       let currentAppId = null;
       let currentOverlayPIDs = new Set();
-      SteamClient.Apps.RegisterForGameActionStart((gameActionId, gameId, action) => {
-          // Only run for non-Steam games (18-20 digit IDs)
+      // -----------------------------
+      // Game launch detection
+      // -----------------------------
+      SteamClient.Apps.RegisterForGameActionStart((_gameActionId, gameId, action) => {
           if (!(gameId.length >= 18 && gameId.length <= 20))
               return;
           if (action === "LaunchApp") {
@@ -2069,30 +2079,66 @@
               console.log("[Watcher] Non-Steam game launch detected:", gameId);
           }
       });
+      // -----------------------------
+      // Safe terminate with 1 retry
+      // -----------------------------
+      const terminateWithRetry = (appId) => {
+          if (terminatingApps.has(appId))
+              return;
+          terminatingApps.add(appId);
+          let attempts = 0;
+          const maxAttempts = 2;
+          const tryTerminate = async () => {
+              attempts++;
+              console.log(`[Watcher] Terminate attempt ${attempts} for AppID:`, appId);
+              try {
+                  SteamClient.Apps.TerminateApp(appId, false);
+              }
+              catch (e) {
+                  console.warn("[Watcher] Terminate threw:", e);
+              }
+              // Verify after Steam settles
+              setTimeout(async () => {
+                  try {
+                      const runningApps = await SteamClient.Apps.GetRunningApps();
+                      const stillRunning = runningApps.some(a => a.appid === appId);
+                      if (stillRunning && attempts < maxAttempts) {
+                          console.warn("[Watcher] App still running, retrying terminate");
+                          tryTerminate();
+                      }
+                      else if (stillRunning) {
+                          console.error("[Watcher] Termination failed after retry:", appId);
+                          terminatingApps.delete(appId);
+                      }
+                      else {
+                          console.log("[Watcher] App successfully terminated:", appId);
+                          terminatingApps.delete(appId);
+                      }
+                  }
+                  catch (e) {
+                      console.error("[Watcher] Failed to verify running apps:", e);
+                      terminatingApps.delete(appId);
+                  }
+              }, 2000);
+          };
+          tryTerminate();
+      };
+      // -----------------------------
+      // Overlay tracking
+      // -----------------------------
       const checkOverlays = async () => {
           if (!currentAppId)
               return;
           try {
               const browsers = await SteamClient.Overlay.GetOverlayBrowserInfo();
               const seenPIDs = new Set(browsers.map(b => b.unPID));
-              // Detect removed overlays
-              for (const pid of Array.from(currentOverlayPIDs)) {
-                  if (!seenPIDs.has(pid)) {
-                      currentOverlayPIDs.delete(pid);
-                      console.log("[Watcher] Overlay browser removed:", pid, "AppID:", currentAppId, "at", performance.now());
-                  }
-              }
-              // Track new overlays
-              for (const pid of seenPIDs)
-                  currentOverlayPIDs.add(pid);
-              // Terminate game if all overlays removed
+              currentOverlayPIDs = seenPIDs;
               if (currentOverlayPIDs.size === 0 && currentAppId) {
-                  console.log("[Watcher] Last overlay removed for AppID:", currentAppId, "- terminating in 8s...");
                   const appToTerminate = currentAppId;
-                  currentAppId = null; // prevent double termination
+                  currentAppId = null;
+                  console.log("[Watcher] Last overlay removed for AppID:", appToTerminate, "- scheduling termination");
                   setTimeout(() => {
-                      console.log("[Watcher] Terminating app:", appToTerminate);
-                      SteamClient.Apps.TerminateApp(appToTerminate, false);
+                      terminateWithRetry(appToTerminate);
                   }, 8000);
               }
           }
@@ -2101,8 +2147,9 @@
           }
       };
       SteamClient.Overlay.RegisterOverlayBrowserInfoChanged(checkOverlays);
+      // Run once on init
       checkOverlays();
-      console.log("[Watcher] Non-Steam overlay removal watcher initialized.");
+      console.log("[Watcher] Initialized with retry support");
   }
 
   const initialOptions = sitesList;
