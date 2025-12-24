@@ -2055,63 +2055,18 @@
   };
 
   function initGameWatcher() {
-      if (window.__gameWatcherInit)
-          return;
-      window.__gameWatcherInit = true;
-      initWatcherCore();
-      initGameModeWatcher();
-      initDesktopModeWatcher();
-      console.log("[GameWatcher] Unified watcher initialized");
-  }
-  function initWatcherCore() {
-      if (window.__steamWatcherCore)
-          return;
-      window.__steamWatcherCore = true;
-      const core = {
-          activeAppId: null,
-          terminationScheduled: false,
-          setActiveApp(appId, source) {
-              if (!appId)
-                  return;
-              if (this.activeAppId !== appId) {
-                  this.activeAppId = appId;
-                  this.terminationScheduled = false;
-                  console.log(`[WatcherCore] Active app set by ${source}:`, appId);
-              }
-          },
-          scheduleTermination(source, delay = 10000) {
-              if (!this.activeAppId || this.terminationScheduled)
-                  return;
-              this.terminationScheduled = true;
-              console.log(`[WatcherCore] Termination scheduled by ${source}`);
-              setTimeout(() => {
-                  try {
-                      window.SteamClient?.Apps?.TerminateApp(this.activeAppId, false);
-                      console.log("[WatcherCore] App terminated:", this.activeAppId);
-                  }
-                  catch (e) {
-                      console.error("[WatcherCore] Termination failed:", e);
-                  }
-                  finally {
-                      this.activeAppId = null;
-                      this.terminationScheduled = false;
-                  }
-              }, delay);
-          }
-      };
-      window.WatcherCore = core;
-  }
-  function initGameModeWatcher() {
-      const SteamClient = window.SteamClient;
-      if (!SteamClient?.Apps)
-          return;
+      const GRACE_PERIOD_MS = 90000;
       const state = {
           gameId: null,
           launchTime: 0,
           inferredRunning: false,
+          lastOverlayActive: null,
+          lastOverlayChange: 0,
           overlaySequence: [],
-          lastOverlayChange: 0
+          terminateScheduled: false,
+          watchersEnabled: false
       };
+      const log = (label, data) => console.log(`%c[SteamDetect:${label}]`, "color:#00bcd4", data);
       try {
           SteamClient.Apps.RegisterForGameActionStart((_actionId, gameId, action) => {
               if (action !== "LaunchApp")
@@ -2119,86 +2074,83 @@
               state.gameId = gameId;
               state.launchTime = Date.now();
               state.inferredRunning = true;
-              window.WatcherCore?.setActiveApp(gameId, "GameMode");
-              console.log("[GameMode] Launch detected:", gameId);
-              // Delay to allow game to stabilize
+              state.terminateScheduled = false;
+              state.watchersEnabled = false;
+              log("Launch", { gameId, gracePeriod: "90s" });
               setTimeout(() => {
-                  try {
-                      SteamClient.GameSessions?.RegisterForAppLifetimeNotifications((evt) => {
-                          if (evt.bRunning === false && state.inferredRunning) {
-                              state.inferredRunning = false;
-                              window.WatcherCore?.scheduleTermination("GameMode:SteamEnded");
-                          }
-                      });
-                  }
-                  catch { }
-                  try {
-                      const originalSet = SteamClient.Overlay.SetOverlayState;
-                      SteamClient.Overlay.SetOverlayState = function (appId, overlayState) {
-                          const now = Date.now();
-                          state.overlaySequence.push({
-                              time: now,
-                              active: overlayState
-                          });
-                          if (state.overlaySequence.length > 5) {
-                              state.overlaySequence.shift();
-                          }
-                          if (state.inferredRunning &&
-                              state.overlaySequence.length >= 2) {
-                              const last = state.overlaySequence[state.overlaySequence.length - 1];
-                              const prev = state.overlaySequence[state.overlaySequence.length - 2];
-                              if (last.active === 3 &&
-                                  prev.active === 0 &&
-                                  now - state.launchTime > 15000 &&
-                                  now - state.lastOverlayChange > 3000) {
-                                  window.WatcherCore?.scheduleTermination("GameMode:OverlayExit");
-                              }
-                          }
-                          state.lastOverlayChange = now;
-                          return originalSet.apply(this, arguments);
-                      };
-                  }
-                  catch { }
-                  console.log("[GameMode] Heuristic watcher active");
-              }, 90000);
+                  state.watchersEnabled = true;
+                  log("GracePeriodEnded", { gameId });
+              }, GRACE_PERIOD_MS);
           });
       }
       catch (e) {
-          console.error("[GameMode] Init failed:", e);
+          console.error(e);
       }
-  }
-  function initDesktopModeWatcher() {
-      let gameRunning = false;
-      const originalLog = console.log;
-      console.log = function (...args) {
-          originalLog.apply(console, args);
-          try {
-              const line = args.join(" ");
-              // Launch detection
-              if (line.includes("OnGameActionUserRequest") &&
-                  line.includes("LaunchApp CreatingProcess")) {
-                  const match = line.match(/OnGameActionUserRequest:\s*(\d+)/);
-                  if (match) {
-                      const appId = match[1];
-                      if (appId.length >= 18 && appId.length <= 20) {
-                          gameRunning = true;
-                          window.WatcherCore?.setActiveApp(appId, "DesktopMode");
-                          originalLog("[DesktopMode] Launch detected:", appId);
-                      }
+      try {
+          SteamClient.GameSessions.RegisterForAppLifetimeNotifications(evt => {
+              if (!state.watchersEnabled)
+                  return;
+              log("Lifetime", evt);
+              if (evt.bRunning === false && state.inferredRunning) {
+                  state.inferredRunning = false;
+                  scheduleTermination();
+                  log("SteamEnded", evt.unAppID);
+              }
+          });
+      }
+      catch (e) {
+          console.error(e);
+      }
+      try {
+          const origSet = SteamClient.Overlay.SetOverlayState;
+          SteamClient.Overlay.SetOverlayState = function (gameId, stateNum) {
+              if (!state.watchersEnabled) {
+                  return origSet.apply(this, arguments);
+              }
+              const now = Date.now();
+              const delta = now - state.lastOverlayChange;
+              log("SetOverlayState", arguments);
+              state.overlaySequence.push({ time: now, active: stateNum });
+              if (state.overlaySequence.length > 5)
+                  state.overlaySequence.shift();
+              if (state.inferredRunning &&
+                  state.overlaySequence.length >= 2 &&
+                  !state.terminateScheduled) {
+                  const last = state.overlaySequence[state.overlaySequence.length - 1];
+                  const prev = state.overlaySequence[state.overlaySequence.length - 2];
+                  if (last.active === 3 &&
+                      prev.active === 0 &&
+                      now - state.launchTime > 15000 &&
+                      delta > 3000) {
+                      log("Inference", "Overlay indicates game likely exited → scheduling termination");
+                      scheduleTermination();
                   }
               }
-              // Exit detection
-              if (gameRunning &&
-                  (line.includes("Removing overlay browser window") ||
-                      line.includes("NetworkDiagnosticsStore - unregistering"))) {
-                  gameRunning = false;
-                  window.WatcherCore?.scheduleTermination("DesktopMode:ExitSignal");
+              state.lastOverlayActive = stateNum;
+              state.lastOverlayChange = now;
+              return origSet.apply(this, arguments);
+          };
+      }
+      catch (e) {
+          console.error(e);
+      }
+      function scheduleTermination() {
+          if (!state.watchersEnabled)
+              return;
+          if (!state.gameId || state.terminateScheduled)
+              return;
+          state.terminateScheduled = true;
+          setTimeout(() => {
+              log("TerminateApp", { gameId: state.gameId });
+              try {
+                  SteamClient.Apps.TerminateApp(state.gameId, false);
               }
-          }
-          catch (e) {
-              originalLog("[DesktopMode] Watcher error:", e);
-          }
-      };
+              catch (e) {
+                  console.error("TerminateApp failed:", e);
+              }
+          }, 10000);
+      }
+      console.log("%c[SteamDetect] Initialized (90s hard grace after launch)", "color:#4caf50");
   }
 
   const initialOptions = sitesList;

@@ -1,82 +1,20 @@
-declare global {
-  interface Window {
-    __gameWatcherInit?: boolean;
-    __steamWatcherCore?: boolean;
-    WatcherCore?: WatcherCoreType;
-  }
-}
-
-type WatcherCoreType = {
-  setActiveApp: (appId: string, source: string) => void;
-  scheduleTermination: (source: string, delay?: number) => void;
-};
-
 export function initGameWatcher(): void {
-  if (window.__gameWatcherInit) return;
-  window.__gameWatcherInit = true;
-
-  initWatcherCore();
-  initGameModeWatcher();
-  initDesktopModeWatcher();
-
-  console.log("[GameWatcher] Unified watcher initialized");
-}
-
-function initWatcherCore(): void {
-  if (window.__steamWatcherCore) return;
-  window.__steamWatcherCore = true;
-
-  const core = {
-    activeAppId: null as string | null,
-    terminationScheduled: false,
-
-    setActiveApp(appId: string, source: string) {
-      if (!appId) return;
-
-      if (this.activeAppId !== appId) {
-        this.activeAppId = appId;
-        this.terminationScheduled = false;
-        console.log(`[WatcherCore] Active app set by ${source}:`, appId);
-      }
-    },
-
-    scheduleTermination(source: string, delay = 10000) {
-      if (!this.activeAppId || this.terminationScheduled) return;
-
-      this.terminationScheduled = true;
-      console.log(`[WatcherCore] Termination scheduled by ${source}`);
-
-      setTimeout(() => {
-        try {
-          (window as any).SteamClient?.Apps?.TerminateApp(
-            this.activeAppId,
-            false
-          );
-          console.log("[WatcherCore] App terminated:", this.activeAppId);
-        } catch (e) {
-          console.error("[WatcherCore] Termination failed:", e);
-        } finally {
-          this.activeAppId = null;
-          this.terminationScheduled = false;
-        }
-      }, delay);
-    }
-  };
-
-  window.WatcherCore = core;
-}
-
-function initGameModeWatcher(): void {
-  const SteamClient = (window as any).SteamClient;
-  if (!SteamClient?.Apps) return;
+  const GRACE_PERIOD_MS = 90_000;
 
   const state = {
     gameId: null as string | null,
     launchTime: 0,
     inferredRunning: false,
+    lastOverlayActive: null as number | null,
+    lastOverlayChange: 0,
     overlaySequence: [] as { time: number; active: number }[],
-    lastOverlayChange: 0
+    terminateScheduled: false,
+    watchersEnabled: false
   };
+
+  const log = (label: string, data?: any) =>
+    console.log(`%c[SteamDetect:${label}]`, "color:#00bcd4", data);
+
 
   try {
     SteamClient.Apps.RegisterForGameActionStart(
@@ -86,119 +24,108 @@ function initGameModeWatcher(): void {
         state.gameId = gameId;
         state.launchTime = Date.now();
         state.inferredRunning = true;
+        state.terminateScheduled = false;
+        state.watchersEnabled = false;
 
-        window.WatcherCore?.setActiveApp(gameId, "GameMode");
-        console.log("[GameMode] Launch detected:", gameId);
+        log("Launch", { gameId, gracePeriod: "90s" });
 
-        // Delay to allow game to stabilize
         setTimeout(() => {
-          try {
-            SteamClient.GameSessions?.RegisterForAppLifetimeNotifications(
-              (evt: any) => {
-                if (evt.bRunning === false && state.inferredRunning) {
-                  state.inferredRunning = false;
-                  window.WatcherCore?.scheduleTermination(
-                    "GameMode:SteamEnded"
-                  );
-                }
-              }
-            );
-          } catch {}
-
-          try {
-            const originalSet = SteamClient.Overlay.SetOverlayState;
-
-            SteamClient.Overlay.SetOverlayState = function (
-              appId: string,
-              overlayState: number
-            ) {
-              const now = Date.now();
-
-              state.overlaySequence.push({
-                time: now,
-                active: overlayState
-              });
-              if (state.overlaySequence.length > 5) {
-                state.overlaySequence.shift();
-              }
-
-              if (
-                state.inferredRunning &&
-                state.overlaySequence.length >= 2
-              ) {
-                const last =
-                  state.overlaySequence[state.overlaySequence.length - 1];
-                const prev =
-                  state.overlaySequence[state.overlaySequence.length - 2];
-
-                if (
-                  last.active === 3 &&
-                  prev.active === 0 &&
-                  now - state.launchTime > 15000 &&
-                  now - state.lastOverlayChange > 3000
-                ) {
-                  window.WatcherCore?.scheduleTermination(
-                    "GameMode:OverlayExit"
-                  );
-                }
-              }
-
-              state.lastOverlayChange = now;
-              return originalSet.apply(this, arguments as any);
-            };
-          } catch {}
-
-          console.log("[GameMode] Heuristic watcher active");
-        }, 90000);
+          state.watchersEnabled = true;
+          log("GracePeriodEnded", { gameId });
+        }, GRACE_PERIOD_MS);
       }
     );
   } catch (e) {
-    console.error("[GameMode] Init failed:", e);
+    console.error(e);
   }
-}
 
-function initDesktopModeWatcher(): void {
-  let gameRunning = false;
 
-  const originalLog = console.log;
+  try {
+    SteamClient.GameSessions.RegisterForAppLifetimeNotifications(evt => {
+      if (!state.watchersEnabled) return;
 
-  console.log = function (...args: any[]) {
-    originalLog.apply(console, args);
+      log("Lifetime", evt);
 
-    try {
-      const line = args.join(" ");
+      if (evt.bRunning === false && state.inferredRunning) {
+        state.inferredRunning = false;
+        scheduleTermination();
+        log("SteamEnded", evt.unAppID);
+      }
+    });
+  } catch (e) {
+    console.error(e);
+  }
 
-      // Launch detection
+
+  try {
+    const origSet = SteamClient.Overlay.SetOverlayState;
+
+    SteamClient.Overlay.SetOverlayState = function (
+      gameId: string,
+      stateNum: number
+    ) {
+      if (!state.watchersEnabled) {
+        return origSet.apply(this, arguments as any);
+      }
+
+      const now = Date.now();
+      const delta = now - state.lastOverlayChange;
+
+      log("SetOverlayState", arguments);
+
+      state.overlaySequence.push({ time: now, active: stateNum });
+      if (state.overlaySequence.length > 5) state.overlaySequence.shift();
+
       if (
-        line.includes("OnGameActionUserRequest") &&
-        line.includes("LaunchApp CreatingProcess")
+        state.inferredRunning &&
+        state.overlaySequence.length >= 2 &&
+        !state.terminateScheduled
       ) {
-        const match = line.match(/OnGameActionUserRequest:\s*(\d+)/);
-        if (match) {
-          const appId = match[1];
-          if (appId.length >= 18 && appId.length <= 20) {
-            gameRunning = true;
-            window.WatcherCore?.setActiveApp(appId, "DesktopMode");
-            originalLog("[DesktopMode] Launch detected:", appId);
-          }
+        const last = state.overlaySequence[state.overlaySequence.length - 1];
+        const prev = state.overlaySequence[state.overlaySequence.length - 2];
+
+        if (
+          last.active === 3 &&
+          prev.active === 0 &&
+          now - state.launchTime > 15_000 &&
+          delta > 3_000
+        ) {
+          log(
+            "Inference",
+            "Overlay indicates game likely exited → scheduling termination"
+          );
+          scheduleTermination();
         }
       }
 
-      // Exit detection
-      if (
-        gameRunning &&
-        (line.includes("Removing overlay browser window") ||
-          line.includes(
-            "NetworkDiagnosticsStore - unregistering"
-          ))
-      ) {
-        gameRunning = false;
-        window.WatcherCore?.scheduleTermination(
-          "DesktopMode:ExitSignal"
-        );
+      state.lastOverlayActive = stateNum;
+      state.lastOverlayChange = now;
+
+      return origSet.apply(this, arguments as any);
+    };
+  } catch (e) {
+    console.error(e);
+  }
+
+
+  function scheduleTermination(): void {
+    if (!state.watchersEnabled) return;
+    if (!state.gameId || state.terminateScheduled) return;
+
+    state.terminateScheduled = true;
+
+    setTimeout(() => {
+      log("TerminateApp", { gameId: state.gameId });
+      try {
+        SteamClient.Apps.TerminateApp(state.gameId, false);
+      } catch (e) {
+        console.error("TerminateApp failed:", e);
       }
-    } catch (e) {
-      originalLog("[DesktopMode] Watcher error:", e);
-    }
-  };
+    }, 10_000);
+  }
+
+  console.log(
+    "%c[SteamDetect] Initialized (90s hard grace after launch)",
+    "color:#4caf50"
+  );
 }
