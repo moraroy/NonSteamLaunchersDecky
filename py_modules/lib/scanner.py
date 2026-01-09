@@ -415,6 +415,8 @@ def get_steam_store_appid(steam_store_game_name):
 
 
 
+
+
 def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_name):
     if not steam_store_appid:
         decky_plugin.logger.error(f"Cannot create manifest for '{steam_store_game_name}': no AppID found.")
@@ -429,18 +431,57 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         decky_plugin.logger.info(f"Manifest file for AppID {steam_store_appid} already exists at {appmanifest_path}.")
         return
 
-    app_manifest_data = {
-        "AppState": {
-            "AppID": str(steam_store_appid),
-            "Universe": "1",
-            "installdir": steam_store_game_name,
-            "StateFlags": "0"
-        }
-    }
+    vdf_content = "\n".join([
+        '"AppState"',
+        "{",
+        f'\t"appid"\t\t"{steam_store_appid}"',
+        '\t"Universe"\t\t"1"',
+        f'\t"name"\t\t"{steam_store_game_name}"',
+        '\t"StateFlags"\t\t"0"',
+        '\t"installdir"\t\t""',
+        '\t"LastUpdated"\t\t""',
+        '\t"LastPlayed"\t\t""',
+        '\t"SizeOnDisk"\t\t""',
+        '\t"StagingSize"\t\t""',
+        '\t"buildid"\t\t""',
+        '\t"LastOwner"\t\t""',
+        '\t"DownloadType"\t\t""',
+        '\t"UpdateResult"\t\t""',
+        '\t"BytesToDownload"\t\t""',
+        '\t"BytesDownloaded"\t\t""',
+        '\t"BytesToStage"\t\t""',
+        '\t"BytesStaged"\t\t""',
+        '\t"TargetBuildID"\t\t""',
+        '\t"AutoUpdateBehavior"\t\t""',
+        '\t"AllowOtherDownloadsWhileRunning"\t\t""',
+        '\t"ScheduledAutoUpdate"\t\t""',
+        "",
+        '\t"InstalledDepots"',
+        "\t{",
+        "\t}",
+        "",
+        '\t"InstallScripts"',
+        "\t{",
+        "\t}",
+        "",
+        '\t"SharedDepots"',
+        "\t{",
+        "\t}",
+        "",
+        '\t"UserConfig"',
+        "\t{",
+        "\t}",
+        "",
+        '\t"MountedConfig"',
+        "\t{",
+        "\t}",
+        "}",
+        ""
+    ])
 
     try:
-        with open(appmanifest_path, 'w') as file:
-            json.dump(app_manifest_data, file, indent=2)
+        with open(appmanifest_path, "w", encoding="utf-8") as file:
+            file.write(vdf_content)
         decky_plugin.logger.info(f"Created appmanifest file at: {appmanifest_path}")
     except Exception as e:
         decky_plugin.logger.error(f"Failed to write manifest for '{steam_store_game_name}': {e}")

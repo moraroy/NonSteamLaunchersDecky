@@ -2338,6 +2338,9 @@
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/sponsors/moraroy', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png", alt: "GitHub", style: { width: '20px', height: '20px', marginRight: '10px' } }),
                               "GitHub"),
+                          window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://buymeacoffee.com/moraroy', '_blank') },
+                              window.SP_REACT.createElement("img", { src: "https://www.iconpacks.net/icons/free-icons-8/free-buymeacoffee-yellow-circle-round-logotype-icon-27358.png", alt: "Buy Me A Coffee", style: { width: '20px', height: '20px', marginRight: '10px' } }),
+                              "Buy Me A Coffee"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank') }, "click here for more info!")))))));
   };
   var index = deckyFrontendLib.definePlugin((serverApi) => {
