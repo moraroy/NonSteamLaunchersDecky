@@ -44,7 +44,7 @@ def flatpak_scanner(logged_in_home, create_new_entry):
         },
         {
             "id": "com.hypixel.HytaleLauncher",
-            "display_name": "Hytale Launcher",
+            "display_name": "Hytale",
             "launch_options": lambda app_id: (
                 "run --branch=master --arch=x86_64 --command=hytale-launcher-wrapper "
                 f"{app_id}"
