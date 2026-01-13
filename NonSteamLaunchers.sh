@@ -249,7 +249,7 @@ fi
 exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.2.74
+version=v4.2.84
 #NSL DECKY VERSION (NO RCE)
 
 
@@ -744,6 +744,7 @@ launcher_entries=(
   "$poketcg_value|$poketcg_text"
   "$antstream_value|$antstream_text"
   "$stove_value|$stove_text"
+  "FALSE|Hytale"
   "FALSE|RemotePlayWhatever"
   "FALSE|NVIDIA GeForce NOW"
   "FALSE|Moonlight Game Streaming"
@@ -1862,6 +1863,18 @@ process_uninstall_options() {
             killall zenity
         fi
 
+        if [[ $uninstall_options == *"Uninstall Hytale"* ]]; then
+            # Uninstall Hytale Launcher Flatpak app (user scope)
+            flatpak uninstall -y --delete-data --force-remove --user com.hypixel.HytaleLauncher
+
+            # Notify user
+            zenity --info --text="Hytale has been uninstalled." --width=250 --height=150 &
+            sleep 3
+            killall zenity
+        fi
+
+
+
 
         uninstall_launcher "$uninstall_options" "Ubisoft Connect" "$uplay_path1" "$uplay_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Ubisoft" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" "uplay" "ubisoft"
         uninstall_launcher "$uninstall_options" "Battle.net" "$battlenet_path1" "$battlenet_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Battle.net" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" "battle" "bnet"
@@ -1952,6 +1965,7 @@ else
             FALSE "NVIDIA GeForce NOW" \
             FALSE "STOVE Client" \
             FALSE "Moonlight Game Streaming" \
+            FALSE "Hytale" \
         )
         # Convert the returned string to an array
         IFS='|' read -r -a uninstall_options_array <<< "$uninstall_options"
@@ -2788,11 +2802,29 @@ fi
 
 
 
-
-
-
-
 echo "99.3"
+echo "# Installing Hytale (Native Linux) ...please wait..."
+
+if [[ $options == *"Hytale"* ]]; then
+    if flatpak info --user com.hypixel.HytaleLauncher &>/dev/null || flatpak info --system com.hypixel.HytaleLauncher &>/dev/null; then
+        echo "Hytale is already installed (user or system)."
+    else
+        echo "Downloading Hytale Flatpak..."
+        curl -L -o /tmp/hytale-launcher.flatpak https://launcher.hytale.com/builds/release/linux/amd64/hytale-launcher-latest.flatpak
+
+        echo "Installing Hytale Flatpak app (user scope)..."
+        if flatpak install -y --user /tmp/hytale-launcher.flatpak; then
+            echo "Hytale Launcher installed successfully."
+        else
+            echo "Failed to install Hytale Launcher."
+        fi
+    fi
+fi
+
+
+
+
+echo "99.4"
 echo "# Checking if Ludusavi is installed...please wait..."
 
 # AutoInstall Ludusavi

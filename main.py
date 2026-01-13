@@ -545,7 +545,7 @@ class Plugin:
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"},
                 {"name": 'nvidiaGeForcenow', "env_var": None, "label": 'NVIDIA GeForce NOW', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.nvidia.geforcenow/x86_64/master/active/files/bin/GeForceNOW"},
                 {"name": 'moonlightGameStreaming', "env_var": None, "label": 'Moonlight', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.moonlight_stream.Moonlight/x86_64/stable/active/files/bin/moonlight"},
-
+                {"name": 'hytale', "env_var": None, "label": 'Hytale', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.hypixel.HytaleLauncher/current/active/files/bin/hytale-launcher-wrapper"},
             ]
 
             installed_launchers = []

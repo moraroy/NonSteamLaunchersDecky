@@ -27,12 +27,42 @@ def flatpak_scanner(logged_in_home, create_new_entry):
                 continue
         return False
 
-    geforce_app_id = "com.nvidia.geforcenow"
-    if is_flatpak_installed(geforce_app_id):
-        exe_path = '"/usr/bin/flatpak"'
-        display_name = "NVIDIA GeForce NOW"
-        app_name = f"run {geforce_app_id}"
-        start_dir = '"/usr/bin"'
+    # List of Flatpak apps to scan
+    flatpak_apps = [
+        {
+            "id": "com.nvidia.geforcenow",
+            "display_name": "NVIDIA GeForce NOW",
+            "launch_options": lambda app_id: f"run {app_id}"
+        },
+        {
+            "id": "com.moonlight_stream.Moonlight",
+            "display_name": "Moonlight Game Streaming",
+            "launch_options": lambda app_id: (
+                "run --branch=stable --arch=x86_64 --command=moonlight "
+                f"{app_id}"
+            )
+        },
+        {
+            "id": "com.hypixel.HytaleLauncher",
+            "display_name": "Hytale Launcher",
+            "launch_options": lambda app_id: (
+                "run --branch=master --arch=x86_64 --command=hytale-launcher-wrapper "
+                f"{app_id}"
+            )
+        }
+    ]
+
+    exe_path = '"/usr/bin/flatpak"'
+    start_dir = '"/usr/bin"'
+
+    for app in flatpak_apps:
+        app_id = app["id"]
+        display_name = app["display_name"]
+        app_name = app["launch_options"](app_id)
+
+        if not is_flatpak_installed(app_id):
+            decky_plugin.logger.info(f"Skipping {display_name} scanner — Flatpak not found.")
+            continue
 
         try:
             create_new_entry(
@@ -46,31 +76,3 @@ def flatpak_scanner(logged_in_home, create_new_entry):
             decky_plugin.logger.info(f"Added {display_name} to shortcuts.")
         except Exception as e:
             decky_plugin.logger.error(f"Failed to create entry for {display_name}: {str(e)}")
-    else:
-        decky_plugin.logger.info(f"Skipping {geforce_app_id} scanner — Flatpak not found.")
-
-    moonlight_app_id = "com.moonlight_stream.Moonlight"
-    if is_flatpak_installed(moonlight_app_id):
-        exe_path = '"/usr/bin/flatpak"'
-        display_name = "Moonlight Game Streaming"
-
-        app_name = (
-            "run --branch=stable --arch=x86_64 --command=moonlight "
-            "com.moonlight_stream.Moonlight"
-        )
-        start_dir = '"/usr/bin"'
-
-        try:
-            create_new_entry(
-                exe_path,
-                display_name,
-                app_name,
-                start_dir,
-                "NonSteamLaunchers"
-            )
-            track_game(display_name, "Launcher")
-            decky_plugin.logger.info(f"Added {display_name} to shortcuts.")
-        except Exception as e:
-            decky_plugin.logger.error(f"Failed to create entry for {display_name}: {str(e)}")
-    else:
-        decky_plugin.logger.info(f"Skipping {moonlight_app_id} scanner — Flatpak not found.")

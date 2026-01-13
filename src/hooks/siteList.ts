@@ -168,6 +168,14 @@ export const sitesList = [
     urlimage: 'https://cdn.tempogames.com/wp-content/uploads/2020/02/article-tempo-raise2.jpg'
   },
   {
+    name: 'hytale',
+    label: 'Hytale',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/8474b278f3d751b0a743e97ff395d23a.jpg'
+  },
+  {
     name: 'nvidiaGeForcenow',
     label: 'NVIDIA GeForce NOW',
     URL: '',
