@@ -222,6 +222,7 @@ def addCustomSite(customSiteJSON, selectedBrowser):
         customSiteName = site['siteName']
         customSiteURL = site['siteURL'].strip()
         browser_lower = site.get("browser", selectedBrowser).lower()
+        browser_name = site.get("browser", selectedBrowser)
 
         cleanSiteURL = customSiteURL.replace('http://', '').replace('https://', '').replace('www.', '')
 
@@ -256,7 +257,8 @@ def addCustomSite(customSiteJSON, selectedBrowser):
         new_shortcuts.append({
             'name': customSiteName,
             'url': cleanSiteURL,
-            'options': launch_options
+            'options': launch_options,
+            'browser': browser_name
         })
 
     env_vars = refresh_env_vars()
@@ -268,7 +270,7 @@ def addCustomSite(customSiteJSON, selectedBrowser):
             site['name'],
             site['options'],
             env_vars.get('chrome_startdir'),
-            None
+            site['browser']
         )
 
     return decky_shortcuts
