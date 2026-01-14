@@ -251,6 +251,20 @@ def addCustomSite(customSiteJSON, selectedBrowser):
                 f'--enable-features=OverlayScrollbar,HardwareMediaKeyHandling '
                 f'https://{cleanSiteURL}'
             )
+        elif "vivaldi" in browser_lower:
+            launch_options = (
+                f'run --branch=stable --arch=x86_64 '
+                f'--command=vivaldi com.vivaldi.Vivaldi '
+                f'--window-size=1280,800 --start-fullscreen '
+                f'--force-device-scale-factor=1.00 '
+                f'https://{cleanSiteURL} --no-first-run'
+            )
+        elif "librewolf" in browser_lower:
+            launch_options = (
+                f'run --branch=stable --arch=x86_64 '
+                f'io.gitlab.librewolf-community '
+                f'--kiosk https://{cleanSiteURL}'
+            )
         else:
             launch_options = f'run https://{cleanSiteURL}'
 

@@ -434,6 +434,20 @@ class Plugin:
                                 "com.brave.Browser",
                                 override_paths=["/run/udev:ro"]
                             )
+                        elif "vivaldi" in browser_lower:
+                            check_and_install_flatpak(
+                                "Vivaldi",
+                                "com.vivaldi.Vivaldi",
+                                override_paths=["/run/udev:ro"]
+                            )
+
+
+                        elif "librewolf" in browser_lower:
+                            check_and_install_flatpak(
+                                "LibreWolf",
+                                "io.gitlab.librewolf-community",
+                                override_paths=["/run/udev:ro"]
+                            )
 
                     for site in sites:
                         site["browser"] = selected_browser

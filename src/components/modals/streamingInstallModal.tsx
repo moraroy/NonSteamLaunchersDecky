@@ -171,6 +171,16 @@ export const StreamingInstallModal: VFC<StreamingInstallModalProps> = ({ closeMo
               checked={selectedBrowser === "Brave"}
               onChange={() => setSelectedBrowser("Brave")}
             />
+            <ToggleField
+              label="Vivaldi"
+              checked={selectedBrowser === "Vivaldi"}
+              onChange={() => setSelectedBrowser("Vivaldi")}
+            />
+            <ToggleField
+              label="LibreWolf"
+              checked={selectedBrowser === "LibreWolf"}
+              onChange={() => setSelectedBrowser("LibreWolf")}
+            />
           </div>
         </DialogBody>
 
