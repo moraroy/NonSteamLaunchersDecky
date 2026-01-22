@@ -73,7 +73,8 @@ launcher_icons = {
     "STOVE Client": "5443968",
     "Humble Bundle": "5333415",
     "NVIDIA GeForce Now": "5258450",
-    "Microsoft Xbox": "5297303"
+    "Microsoft Xbox": "5297303",
+    "Big Fish Games Manager": "5461265",
 }
 
 # Initial environment variables refresh
@@ -85,7 +86,7 @@ def initialiseVariables(env_vars):
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
     global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
-    global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher
+    global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher, bigfish_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
@@ -94,7 +95,7 @@ def initialiseVariables(env_vars):
     global hoyoplayshortcutdirectory, gamejoltshortcutdirectory, artixgameshortcutdirectory
     global arcshortcutdirectory, poketcgshortcutdirectory, antstreamshortcutdirectory
     global vfunshortcutdirectory, temposhortcutdirectory, repaireaappshortcutdirectory, chromedirectory
-    global stoveshortcutdirectory
+    global stoveshortcutdirectory, bigfishshortcutdirectory
     global microsoftxbox_launcher
 
     
@@ -119,6 +120,8 @@ def initialiseVariables(env_vars):
     indie_launcher = env_vars.get('indie_launcher', '')
     humble_launcher = env_vars.get('humble_launcher', '')
     stove_launcher = env_vars.get('stove_launcher', '')
+    bigfish_launcher = env_vars.get('bigfish_launcher', '')
+
     microsoftxbox_launcher = env_vars.get('microsoftxbox_launcher', '')
 
     epicshortcutdirectory = env_vars.get('epicshortcutdirectory')
@@ -145,7 +148,7 @@ def initialiseVariables(env_vars):
     vfunshortcutdirectory = env_vars.get('vfunshortcutdirectory')
     temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
     stoveshortcutdirectory = env_vars.get('stoveshortcutdirectory')
-
+    bigfishshortcutdirectory = env_vars.get('bigfishshortcutdirectory')
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
     geforcenow_launcher = "com.nvidia.geforcenow"
@@ -1054,6 +1057,9 @@ def add_launchers():
         ('Tempo Launcher', 'temposhortcutdirectory', 'tempolaunchoptions', 'tempostartingdir'),
         ('Repair EA App', 'repaireaappshortcutdirectory', 'repaireaapplaunchoptions', 'repaireaappstartingdir'),
         ('STOVE Client', 'stoveshortcutdirectory', 'stovelaunchoptions', 'stovestartingdir'),
+        ('Big Fish Games Manager', 'bigfishshortcutdirectory', 'bigfishlaunchoptions', 'bigfishstartingdir'),
+
+
     ]
 
     for launcher in launchers:
