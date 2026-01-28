@@ -1,5 +1,6 @@
-(function () {
-    // Cache object to store game details
+export function metaData() {
+  if ((window as any).__nslMetaInjected) return;
+  (window as any).__nslMetaInjected = true;
     const gameCache = {};
 
     async function getSteamGameDetails(gameName) {
@@ -566,11 +567,10 @@
 
   replaceText();
 
-  if (!window.steamEnhancerObserver) {
-      const observer = new MutationObserver(replaceText);
-      observer.observe(document.body, { childList: true, subtree: true });
+  if (!(window as any).steamEnhancerObserver) {
+    const observer = new MutationObserver(replaceText);
+    observer.observe(document.body, { childList: true, subtree: true });
 
-      window.steamEnhancerObserver = observer;
+    (window as any).steamEnhancerObserver = observer;
   }
-
-})();
+}

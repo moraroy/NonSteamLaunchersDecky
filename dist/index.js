@@ -2167,8 +2167,10 @@
       console.log("%c[SteamDetect] Initialized (90s hard grace after launch)", "color:#4caf50");
   }
 
-  (function () {
-      // Cache object to store game details
+  function metaData() {
+      if (window.__nslMetaInjected)
+          return;
+      window.__nslMetaInjected = true;
       const gameCache = {};
       async function getSteamGameDetails(gameName) {
           // Check if the game details are already in the cache
@@ -2673,7 +2675,7 @@
           observer.observe(document.body, { childList: true, subtree: true });
           window.steamEnhancerObserver = observer;
       }
-  })();
+  }
 
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
@@ -2869,6 +2871,7 @@
       autoscan();
       notify.setServer(serverApi);
       initGameWatcher();
+      metaData();
       // Fetch saved settings first, then decide whether to start Playtime or Theme Music
       (async () => {
           const savedSettings = (await serverApi.callPluginMethod('get_setting', {

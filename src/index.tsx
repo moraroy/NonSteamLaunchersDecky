@@ -26,7 +26,8 @@ import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
 import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
 import { initGameWatcher } from './hooks/gamewatcher';
-import './hooks/metaData';
+import { metaData } from './hooks/metaData';
+
  
 
 
@@ -320,6 +321,8 @@ export default definePlugin((serverApi: ServerAPI) => {
   autoscan();
   notify.setServer(serverApi);
   initGameWatcher();
+  metaData();
+
 
   // Fetch saved settings first, then decide whether to start Playtime or Theme Music
   (async () => {
