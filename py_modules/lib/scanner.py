@@ -456,44 +456,7 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         f'\t"appid"\t\t"{steam_store_appid}"',
         '\t"Universe"\t\t"1"',
         f'\t"name"\t\t"{steam_store_game_name}"',
-        '\t"StateFlags"\t\t"0"',
-        '\t"installdir"\t\t""',
-        '\t"LastUpdated"\t\t""',
-        '\t"LastPlayed"\t\t""',
-        '\t"SizeOnDisk"\t\t""',
-        '\t"StagingSize"\t\t""',
-        '\t"buildid"\t\t""',
-        '\t"LastOwner"\t\t""',
-        '\t"DownloadType"\t\t""',
-        '\t"UpdateResult"\t\t""',
-        '\t"BytesToDownload"\t\t""',
-        '\t"BytesDownloaded"\t\t""',
-        '\t"BytesToStage"\t\t""',
-        '\t"BytesStaged"\t\t""',
-        '\t"TargetBuildID"\t\t""',
-        '\t"AutoUpdateBehavior"\t\t""',
-        '\t"AllowOtherDownloadsWhileRunning"\t\t""',
-        '\t"ScheduledAutoUpdate"\t\t""',
-        "",
-        '\t"InstalledDepots"',
-        "\t{",
-        "\t}",
-        "",
-        '\t"InstallScripts"',
-        "\t{",
-        "\t}",
-        "",
-        '\t"SharedDepots"',
-        "\t{",
-        "\t}",
-        "",
-        '\t"UserConfig"',
-        "\t{",
-        "\t}",
-        "",
-        '\t"MountedConfig"',
-        "\t{",
-        "\t}",
+        '\t"StateFlags"\t\t"1"',
         "}",
         ""
     ])
@@ -506,149 +469,6 @@ def create_steam_store_app_manifest_file(steam_store_appid, steam_store_game_nam
         decky_plugin.logger.error(f"Failed to write manifest for '{steam_store_game_name}': {e}")
 
 #End of manifest file logic
-
-
-
-# Descriptions file logic
-
-# Descriptions file path
-descriptions_file_path = f"{DECKY_USER_HOME}/.config/systemd/user/descriptions.json"
-
-# --- Create descriptions.json if it doesn't exist ---
-def create_descriptions_file():
-    if not os.path.exists(descriptions_file_path):
-        try:
-            os.makedirs(os.path.dirname(descriptions_file_path), exist_ok=True)
-            with open(descriptions_file_path, 'w', encoding='utf-8') as file:
-                json.dump([], file, indent=4, ensure_ascii=False)
-            decky_plugin.logger.info(f"{descriptions_file_path} created successfully with an empty list.")
-        except IOError as e:
-            decky_plugin.logger.error(f"Error creating {descriptions_file_path}: {e}")
-
-# --- Load existing game data ---
-def load_game_data():
-    create_descriptions_file()
-    try:
-        with open(descriptions_file_path, 'r', encoding='utf-8') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        decky_plugin.logger.info(f"File not found: {descriptions_file_path}, returning empty data.")
-        return []
-    except json.JSONDecodeError as e:
-        decky_plugin.logger.error(f"Error decoding JSON: {e}, returning empty data.")
-        return []
-
-# --- Check if a game exists ---
-def game_exists_in_data(existing_data, game_name):
-    return any(game['game_name'] == game_name for game in existing_data)
-
-# --- Fetch game details from API ---
-def get_game_details(game_name):
-    url = f"https://nonsteamlaunchers.onrender.com/api/details/{game_name}"
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            decky_plugin.logger.error(f"Error: Unable to retrieve data for {game_name}. Status code {response.status_code}")
-            return None
-    except requests.exceptions.RequestException as e:
-        decky_plugin.logger.error(f"Request failed for {game_name}: {e}")
-        return None
-
-# --- Strip HTML tags ---
-def strip_html_tags(text):
-    if not text:
-        return text
-    return re.sub(r'<[^>]*>', '', text)
-
-# --- Decode HTML entities ---
-def decode_html_entities(text):
-    if not text:
-        return text
-    replacements = {
-        "\u00a0": " ",
-        "\u2013": "-",
-        "\u2019": "'",
-        "\u2122": "™"
-    }
-    for k, v in replacements.items():
-        text = text.replace(k, v)
-    return text
-
-# --- Write game details safely ---
-def write_game_details(existing_data, game_details):
-    if not game_details:
-        decky_plugin.logger.info("No game details to write.")
-        return existing_data
-
-    # Process about_the_game
-    if 'about_the_game' in game_details:
-        if game_details['about_the_game'] is not None:
-            game_details['about_the_game'] = strip_html_tags(game_details['about_the_game'])
-            game_details['about_the_game'] = decode_html_entities(game_details['about_the_game'])
-        else:
-            game_details['about_the_game'] = None
-
-    # Remove 'game_details' key if it exists
-    if 'game_details' in game_details:
-        del game_details['game_details']
-
-    # Append only if not already in data
-    if not any(game['game_name'] == game_details['game_name'] for game in existing_data):
-        existing_data.append(game_details)
-        decky_plugin.logger.info(f"Game details for {game_details['game_name']} added successfully.")
-    else:
-        decky_plugin.logger.info(f"Game details for {game_details['game_name']} already exist, skipping.")
-
-    return existing_data
-
-# --- Update descriptions.json for new games ---
-def update_game_details(games_to_check):
-    existing_data = load_game_data()
-
-    # Excluded apps list from siteList.ts
-    excluded_apps = []
-    try:
-        site_list_path = f"{DECKY_PLUGIN_DIR}/src/hooks/siteList.ts"
-        with open(site_list_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            excluded_apps = re.findall(r"label:\s*'([^']+)'", content)
-    except Exception:
-        excluded_apps = []
-
-    if "Repair EA App" not in excluded_apps:
-        excluded_apps.append("Repair EA App")
-
-    for game_name in games_to_check:
-        if game_name.lower() in (label.lower() for label in excluded_apps):
-            continue
-
-        existing_game = next((game for game in existing_data if game['game_name'] == game_name), None)
-
-        # Skip if about_the_game is null
-        if existing_game and existing_game.get('about_the_game') is None:
-            decky_plugin.logger.warning(f"Skipping API call for {game_name} as 'about_the_game' is null.")
-            continue
-
-        if not game_exists_in_data(existing_data, game_name):
-            game_details = get_game_details(game_name)
-            if game_details:
-                existing_data = write_game_details(existing_data, game_details)
-            else:
-                existing_data = write_game_details(existing_data, {
-                    "game_name": game_name,
-                    "about_the_game": None
-                })
-                decky_plugin.logger.warning(f"Inserted placeholder with null for {game_name} as no details were found.")
-
-    # Write back if data changed
-    if existing_data != load_game_data():
-        with open(descriptions_file_path, 'w', encoding='utf-8') as file:
-            json.dump(existing_data, file, indent=4, ensure_ascii=False)
-        decky_plugin.logger.info(f"Updated {descriptions_file_path} with new game details (if applicable).")
-    else:
-        decky_plugin.logger.info("No new game details to add. No changes made to descriptions.json.")
 
 
 
@@ -894,7 +714,6 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
         decky_plugin.logger.info(f"Skipping creation for {appname}. Missing fields: exe={exe}, appname={appname}, startingdir={startingdir}")
         return
 
-    update_game_details([appname])
 
     if launchoptions is None:
         launchoptions = ''

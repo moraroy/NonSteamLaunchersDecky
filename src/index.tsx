@@ -26,6 +26,9 @@ import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
 import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
 import { initGameWatcher } from './hooks/gamewatcher';
+import './hooks/metaData';
+ 
+
 
 const initialOptions = sitesList;
 

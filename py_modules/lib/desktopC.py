@@ -221,14 +221,39 @@ def create_exec_line_from_entry(logged_in_home, new_entry):
             applications_dir = os.path.join(logged_in_home, ".local/share/applications/")
             os.makedirs(applications_dir, exist_ok=True)
 
-            if os.path.isfile(path):
-                symlink_path = os.path.join(applications_dir, filename)
-                if os.path.exists(symlink_path):
-                    os.remove(symlink_path)
-                os.symlink(path, symlink_path)
-                decky_plugin.logger.info(f"desktopC: Created symlink {symlink_path} -> {path}")
-            else:
-                decky_plugin.logger.warning(f"desktopC: Cannot create symlink, file missing: {path}")
+
+            # Delete broken or Desktop-pointing symlinks in applications folder
+            # Delete broken symlinks in applications folder
+            for f in os.listdir(applications_dir):
+                full_path = os.path.join(applications_dir, f)
+                if f.endswith(".desktop") and os.path.islink(full_path):
+                    target = os.readlink(full_path)
+                    # Resolve relative symlinks
+                    real_target = os.path.join(os.path.dirname(full_path), target)
+                    if not os.path.exists(real_target):
+                        decky_plugin.logger.warning(f"Deleting broken symlink in applications folder: {full_path} -> {target}")
+                        os.remove(full_path)
+
+
+            app_file_path = os.path.join(applications_dir, filename)
+
+            # Write the .desktop file
+            with open(app_file_path, "w", encoding="utf-8") as file:
+                file.write(content)
+            decky_plugin.logger.info(f"desktopC: Moved and updated .desktop file in {app_file_path}")
+
+            # Remove original desktop file if it exists
+            original_desktop_path = os.path.join(desktop_dir, filename)
+            if os.path.exists(original_desktop_path):
+                os.remove(original_desktop_path)
+
+
+            # Create symlink from original desktop location to applications folder
+            os.symlink(app_file_path, original_desktop_path)
+            decky_plugin.logger.info(
+                f"desktopC: Created symlink {original_desktop_path} -> {app_file_path}"
+            )
+
 
         if not found:
             decky_plugin.logger.info("desktopC: No matching .desktop file found")

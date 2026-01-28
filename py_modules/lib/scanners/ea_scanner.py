@@ -78,10 +78,15 @@ def get_ea_app_game_info(installed_games, game_directory_path, sys_reg_file=None
             if game_name is None:
                 game_name = game
 
+            game_name = re.sub(r'\s*\([^)]*\)$', '', game_name)
+
+
             matched_id = None
             if not ea_ids and sys_reg_name_to_id:
                 decky_plugin.logger.info(f"No ID in XML for '{game_name}', checking registry fallback...")
                 for reg_name, reg_id in sys_reg_name_to_id.items():
+                    clean_reg_name = re.sub(r'\s*\([^)]*\)$', '', reg_name)
+
                     if reg_name == game_name:
                         matched_id = reg_id
                         break
