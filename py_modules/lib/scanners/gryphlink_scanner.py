@@ -5,7 +5,7 @@ from scanners.game_tracker import track_game
 
 logger = decky_plugin.logger
 
-def grifflink_scanner(logged_in_home, gryphlink_launcher, create_new_entry):
+def gryphlink_scanner(logged_in_home, gryphlink_launcher, create_new_entry):
 
     endfield_exe = (
         f"{logged_in_home}/.local/share/Steam/steamapps/compatdata/{gryphlink_launcher}/"

@@ -87,10 +87,10 @@ def initialiseVariables(env_vars):
     global steamid3, logged_in_home, compat_tool_name, controller_config_path
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
-    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher, glyphlink_launcher
+    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher, gryphlink_launcher
     global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher, bigfish_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
-    global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory, glyphlinkshortcutdirectory
+    global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory, gryphlinkshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
     global indieshortcutdirectory, rockstarshortcutdirectory, glyphshortcutdirectory
     global minecraftshortcutdirectory, psplusshortcutdirectory, vkplayshortcutdirectory
@@ -123,7 +123,7 @@ def initialiseVariables(env_vars):
     humble_launcher = env_vars.get('humble_launcher', '')
     stove_launcher = env_vars.get('stove_launcher', '')
     bigfish_launcher = env_vars.get('bigfish_launcher', '')
-    glyphlink_launcher = env_vars.get('glyphlink_launcher', '')
+    gryphlink_launcher = env_vars.get('gryphlink_launcher', '')
 
     microsoftxbox_launcher = env_vars.get('microsoftxbox_launcher', '')
 
@@ -152,7 +152,7 @@ def initialiseVariables(env_vars):
     temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
     stoveshortcutdirectory = env_vars.get('stoveshortcutdirectory')
     bigfishshortcutdirectory = env_vars.get('bigfishshortcutdirectory')
-    glyphlinkshortcutdirectory = env_vars.get('glyphlinkshortcutdirectory')
+    gryphlinkshortcutdirectory = env_vars.get('gryphlinkshortcutdirectory')
 
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
