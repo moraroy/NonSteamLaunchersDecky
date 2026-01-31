@@ -554,6 +554,7 @@ class Plugin:
                 {"name": 'tempoLauncher', "env_var": 'tempo_launcher', "label": 'Tempo Launcher'},
 
                 {"name": 'antstreamArcade', "env_var": 'antstream_launcher', "label": 'Antstream Arcade'},
+                {"name": 'gryphlink', "env_var": 'gryphlink_launcher', "label": 'Gryphlink'},
 
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"},

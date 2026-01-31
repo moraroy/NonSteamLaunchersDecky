@@ -31,6 +31,8 @@ from scanners.minecraft_scanner import minecraft_scanner
 from scanners.indie_scanner import indie_scanner
 from scanners.humble_scanner import humble_scanner
 from scanners.stove_scanner import stove_scanner
+from scanners.gryphlink_scanner import gryphlink_scanner
+
 from scanners.geforcenow_scanner import geforcenow_scanner
 from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
@@ -85,10 +87,10 @@ def initialiseVariables(env_vars):
     global steamid3, logged_in_home, compat_tool_name, controller_config_path
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
-    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher
+    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher, glyphlink_launcher
     global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher, bigfish_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
-    global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory
+    global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory, glyphlinkshortcutdirectory
     global itchioshortcutdirectory, legacyshortcutdirectory, humbleshortcutdirectory
     global indieshortcutdirectory, rockstarshortcutdirectory, glyphshortcutdirectory
     global minecraftshortcutdirectory, psplusshortcutdirectory, vkplayshortcutdirectory
@@ -121,6 +123,7 @@ def initialiseVariables(env_vars):
     humble_launcher = env_vars.get('humble_launcher', '')
     stove_launcher = env_vars.get('stove_launcher', '')
     bigfish_launcher = env_vars.get('bigfish_launcher', '')
+    glyphlink_launcher = env_vars.get('glyphlink_launcher', '')
 
     microsoftxbox_launcher = env_vars.get('microsoftxbox_launcher', '')
 
@@ -149,6 +152,8 @@ def initialiseVariables(env_vars):
     temposhortcutdirectory = env_vars.get('temposhortcutdirectory')
     stoveshortcutdirectory = env_vars.get('stoveshortcutdirectory')
     bigfishshortcutdirectory = env_vars.get('bigfishshortcutdirectory')
+    glyphlinkshortcutdirectory = env_vars.get('glyphlinkshortcutdirectory')
+
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
     geforcenow_launcher = "com.nvidia.geforcenow"
@@ -188,7 +193,9 @@ def scan():
             (minecraft_scanner, logged_in_home, minecraft_launcher, create_new_entry),
             (indie_scanner, logged_in_home, indie_launcher, create_new_entry),
             (humble_scanner, logged_in_home, humble_launcher, create_new_entry),
-            (stove_scanner, logged_in_home, stove_launcher, create_new_entry),    
+            (stove_scanner, logged_in_home, stove_launcher, create_new_entry),
+            (gryphlink_scanner, logged_in_home, gryphlink_launcher, create_new_entry),
+
             (rpw_scanner, logged_in_home, create_new_entry),
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
@@ -877,6 +884,9 @@ def add_launchers():
         ('Repair EA App', 'repaireaappshortcutdirectory', 'repaireaapplaunchoptions', 'repaireaappstartingdir'),
         ('STOVE Client', 'stoveshortcutdirectory', 'stovelaunchoptions', 'stovestartingdir'),
         ('Big Fish Games Manager', 'bigfishshortcutdirectory', 'bigfishlaunchoptions', 'bigfishstartingdir'),
+
+        ('Gryphlink', 'gryphlinkshortcutdirectory', 'gryphlinklaunchoptions', 'gryphlinkstartingdir'),
+
 
 
     ]

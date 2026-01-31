@@ -189,7 +189,7 @@ compatdata_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
 non_steam_launchers_dir="${compatdata_dir}/NonSteamLaunchers/pfx/drive_c/"
 
 # Define an array of folder names
-folder_names=("NonSteamLaunchers" "EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher")
+folder_names=("NonSteamLaunchers" "EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher" "BigFishLauncher" "GryphlinkLauncher")
 
 # Cleaning up empty directories in compatdata (maxdepth 1 to avoid subdirectories)
 echo "Cleaning up empty directories in $compatdata_dir..."
@@ -249,7 +249,7 @@ fi
 exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.2.84
+version=v4.2.86
 #NSL DECKY VERSION (NO RCE)
 
 
@@ -425,7 +425,12 @@ tempo_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamL
 tempo_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/Program Files/Tempo Launcher - Beta/Tempo Launcher - Beta.exe"
 stove_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/ProgramData/Smilegate/STOVE/STOVE.exe"
 stove_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/STOVELauncher/pfx/drive_c/ProgramData/Smilegate/STOVE/STOVE.exe"
-
+gryphlink_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/GRYPHLINK/Launcher.exe"
+gryphlink_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GryphlinkLauncher/pfx/drive_c/Program Files/GRYPHLINK/Launcher.exe"
+bigfish_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/bfgclient/bfgclient.exe"
+bigfish_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/BigFishLauncher/pfx/drive_c/Program Files (x86)/bfgclient/bfgclient.exe"
+gryphlink_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/GRYPHLINK/Launcher.exe"
+gryphlink_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GryphlinkLauncher/pfx/drive_c/Program Files/GRYPHLINK/Launcher.exe"
 
 
 
@@ -440,11 +445,11 @@ chromedirectory="\"$chrome_path\""
 #Zenity Launcher Check Installation
 function CheckInstallations {
     declare -A paths1 paths2 names
-    paths1=(["epic_games"]="$epic_games_launcher_path1" ["gog_galaxy"]="$gog_galaxy_path1" ["uplay"]="$uplay_path1" ["battlenet"]="$battlenet_path1" ["eaapp"]="$eaapp_path1" ["amazongames"]="$amazongames_path1" ["itchio"]="$itchio_path1" ["legacygames"]="$legacygames_path1" ["humblegames"]="$humblegames_path1" ["indiegala"]="$indiegala_path1" ["rockstar"]="$rockstar_path1" ["glyph"]="$glyph_path1" ["minecraft"]="$minecraft_path1" ["psplus"]="$psplus_path1" ["vkplay"]="$vkplay_path1" ["hoyoplay"]="$hoyoplay_path1" ["nexon"]="$nexon_path1" ["gamejolt"]="$gamejolt_path1" ["artixgame"]="$artixgame_path1" ["arc"]="$arc_path1" ["poketcg"]="$poketcg_path1" ["antstream"]="$antstream_path1" ["purple"]="$purple_path1" ["plarium"]="$plarium_path1" ["vfun"]="$vfun_path1" ["tempo"]="$tempo_path1" ["stove"]="$stove_path1")
+    paths1=(["epic_games"]="$epic_games_launcher_path1" ["gog_galaxy"]="$gog_galaxy_path1" ["uplay"]="$uplay_path1" ["battlenet"]="$battlenet_path1" ["eaapp"]="$eaapp_path1" ["amazongames"]="$amazongames_path1" ["itchio"]="$itchio_path1" ["legacygames"]="$legacygames_path1" ["humblegames"]="$humblegames_path1" ["indiegala"]="$indiegala_path1" ["rockstar"]="$rockstar_path1" ["glyph"]="$glyph_path1" ["minecraft"]="$minecraft_path1" ["psplus"]="$psplus_path1" ["vkplay"]="$vkplay_path1" ["hoyoplay"]="$hoyoplay_path1" ["nexon"]="$nexon_path1" ["gamejolt"]="$gamejolt_path1" ["artixgame"]="$artixgame_path1" ["arc"]="$arc_path1" ["poketcg"]="$poketcg_path1" ["antstream"]="$antstream_path1" ["purple"]="$purple_path1" ["plarium"]="$plarium_path1" ["vfun"]="$vfun_path1" ["tempo"]="$tempo_path1" ["stove"]="$stove_path1" ["bigfish"]="$bigfish_path1" ["gryphlink"]="$gryphlink_path1")
 
-    paths2=(["epic_games"]="$epic_games_launcher_path2" ["gog_galaxy"]="$gog_galaxy_path2" ["uplay"]="$uplay_path2" ["battlenet"]="$battlenet_path2" ["eaapp"]="$eaapp_path2" ["amazongames"]="$amazongames_path2" ["itchio"]="$itchio_path2" ["legacygames"]="$legacygames_path2" ["humblegames"]="$humblegames_path2" ["indiegala"]="$indiegala_path2" ["rockstar"]="$rockstar_path2" ["glyph"]="$glyph_path2" ["minecraft"]="$minecraft_path2" ["psplus"]="$psplus_path2" ["vkplay"]="$vkplay_path2" ["hoyoplay"]="$hoyoplay_path2" ["nexon"]="$nexon_path2" ["gamejolt"]="$gamejolt_path2" ["artixgame"]="$artixgame_path2" ["arc"]="$arc_path2" ["poketcg"]="$poketcg_path2" ["antstream"]="$antstream_path2" ["purple"]="$purple_path2" ["plarium"]="$plarium_path2" ["vfun"]="$vfun_path2" ["tempo"]="$tempo_path2" ["stove"]="$stove_path2")
+    paths2=(["epic_games"]="$epic_games_launcher_path2" ["gog_galaxy"]="$gog_galaxy_path2" ["uplay"]="$uplay_path2" ["battlenet"]="$battlenet_path2" ["eaapp"]="$eaapp_path2" ["amazongames"]="$amazongames_path2" ["itchio"]="$itchio_path2" ["legacygames"]="$legacygames_path2" ["humblegames"]="$humblegames_path2" ["indiegala"]="$indiegala_path2" ["rockstar"]="$rockstar_path2" ["glyph"]="$glyph_path2" ["minecraft"]="$minecraft_path2" ["psplus"]="$psplus_path2" ["vkplay"]="$vkplay_path2" ["hoyoplay"]="$hoyoplay_path2" ["nexon"]="$nexon_path2" ["gamejolt"]="$gamejolt_path2" ["artixgame"]="$artixgame_path2" ["arc"]="$arc_path2" ["poketcg"]="$poketcg_path2" ["antstream"]="$antstream_path2" ["purple"]="$purple_path2" ["plarium"]="$plarium_path2" ["vfun"]="$vfun_path2" ["tempo"]="$tempo_path2" ["stove"]="$stove_path2" ["bigfish"]="$bigfish_path2" ["gryphlink"]="$gryphlink_path1")
 
-    names=(["epic_games"]="Epic Games" ["gog_galaxy"]="GOG Galaxy" ["uplay"]="Ubisoft Connect" ["battlenet"]="Battle.net" ["eaapp"]="EA App" ["amazongames"]="Amazon Games" ["itchio"]="itch.io" ["legacygames"]="Legacy Games" ["humblegames"]="Humble Games Collection" ["indiegala"]="IndieGala" ["rockstar"]="Rockstar Games Launcher" ["glyph"]="Glyph Launcher" ["minecraft"]="Minecraft Launcher" ["psplus"]="Playstation Plus" ["vkplay"]="VK Play" ["hoyoplay"]="HoYoPlay" ["nexon"]="Nexon Launcher" ["gamejolt"]="Game Jolt Client" ["artixgame"]="Artix Game Launcher" ["arc"]="ARC Launcher" ["poketcg"]="Pokémon Trading Card Game Live" ["antstream"]="Antstream Arcade" ["purple"]="PURPLE Launcher" ["plarium"]="Plarium Play" ["vfun"]="VFUN Launcher" ["tempo"]="Tempo Launcher" ["stove"]="STOVE Client")
+    names=(["epic_games"]="Epic Games" ["gog_galaxy"]="GOG Galaxy" ["uplay"]="Ubisoft Connect" ["battlenet"]="Battle.net" ["eaapp"]="EA App" ["amazongames"]="Amazon Games" ["itchio"]="itch.io" ["legacygames"]="Legacy Games" ["humblegames"]="Humble Games Collection" ["indiegala"]="IndieGala" ["rockstar"]="Rockstar Games Launcher" ["glyph"]="Glyph Launcher" ["minecraft"]="Minecraft Launcher" ["psplus"]="Playstation Plus" ["vkplay"]="VK Play" ["hoyoplay"]="HoYoPlay" ["nexon"]="Nexon Launcher" ["gamejolt"]="Game Jolt Client" ["artixgame"]="Artix Game Launcher" ["arc"]="ARC Launcher" ["poketcg"]="Pokémon Trading Card Game Live" ["antstream"]="Antstream Arcade" ["purple"]="PURPLE Launcher" ["plarium"]="Plarium Play" ["vfun"]="VFUN Launcher" ["tempo"]="Tempo Launcher" ["stove"]="STOVE Client" ["bigfish"]="Big Fish Games Manager" ["gryphlink"]="Gryphlink")
 
     for launcher in "${!names[@]}"; do
         if [[ -f "${paths1[$launcher]}" ]]; then
@@ -463,10 +468,9 @@ function CheckInstallations {
 # Verify launchers are installed
 function CheckInstallationDirectory {
     declare -A paths names
-    paths=(["nonsteamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers" ["epicgameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" ["goggalaxylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GogGalaxyLauncher" ["uplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" ["battlenetlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" ["eaapplauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher" ["amazongameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" ["itchiolauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/itchioLauncher" ["legacygameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/LegacyGamesLauncher" ["humblegameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HumbleGamesLauncher" ["indiegalalauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/IndieGalaLauncher" ["rockstargameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/RockstarGamesLauncher" ["glyphlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GlyphLauncher" ["minecraftlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/MinecraftLauncher" ["pspluslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" ["vkplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VKPlayLauncher" ["hoyoplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HoYoPlayLauncher" ["nexonlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NexonLauncher" ["gamejoltlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GameJoltLauncher" ["artixgamelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ArtixGameLauncher" ["arc"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ARCLauncher" ["poketcglauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher" ["antstreamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher" ["purplelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher" ["plarium"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" ["vfun"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher" ["tempo"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher" ["stove"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/STOVELauncher")
+    paths=(["nonsteamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers" ["epicgameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/EpicGamesLauncher" ["goggalaxylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GogGalaxyLauncher" ["uplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher" ["battlenetlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher" ["eaapplauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher" ["amazongameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher" ["itchiolauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/itchioLauncher" ["legacygameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/LegacyGamesLauncher" ["humblegameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HumbleGamesLauncher" ["indiegalalauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/IndieGalaLauncher" ["rockstargameslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/RockstarGamesLauncher" ["glyphlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GlyphLauncher" ["minecraftlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/MinecraftLauncher" ["pspluslauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlaystationPlusLauncher" ["vkplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VKPlayLauncher" ["hoyoplaylauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/HoYoPlayLauncher" ["nexonlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NexonLauncher" ["gamejoltlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GameJoltLauncher" ["artixgamelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ArtixGameLauncher" ["arc"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/ARCLauncher" ["poketcglauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher" ["antstreamlauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher" ["purplelauncher"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher" ["plarium"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" ["vfun"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher" ["tempo"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher" ["stove"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/STOVELauncher" ["bigfish"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/BigFishLauncher" ["gryphlink"]="${logged_in_home}/.local/share/Steam/steamapps/compatdata/GryphlinkLauncher")
 
-
-    names=(["nonsteamlauncher"]="NonSteamLaunchers" ["epicgameslauncher"]="EpicGamesLauncher" ["goggalaxylauncher"]="GogGalaxyLauncher" ["uplaylauncher"]="UplayLauncher" ["battlenetlauncher"]="Battle.netLauncher" ["eaapplauncher"]="TheEAappLauncher" ["amazongameslauncher"]="AmazonGamesLauncher" ["itchiolauncher"]="itchioLauncher" ["legacygameslauncher"]="LegacyGamesLauncher" ["humblegameslauncher"]="HumbleGamesLauncher" ["indiegalalauncher"]="IndieGalaLauncher" ["rockstargameslauncher"]="RockstarGamesLauncher" ["glyphlauncher"]="GlyphLauncher" ["minecraftlauncher"]="MinecraftLauncher" ["pspluslauncher"]="PlaystationPlusLauncher" ["vkplaylauncher"]="VKPlayLauncher" ["hoyoplaylauncher"]="HoYoPlayLauncher" ["nexonlauncher"]="NexonLauncher" ["gamejoltlauncher"]="GameJoltLauncher" ["artixgamelauncher"]="ArtixGameLauncher" ["arc"]="ARCLauncher" ["poketcg"]="PokeTCGLauncher" ["antstreamlauncher"]="AntstreamLauncher" ["purplelauncher"]="PURPLELauncher" ["plariumlauncher"]="PlariumLauncher" ["vfunlauncher"]="VFUNLauncher" ["tempolauncher"]="TempoLauncher" ["stovelauncher"]="STOVELauncher")
+    names=(["nonsteamlauncher"]="NonSteamLaunchers" ["epicgameslauncher"]="EpicGamesLauncher" ["goggalaxylauncher"]="GogGalaxyLauncher" ["uplaylauncher"]="UplayLauncher" ["battlenetlauncher"]="Battle.netLauncher" ["eaapplauncher"]="TheEAappLauncher" ["amazongameslauncher"]="AmazonGamesLauncher" ["itchiolauncher"]="itchioLauncher" ["legacygameslauncher"]="LegacyGamesLauncher" ["humblegameslauncher"]="HumbleGamesLauncher" ["indiegalalauncher"]="IndieGalaLauncher" ["rockstargameslauncher"]="RockstarGamesLauncher" ["glyphlauncher"]="GlyphLauncher" ["minecraftlauncher"]="MinecraftLauncher" ["pspluslauncher"]="PlaystationPlusLauncher" ["vkplaylauncher"]="VKPlayLauncher" ["hoyoplaylauncher"]="HoYoPlayLauncher" ["nexonlauncher"]="NexonLauncher" ["gamejoltlauncher"]="GameJoltLauncher" ["artixgamelauncher"]="ArtixGameLauncher" ["arc"]="ARCLauncher" ["poketcg"]="PokeTCGLauncher" ["antstreamlauncher"]="AntstreamLauncher" ["purplelauncher"]="PURPLELauncher" ["plariumlauncher"]="PlariumLauncher" ["vfunlauncher"]="VFUNLauncher" ["tempolauncher"]="TempoLauncher" ["stovelauncher"]="STOVELauncher" ["bigfishlauncher"]="BigFishLauncher")
 
     for launcher in "${!names[@]}"; do
         if [[ -d "${paths[$launcher]}" ]]; then
@@ -477,12 +481,22 @@ function CheckInstallationDirectory {
     done
 }
 
+
 #Get SD Card Path
 get_sd_path() {
-    # This assumes that the SD card is mounted under /run/media/deck/
-    local sd_path=$(df | grep '/run/media/deck/' | awk '{print $6}')
-    echo $sd_path
+    local sd_mount
+
+    sd_mount=$(lsblk -nr -o NAME,MOUNTPOINT \
+        | awk '$1 ~ /^mmcblk.*p[0-9]+$/ && $2 != "" { print $2; exit }')
+
+    if [[ -z "$sd_mount" ]]; then
+        zenity --error --text="No SD card detected. Please insert and mount an SD card."
+        exit 1
+    fi
+
+    echo "$sd_mount"
 }
+
 
 
 
@@ -713,7 +727,6 @@ CheckInstallationDirectory
 
 
 
-
 # Define launcher entries
 launcher_entries=(
   "FALSE|SEPARATE APP IDS - CHECK THIS TO SEPARATE YOUR PREFIX"
@@ -744,6 +757,8 @@ launcher_entries=(
   "$poketcg_value|$poketcg_text"
   "$antstream_value|$antstream_text"
   "$stove_value|$stove_text"
+  "$bigfish_value|$bigfish_text"
+  "$gryphlink_value|$gryphlink_text"
   "FALSE|Hytale"
   "FALSE|RemotePlayWhatever"
   "FALSE|NVIDIA GeForce NOW"
@@ -760,6 +775,7 @@ chrome_entries=(
   "FALSE|Amazon Luna"
   "FALSE|Stim.io"
   "FALSE|Boosteroid Cloud Gaming"
+  "FALSE|Cloudy Pad"
   "FALSE|Rocketcrab"
   "FALSE|WebRcade"
   "FALSE|WebRcade Editor"
@@ -798,14 +814,9 @@ custom_websites=()
 separate_appids=false
 
 # --- Handle command line arguments or fallback to GTK UI ---
-
 if [ $# -eq 0 ]; then
-    # No CLI args — show GTK UI
-
     readarray -t gtk_output < <(python3 - <<'EOF'
-import gi, os, sys
-import subprocess
-import re
+import gi, os, sys, subprocess, re
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -813,11 +824,11 @@ from gi.repository import Gtk
 def get_screen_resolution():
     xrandr_output = subprocess.check_output(["xrandr"]).decode("utf-8")
     resolutions = re.findall(r"(\d+)x(\d+)\s*\*+", xrandr_output)
-    return map(int, resolutions[0]) if resolutions else (1920, 1080)
+    return map(int, resolutions[0]) if resolutions else (1920,1080)
 
 def is_multiple_monitors():
     xrandr_output = subprocess.check_output(["xrandr"]).decode("utf-8")
-    return len(re.findall(r" connected", xrandr_output)) > 1
+    return len(re.findall(r" connected", xrandr_output))>1
 
 screen_width, screen_height = get_screen_resolution()
 if is_multiple_monitors():
@@ -826,14 +837,14 @@ if is_multiple_monitors():
     if match:
         screen_width, screen_height = map(int, match.groups())
 
-zenity_width = screen_width * 80 // 100
-zenity_height = screen_height * 80 // 100
+zenity_width = screen_width*80//100
+zenity_height = screen_height*80//100
 
-version = os.environ.get("UI_VERSION", "NSL")
-live = os.environ.get("UI_LIVE", "")
+version = os.environ.get("UI_VERSION","NSL")
+live = os.environ.get("UI_LIVE","")
 
-launcher_lines = os.environ.get("LAUNCHER_DATA", "").splitlines()
-chrome_lines = os.environ.get("CHROME_DATA", "").splitlines()
+launcher_lines = os.environ.get("LAUNCHER_DATA","").splitlines()
+chrome_lines = os.environ.get("CHROME_DATA","").splitlines()
 
 class LauncherUI(Gtk.Window):
     def __init__(self):
@@ -842,81 +853,140 @@ class LauncherUI(Gtk.Window):
 
         self.store_launchers = Gtk.ListStore(bool, str)
         self.store_chrome = Gtk.ListStore(bool, str)
-
         for line in launcher_lines:
             if "|" in line:
-                value, label = line.split("|", 1)
-                active = value == "TRUE"
-                self.store_launchers.append([active, label])
-
+                value,label = line.split("|",1)
+                self.store_launchers.append([value=="TRUE", label])
         for line in chrome_lines:
             if "|" in line:
-                value, label = line.split("|", 1)
-                active = value == "TRUE"
-                self.store_chrome.append([active, label])
+                value,label = line.split("|",1)
+                self.store_chrome.append([value=="TRUE", label])
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin=10)
         self.add(main_box)
 
         header_label = Gtk.Label()
-        header_label.set_markup(f"<b>{version}</b> — Default = one App ID Installation, One Prefix, NonSteamLaunchers - updated the NSLGameScanner.py {live}")
+        header_label.set_markup(
+            f"<b>{version}</b> — Default = one App ID Installation, One Prefix, "
+            f"NonSteamLaunchers - updated the NSLGameScanner.py {live}"
+        )
+
+
         header_label.set_line_wrap(True)
         header_label.set_xalign(0)
         main_box.pack_start(header_label, False, False, 0)
 
-        def create_tree(model, toggle_callback):
+        # Helper for toggles
+        def create_tree(model,toggle_callback):
             tree = Gtk.TreeView(model=model)
             toggle = Gtk.CellRendererToggle()
-            toggle.connect("toggled", toggle_callback)
-            tree.append_column(Gtk.TreeViewColumn("Select", toggle, active=0))
-            tree.append_column(Gtk.TreeViewColumn("Launcher", Gtk.CellRendererText(), text=1))
+            toggle.connect("toggled",toggle_callback)
+            tree.append_column(Gtk.TreeViewColumn("Select",toggle,active=0))
+            tree.append_column(Gtk.TreeViewColumn("Name",Gtk.CellRendererText(),text=1))
             return tree
 
-        launcher_label = Gtk.Label(label="Launchers:")
-        launcher_label.set_xalign(0)
-        main_box.pack_start(launcher_label, False, False, 0)
-
-        launcher_tree = create_tree(self.store_launchers, self.on_toggle_launcher)
+        # Launchers Tree
+        main_box.pack_start(Gtk.Label(label="Launchers:", xalign=0), False, False, 0)
+        launcher_tree = create_tree(self.store_launchers,self.on_toggle_launcher)
         scrolled1 = Gtk.ScrolledWindow()
         scrolled1.set_vexpand(True)
         scrolled1.add(launcher_tree)
         main_box.pack_start(scrolled1, True, True, 0)
 
-        chrome_label = Gtk.Label(label="Google Chrome-based Services:")
-        chrome_label.set_xalign(0)
-        main_box.pack_start(chrome_label, False, False, 0)
-
-        chrome_tree = create_tree(self.store_chrome, self.on_toggle_chrome)
+        # Chrome Tree
+        main_box.pack_start(Gtk.Label(label="Browser-based Services:", xalign=0), False, False,0)
+        chrome_tree = create_tree(self.store_chrome,self.on_toggle_chrome)
         scrolled2 = Gtk.ScrolledWindow()
         scrolled2.set_vexpand(True)
         scrolled2.add(chrome_tree)
         main_box.pack_start(scrolled2, True, True, 0)
 
+        # Horizontal browser checkboxes
+        main_box.pack_start(Gtk.Label(label="Select a browser (required for web services or websites & will attempt to be installed if needed):", xalign=0), False, False,0)
+        self.browser_names = ["Google Chrome","Mozilla Firefox","Brave","Microsoft Edge", "Vivaldi", "LibreWolf"]
+        self.browser_checks = {}
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20, margin=5)
+        for name in self.browser_names:
+            check = Gtk.CheckButton(label=name)
+            check.connect("toggled", self.on_browser_checked, name)
+            self.browser_checks[name] = check
+            hbox.pack_start(check, False, False, 5)
+        main_box.pack_start(hbox, False, False, 0)
+
+        # Custom website names entry
+        self.entry_names = Gtk.Entry()
+        self.entry_names.set_placeholder_text("Enter the names for each site, separated by commas. E.g. Myspace, Limewire, AOL")
+        main_box.pack_start(self.entry_names, False, False, 0)
+
+        # Custom websites entry
         self.entry = Gtk.Entry()
         self.entry.set_placeholder_text("Enter custom websites that you want shortcuts for, separated by commas. Leave blank and press ok if you don't want any. E.g. myspace.com, limewire.com, my.screenname.aol.com")
         main_box.pack_start(self.entry, False, False, 0)
 
+        # Buttons
         button_box = Gtk.Box(spacing=6)
         self.button_result = None
-        for label in ["Cancel", "OK", "❤️", "Uninstall", "🔍", "Start Fresh", "Move to SD Card", "Update Proton-GE", "🖥️ Off", "NSLGameSaves", "README"]:
+        for label in ["Cancel","OK","❤️","Uninstall","🔍","Start Fresh","Move to SD Card","Update Proton-GE","🖥️ Off","NSLGameSaves","README"]:
             btn = Gtk.Button(label=label)
             btn.connect("clicked", self.on_button_clicked, label)
             button_box.pack_start(btn, True, True, 0)
-
         main_box.pack_start(button_box, False, False, 0)
 
+    # Toggle handlers
     def on_toggle_launcher(self, widget, path):
         self.store_launchers[path][0] = not self.store_launchers[path][0]
 
     def on_toggle_chrome(self, widget, path):
         self.store_chrome[path][0] = not self.store_chrome[path][0]
 
+    # Only one browser can be selected
+    def on_browser_checked(self, widget, name):
+        if widget.get_active():
+            for other_name, other_check in self.browser_checks.items():
+                if other_name != name:
+                    other_check.set_active(False)
+
+    # Button click
     def on_button_clicked(self, button, label):
-        selected = [row[1] for row in self.store_launchers if row[0]] + [row[1] for row in self.store_chrome if row[0]]
+        selected_launchers = [row[1] for row in self.store_launchers if row[0]]
+        selected_chrome = [row[1] for row in self.store_chrome if row[0]]
+        selected_browser = [name for name, check in self.browser_checks.items() if check.get_active()]
+        website_names = self.entry_names.get_text().strip()
         websites = self.entry.get_text().strip()
+
+        if label in ["Uninstall", "Move to SD Card"]:
+            if selected_launchers or selected_chrome or selected_browser or website_names or websites:
+                dlg = Gtk.MessageDialog(
+                    parent=self,
+                    flags=0,
+                    message_type=Gtk.MessageType.WARNING,
+                    buttons=Gtk.ButtonsType.OK,
+                    text=f"{label} requires no other selections."
+                )
+                dlg.format_secondary_text(
+                    "Please uncheck all launchers, services, browsers, and clear any custom websites before continuing."
+                )
+                dlg.run()
+                dlg.destroy()
+                return
+
+
+
+        # Enforce browser selection if needed
+        if (selected_chrome or websites) and not selected_browser:
+            dlg = Gtk.MessageDialog(parent=self, flags=0, message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.OK,
+                                    text="You must select a browser if you chose a web service or entered a website.")
+            dlg.run()
+            dlg.destroy()
+            return
+
+        selected = selected_launchers + selected_chrome + selected_browser
         print("|".join(selected))
+        print(website_names)
         print(websites)
         print(label)
+        print("|".join(selected_browser))
         sys.stdout.flush()
         Gtk.main_quit()
 
@@ -931,10 +1001,18 @@ EOF
 
 
 
-    selected_launchers_str="${gtk_output[0]}"
-    custom_websites_str="${gtk_output[1]}"
-    extra_button="${gtk_output[2]}"
 
+
+
+
+
+    selected_launchers_str="${gtk_output[0]}"
+    custom_website_names_str="${gtk_output[1]}"
+    custom_websites_str="${gtk_output[2]}"
+    extra_button="${gtk_output[3]}"
+    selected_browser="${gtk_output[4]}"
+
+    IFS=',' read -ra custom_website_names <<< "$custom_website_names_str"
     IFS=',' read -ra custom_websites <<< "$custom_websites_str"
     IFS='|' read -ra selected_launchers <<< "$selected_launchers_str"
 
@@ -962,6 +1040,7 @@ else
             selected_launchers+=("$arg")
         fi
     done
+
 
     custom_websites_str=$(IFS=', '; echo "${custom_websites[*]}")
 
@@ -1031,143 +1110,66 @@ echo "Options: $options"
 
 
 
+
 # Define the StartFreshFunction
-function StartFreshFunction {
-    # Define the path to the compatdata directory
+StartFreshFunction() {
+    sd_path=$(get_sd_path)
+
     compatdata_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
-    # Define the path to the other directory
-    other_dir="${logged_in_home}/.local/share/Steam/steamapps/shadercache/"
+    other_dir="${logged_in_home}/.local/share/Steam/steamapps/shadercache"
 
-    # Define an array of original folder names
-    folder_names=("EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher" "STOVELauncher")
-
-    # Define an array of app IDs
+    folder_names=("EpicGamesLauncher" "GogGalaxyLauncher" "UplayLauncher" "Battle.netLauncher" "TheEAappLauncher" "AmazonGamesLauncher" "itchioLauncher" "LegacyGamesLauncher" "HumbleGamesLauncher" "IndieGalaLauncher" "RockstarGamesLauncher" "GlyphLauncher" "PlaystationPlusLauncher" "VKPlayLauncher" "HoYoPlayLauncher" "NexonLauncher" "GameJoltLauncher" "ArtixGameLauncher" "ARCLauncher" "PokeTCGLauncher" "AntstreamLauncher" "PURPLELauncher" "PlariumLauncher" "VFUNLauncher" "TempoLauncher" "STOVELauncher" "BigFishLauncher" "NonSteamLaunchers" "MinecraftLauncher" "GryphlinkLauncher")
     app_ids=("3772819390" "4294900670" "4063097571" "3786021133" "3448088735" "3923904787" "3440562512" "2948446662" "3908676077" "4206469918" "3303169468" "3595505624" "4272271078" "3259996605" "2588786779" "4090616647" "3494943831" "2390200925" "4253976432" "2221882453" "2296676888" "2486751858" "3974004104" "3811372789" "3788101956" "3782277090" "3640061468" "3216372511" "2882622939" "2800812206" "2580882702" "4022508926" "4182617613" "1981254598" "2136059209" "1401184678" "3141683525")
 
-    # Iterate over each folder name in the folder_names array
+    delete_path() {
+        local path="$1"
+        if [ -e "$path" ]; then
+            if [ -L "$path" ]; then
+                target=$(readlink -f "$path")
+                rm -rf "$target"
+                unlink "$path"
+                echo "Deleted symlink and target: $path -> $target"
+            else
+                rm -rf "$path"
+                echo "Deleted folder: $path"
+            fi
+        fi
+    }
+
     for folder in "${folder_names[@]}"; do
-        # Check if the folder exists
-        if [ -e "${compatdata_dir}/${folder}" ]; then
-            # Check if the folder is a symbolic link
-            if [ -L "${compatdata_dir}/${folder}" ]; then
-                # Get the path of the target of the symbolic link
-                target_path=$(readlink -f "${compatdata_dir}/${folder}")
-
-                # Delete the target of the symbolic link
-                rm -rf "$target_path"
-
-                # Delete the symbolic link
-                unlink "${compatdata_dir}/${folder}"
-            else
-                # Delete the folder
-                # shellcheck disable=SC2115
-                rm -rf "${compatdata_dir}/${folder}"
-            fi
-        fi
+        delete_path "${compatdata_dir}/${folder}"
     done
 
-    # Iterate over each app ID in the app_ids array
     for app_id in "${app_ids[@]}"; do
-        # Check if the folder exists
-        if [ -e "${other_dir}/${app_id}" ]; then
-            # Check if the folder is a symbolic link
-            if [ -L "${other_dir}/${app_id}" ]; then
-                # Get the path of the target of the symbolic link
-                target_path=$(readlink -f "${other_dir}/${app_id}")
-
-                # Delete the target of the symbolic link
-                rm -rf "$target_path"
-
-                # Delete the symbolic link
-                unlink "${other_dir}/${app_id}"
-            else
-                # Delete the folder
-                # shellcheck disable=SC2115
-                rm -rf "${other_dir}/${app_id}"
-            fi
-        fi
+        delete_path "${other_dir}/${app_id}"
     done
 
-    # Check if the NonSteamLaunchers folder exists
-    if [ -e "$compatdata_dir/NonSteamLaunchers" ]; then
-        # Check if the NonSteamLaunchers folder is a symbolic link
-        if [ -L "$compatdata_dir/NonSteamLaunchers" ]; then
-            # Get the path of the target of the symbolic link
-            target_path=$(readlink -f "$compatdata_dir/NonSteamLaunchers")
-
-            # Delete the target of the symbolic link
-            rm -rf "$target_path"
-
-            # Delete the symbolic link
-            unlink "$compatdata_dir/NonSteamLaunchers"
-        else
-            # Delete the NonSteamLaunchers folder
-            rm -rf "$compatdata_dir/NonSteamLaunchers"
-        fi
-    fi
-
-    # Iterate over each folder in the compatdata directory
     for folder_path in "$compatdata_dir"/*; do
-        # Check if the current item is a folder
-        if [ -d "$folder_path" ]; then
-            # Check if the folder is empty
-            if [ -z "$(ls -A "$folder_path")" ]; then
-                # Delete the empty folder
-                rmdir "$folder_path"
-                echo "Deleted empty folder: $(basename "$folder_path")"
-            fi
-        fi
+        [ -d "$folder_path" ] && [ -z "$(ls -A "$folder_path")" ] && rmdir "$folder_path" && echo "Deleted empty folder: $(basename "$folder_path")"
     done
 
-    # TODO: declare array and use find/for loop to avoid duplicate `rm` processes
-    rm -rf "/run/media/mmcblk0p1/NonSteamLaunchers/"
-    rm -rf "/run/media/mmcblk0p1/EpicGamesLauncher/"
-    rm -rf "/run/media/mmcblk0p1/GogGalaxyLauncher/"
-    rm -rf "/run/media/mmcblk0p1/UplayLauncher/"
-    rm -rf "/run/media/mmcblk0p1/Battle.netLauncher/"
-    rm -rf "/run/media/mmcblk0p1/TheEAappLauncher/"
-    rm -rf "/run/media/mmcblk0p1/AmazonGamesLauncher/"
-    rm -rf "/run/media/mmcblk0p1/LegacyGamesLauncher/"
-    rm -rf "/run/media/mmcblk0p1/itchioLauncher/"
-    rm -rf "/run/media/mmcblk0p1/HumbleGamesLauncher/"
-    rm -rf "/run/media/mmcblk0p1/IndieGalaLauncher/"
-    rm -rf "/run/media/mmcblk0p1/RockstarGamesLauncher/"
-    rm -rf "/run/media/mmcblk0p1/GlyphLauncher/"
-    rm -rf "/run/media/mmcblk0p1/MinecraftLauncher/"
-    rm -rf "/run/media/mmcblk0p1/PlaystationPlusLauncher/"
-    rm -rf "/run/media/mmcblk0p1/VKPlayLauncher/"
-    rm -rf "/run/media/mmcblk0p1/HoYoPlayLauncher/"
-    rm -rf "/run/media/mmcblk0p1/NexonLauncher/"
-    rm -rf "/run/media/mmcblk0p1/GameJoltLauncher/"
-    rm -rf "/run/media/mmcblk0p1/ArtixGameLauncher/"
-    rm -rf "/run/media/mmcblk0p1/ARCLauncher/"
-    rm -rf "/run/media/mmcblk0p1/PokeTCGLauncher/"
-    rm -rf "/run/media/mmcblk0p1/AntstreamLauncher/"
-    rm -rf "/run/media/mmcblk0p1/PURPLELauncher/"
-    rm -rf "/run/media/mmcblk0p1/PlariumLauncher/"
-    rm -rf "/run/media/mmcblk0p1/VFUNLauncher/"
-    rm -rf "/run/media/mmcblk0p1/TempoLauncher/"
-    rm -rf "/run/media/mmcblk0p1/STOVELauncher/"
-    rm -rf ${logged_in_home}/Downloads/NonSteamLaunchersInstallation
-    rm -rf ${logged_in_home}/.config/systemd/user/Modules
-    rm -rf ${logged_in_home}/.config/systemd/user/env_vars
-    rm -rf ${logged_in_home}/.config/systemd/user/NSLGameScanner.py
-	rm -rf ${logged_in_home}/.config/systemd/user/shortcuts
-    rm -rf ${logged_in_home}/.config/systemd/user/descriptions.json
-    rm -rf ${logged_in_home}/.local/share/applications/RemotePlayWhatever
-    rm -rf ${logged_in_home}/.local/share/applications/RemotePlayWhatever.desktop
-    rm -rf ${logged_in_home}/Downloads/NonSteamLaunchers-install.log
+    # Remove folders on SD card dynamically
+    for folder in "${folder_names[@]}"; do
+        delete_path "${sd_path}/${folder}"
+    done
 
-    # Delete the service file
-    rm -rf ${logged_in_home}/.config/systemd/user/nslgamescanner.service
+    delete_path "${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
+    delete_path "${logged_in_home}/.config/systemd/user/Modules"
+    delete_path "${logged_in_home}/.config/systemd/user/env_vars"
+    delete_path "${logged_in_home}/.config/systemd/user/NSLGameScanner.py"
+    delete_path "${logged_in_home}/.config/systemd/user/shortcuts"
+    delete_path "${logged_in_home}/.config/systemd/user/descriptions.json"
+    delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever"
+    delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever.desktop"
+    delete_path "${logged_in_home}/Downloads/NonSteamLaunchers-install.log"
 
-    # Remove the symlink
-    unlink ${logged_in_home}/.config/systemd/user/default.target.wants/nslgamescanner.service
+    delete_path "${logged_in_home}/.config/systemd/user/nslgamescanner.service"
+    unlink "${logged_in_home}/.config/systemd/user/default.target.wants/nslgamescanner.service" 2>/dev/null || true
 
-    # Reload the systemd user instance
     systemctl --user daemon-reload
+    systemctl --user reset-failed
 
-    # Exit the script with exit code 0 to indicate success
+    show_message "NonSteamLaunchers has been wiped!"
     exit 0
 }
 
@@ -1194,6 +1196,8 @@ if [[ $options == "Start Fresh" ]] || [[ $selected_launchers == "Start Fresh" ]]
         StartFreshFunction
     fi
 fi
+
+
 
 
 
@@ -1302,7 +1306,6 @@ vkplay_url=https://static.gc.vkplay.ru/VKPlayLoader.exe
 # Set the path to save the VK Play Launcher to
 vkplay_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/VKPlayLoader.exe
 
-
 # Set the URL to download the Hoyo Play Play Launcher file from
 hoyoplay_url="https://download-porter.hoyoverse.com/download-porter/2025/02/21/VYTpXlbWo8_1.4.5.222_1_0_hyp_hoyoverse_prod_202502081529_XFGRLkBk.exe"
 
@@ -1315,8 +1318,10 @@ nexon_url="https://download.nxfs.nexon.com/download-launcher?file=NexonLauncherS
 # Set the path to save the Nexon Launcher to
 nexon_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/NexonLauncherSetup.exe
 
+
 # Set the URL to download the GameJolt Launcher file from
 gamejolt_url="https://files.catbox.moe/mv4jos"
+
 
 # Set the path to save the GameJolt Launcher to
 gamejolt_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/gamejoltclientsetup.exe
@@ -1363,10 +1368,18 @@ vfun_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/VFUNLauncher
 tempo_url="https://cdn.playthebazaar.com/launcher-0ca5d6/Tempo%20Launcher%20-%20Beta%20Setup%201.0.4.exe"
 tempo_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/TempoLauncherSetup.exe"
 
-
 #StoveLauncher
 stove_url="https://sgs-live-dl.game.playstove.com/game/lcs/STOVESetup.exe"
 stove_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/STOVESetup.exe"
+
+
+#bigfishLauncher
+bigfish_url="https://cdn-content.bigfishgames.com/prodstatic/games/gm_32/gm_installers/currentInstallers/Windows/bfginstaller32_s1_l1.exe"
+bigfish_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/bfginstaller32_s1_l1.exe"
+
+
+gryphlink_url="https://launcher.hg-cdn.com/TiaytKBUIEdoEwRT/launcher/1.0.2/6/6/FCLRoWw78h2SQCYy/GRYPHLINK_1.0.2_6_6_endfield.exe"
+gryph_file="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/GRYPHLINK_1.0.2_6_6_endfield.exe"
 
 
 #End of Downloads INFO
@@ -1896,7 +1909,7 @@ process_uninstall_options() {
         uninstall_launcher "$uninstall_options" "Plarium Play" "$plarium_path1" "$plarium_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher" "plarium"
 
         uninstall_launcher "$uninstall_options" "VFUN Launcher" "$vfun_path1" "$vfun_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/VFUN/VLauncher" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/VFUNLauncher" "vfun"
-
+        uninstall_launcher "$uninstall_options" "Gryphlink" "$gryphlink_path1" "$gryphlink_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/GRYPHLINK" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/GRYPHLINK" "gryphlink"
     fi
     # If the uninstall was successful,  set uninstalled_any_launcher to true
     if [ $? -eq 0 ]; then
@@ -1938,7 +1951,7 @@ else
             --width=508 --height=507 \
             FALSE "Epic Games" \
             FALSE "GOG Galaxy" \
-            FALSE "Ubisoft Connect" \
+            FALSE "Uplay" \
             FALSE "Battle.net" \
             FALSE "EA App" \
             FALSE "Amazon Games" \
@@ -1962,11 +1975,19 @@ else
             FALSE "Tempo Launcher" \
             FALSE "Pokémon Trading Card Game Live" \
             FALSE "Antstream Arcade" \
+            FALSE "Big Fish Games Manager" \
             FALSE "RemotePlayWhatever" \
             FALSE "NVIDIA GeForce NOW" \
             FALSE "STOVE Client" \
             FALSE "Moonlight Game Streaming" \
-            FALSE "Hytale" \
+            FALSE "Google Chrome" \
+            FALSE "Mozilla Firefox" \
+            FALSE "Brave" \
+            FALSE "Microsoft Edge" \
+            FALSE "Vivaldi" \
+            FALSE "LibreWolf" \
+			FALSE "Hytale" \
+			FALSE "Gryphlink" \
         )
         # Convert the returned string to an array
         IFS='|' read -r -a uninstall_options_array <<< "$uninstall_options"
@@ -1982,62 +2003,119 @@ fi
 #End of Uninstall
 
 
-move_to_sd() {
-    local launcher_id=$1
-    local original_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${launcher_id}"
-    local sd_path=$(get_sd_path)
-    local new_dir="${sd_path}/${launcher_id}"
 
-    # Resolve symbolic link to its target
-    if [[ -L "${original_dir}" ]]; then
-        original_dir=$(readlink "${original_dir}")
+
+#SD CARD
+#SD CARD
+move_launcher_to_sd() {
+    local launcher_name=$1
+    local compat_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata"
+    local sd_path
+    sd_path=$(get_sd_path) || return 1
+
+    local launcher_link="${compat_dir}/${launcher_name}"
+
+    # Check if launcher exists
+    if [[ ! -e "$launcher_link" ]]; then
+        zenity --warning --text="$launcher_name does not exist." --width=300 --height=100
+        echo "$launcher_name does not exist"
+        return 1
     fi
 
-    if [[ -d "${original_dir}" ]] && [[ $move_options == *"${launcher_id}"* ]]; then
-        mv "${original_dir}" "${new_dir}"
-        ln -s "${new_dir}" "${original_dir}"
+    local number_folder
+    number_folder=$(readlink -f "$launcher_link")
+
+    if [[ "$number_folder" == "$sd_path"* ]]; then
+        echo "# $launcher_name is already on the SD card."
+        return 0
+    fi
+
+    local sd_folder="${sd_path}/${launcher_name}"
+
+    echo "# Moving $launcher_name to SD card..."
+    mkdir -p "$sd_folder"
+    rsync -a "$number_folder/" "$sd_folder/" || {
+        zenity --error --text="Failed to copy $launcher_name to SD card." --width=300 --height=100
+        return 1
+    }
+
+    rm -rf "$number_folder"
+    ln -s "$sd_folder" "$number_folder"
+
+    rm -f "$launcher_link"
+    ln -s "$number_folder" "$launcher_link"
+}
+
+move_all_selected() {
+    local any_moved=0
+    (
+        for launcher in "${selected_launchers[@]}"; do
+            if move_launcher_to_sd "$launcher"; then
+                any_moved=1
+            fi
+        done
+    ) | zenity --progress \
+        --title="Moving Launchers to SD Card" \
+        --text="Copying files…" \
+        --pulsate \
+        --auto-close \
+        --width=400
+
+    if [[ $any_moved -eq 0 ]]; then
+        zenity --info --text="No launchers were moved. They may already be on the SD card or do not exist." --width=350 --height=100
     fi
 }
 
-# Check if the first command line argument is "Move to SD Card"
+# Main script logic
 if [[ $1 == "Move to SD Card" ]]; then
-    # Shift the arguments to remove the first one
     shift
-
-    # Use the remaining arguments as the launcher IDs to move
     for launcher in "$@"; do
-        move_to_sd "$launcher"
+        move_launcher_to_sd "$launcher"
     done
 else
-    # The first command line argument is not "Move to SD Card"
-    # Use Zenity to get the launcher IDs to move
     if [[ $options == "Move to SD Card" ]]; then
         CheckInstallationDirectory
 
-    move_options=$(zenity --list --text="Which launcher IDs do you want to move to the SD card?" --checklist --column="Select" --column="Launcher ID" $nonsteamlauncher_move_value "NonSteamLaunchers" $epicgameslauncher_move_value "EpicGamesLauncher" $goggalaxylauncher_move_value "GogGalaxyLauncher" $uplaylauncher_move_value "UplayLauncher" $battlenetlauncher_move_value "Battle.netLauncher" $eaapplauncher_move_value "TheEAappLauncher" $amazongameslauncher_move_value "AmazonGamesLauncher" $itchiolauncher_move_value "itchioLauncher" $legacygameslauncher_move_value "LegacyGamesLauncher" $humblegameslauncher_move_value "HumbleGamesLauncher" $indiegalalauncher_move_value "IndieGalaLauncher" $rockstargameslauncher_move_value "RockstarGamesLauncher" $glyphlauncher_move_value "GlyphLauncher" "$minecraftlauncher_move_value" "MinecraftLauncher" $pspluslauncher_move_value "PlaystationPlusLauncher" $vkplaylauncher_move_value "VKPlayLauncher" $hoyoplaylauncher_move_value "HoYoPlayLauncher" $nexonlauncher_move_value "NexonLauncher" $gamejoltlauncher_move_value "GameJoltLauncher" $artixgame_move_value "ArtixGameLauncher" $arc_move_value "ARCLauncher" $purple_move_value "PURPLELauncher" $plarium_move_value "PlariumLauncher" $vfun_move_value "VFUNLauncher" $tempo_move_value "TempoLauncher" $poketcg_move_value "PokeTCGLauncher" $antstream_move_value "AntstreamLauncher" "$stove_move_value" "STOVELauncher" --width=335 --height=524)
+        move_options=$(zenity --list --text="Which launcher IDs do you want to move to the SD card?" \
+            --checklist --column="Select" --column="Launcher ID" \
+            $nonsteamlauncher_move_value "NonSteamLaunchers" \
+            $epicgameslauncher_move_value "EpicGamesLauncher" \
+            $goggalaxylauncher_move_value "GogGalaxyLauncher" \
+            $uplaylauncher_move_value "UplayLauncher" \
+            $battlenetlauncher_move_value "Battle.netLauncher" \
+            $eaapplauncher_move_value "TheEAappLauncher" \
+            $amazongameslauncher_move_value "AmazonGamesLauncher" \
+            $itchiolauncher_move_value "itchioLauncher" \
+            $legacygameslauncher_move_value "LegacyGamesLauncher" \
+            $humblegameslauncher_move_value "HumbleGamesLauncher" \
+            $indiegalalauncher_move_value "IndieGalaLauncher" \
+            $rockstargameslauncher_move_value "RockstarGamesLauncher" \
+            $glyphlauncher_move_value "GlyphLauncher" \
+            $minecraftlauncher_move_value "MinecraftLauncher" \
+            $pspluslauncher_move_value "PlaystationPlusLauncher" \
+            $vkplaylauncher_move_value "VKPlayLauncher" \
+            $hoyoplaylauncher_move_value "HoYoPlayLauncher" \
+            $nexonlauncher_move_value "NexonLauncher" \
+            $gamejoltlauncher_move_value "GameJoltLauncher" \
+            $artixgame_move_value "ArtixGameLauncher" \
+            $arc_move_value "ARCLauncher" \
+            $purple_move_value "PURPLELauncher" \
+            $plarium_move_value "PlariumLauncher" \
+            $vfun_move_value "VFUNLauncher" \
+            $tempo_move_value "TempoLauncher" \
+            $poketcg_move_value "PokeTCGLauncher" \
+            $antstream_move_value "AntstreamLauncher" \
+            $stove_move_value "STOVELauncher" \
+            $bigfish_move_value "BigFishLauncher" \
+            --width=335 --height=524)
 
-
-    if [ $? -eq 0 ]; then
-        zenity --info --text="The selected directories have been moved to the SD card and symbolic links have been created." --width=200 --height=150
-
-        IFS="|" read -ra selected_launchers <<< "$move_options"
-        for launcher in "${selected_launchers[@]}"; do
-            move_to_sd "$launcher"
-        done
-    fi
-
-        IFS="|" read -ra selected_launchers <<< "$move_options"
-        for launcher in "${selected_launchers[@]}"; do
-            move_to_sd "$launcher"
-        done
-
-        if [ $? -eq 0 ]; then
-            zenity --info --text="The selected directories have been moved to the SD card and symbolic links have been created." --width=200 --height=150
+        if [[ $? -eq 0 ]]; then
+            IFS="|" read -ra selected_launchers <<< "$move_options"
+            move_all_selected
         fi
-        # Exit the script
+
         exit 0
     fi
-
 fi
 
 function stop_service {
@@ -2546,6 +2624,47 @@ install_psplus() {
 }
 
 
+# Gryphlink specific installation steps
+install_gryphlink() {
+    gryphlink_dir="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${appid}/pfx/drive_c/Program Files/GRYPHLINK"
+    download_url="https://launcher.hg-cdn.com/TiaytKBUIEdoEwRT/launcher/1.0.2/6/6/FCLRoWw78h2SQCYy/GRYPHLINK_1.0.2_6_6_endfield.exe"
+    tmp_installer="${logged_in_home}/Downloads/NonSteamLaunchersInstallation/GRYPHLINK_installer.exe"
+
+    [ ! -d "${gryphlink_dir}" ] && mkdir -p "${gryphlink_dir}"
+
+    curl -L -o "${tmp_installer}" "${download_url}"
+
+    command -v 7z >/dev/null 2>&1 || { echo "7z not found, install p7zip"; exit 1; }
+
+    7z x "${tmp_installer}" -o"${gryphlink_dir}" -aoa
+
+    [ -d "${gryphlink_dir}/\$0/1.0.2" ] && mv "${gryphlink_dir}/\$0/1.0.2" "${gryphlink_dir}/1.0.2"
+
+    rm -rf "${gryphlink_dir}/\$0" "${gryphlink_dir}/\$PLUGINSDIR"
+    rm -f "${tmp_installer}"
+
+    mkdir -p "${gryphlink_dir}/Cache/Config"
+
+    [ -f "${gryphlink_dir}/1.0.2/Launcher.exe" ] && cp "${gryphlink_dir}/1.0.2/Launcher.exe" "${gryphlink_dir}/Launcher.exe"
+    [ -f "${gryphlink_dir}/1.0.2/Uninstall.exe" ] && cp "${gryphlink_dir}/1.0.2/Uninstall.exe" "${gryphlink_dir}/Uninstall.exe"
+
+    if command -v tree >/dev/null 2>&1; then
+        tree -L 3 "${gryphlink_dir}"
+    else
+        ls -R "${gryphlink_dir}"
+    fi
+
+
+
+    echo "Removing installer file..."
+    rm -f "${gryphlink_dir}/GRYPHLINK_installer.exe" || {
+        echo "Failed to remove installer file"
+        return 1
+    }
+
+    echo "Gryphlink installation steps completed successfully"
+}
+
 
 #Launcher Installs
 function install_launcher {
@@ -2724,6 +2843,12 @@ install_launcher "Tempo Launcher" "TempoLauncher" "$tempo_file" "$tempo_url" "$t
 
 #Install Stove Client
 install_launcher "STOVE Client" "STOVELauncher" "$stove_file" "$stove_url" "$stove_file" "96" "install_stove" "" true
+
+
+install_launcher "Big Fish Games Manager" "BigFishLauncher" "$bigfish_file" "$bigfish_url" "$bigfish_file /S" "97" "" "" true
+
+
+install_launcher "Gryphlink" "GryphlinkLauncher" "$gryphlink_file" "$gryphlink_url" "" "98" "" "install_gryphlink" true
 
 
 #End of Launcher Installations
@@ -3007,6 +3132,10 @@ roots:
     path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/TempoLauncher/pfx/drive_c/
   - store: otherWindows
     path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/STOVELauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/BigFishLauncher/pfx/drive_c/
+  - store: otherWindows
+    path: ${logged_in_home}/.local/share/Steam/steamapps/compatdata/GryphlinkLauncher/pfx/drive_c/
 redirects: []
 backup:
   path: ${logged_in_home}/NSLGameSaves
@@ -3152,6 +3281,9 @@ check_and_write "plarium" "$plarium_path1" "$plarium_path2" "NonSteamLaunchers" 
 check_and_write "stove" "$stove_path1" "$stove_path2" "NonSteamLaunchers" "STOVELauncher" "" "stove_launcher"
 check_and_write "vfun" "$vfun_path1" "$vfun_path2" "NonSteamLaunchers" "VFUNLauncher" "" "vfun_launcher"
 check_and_write "tempo" "$tempo_path1" "$tempo_path2" "NonSteamLaunchers" "TempoLauncher" "" "tempo_launcher"
+check_and_write "stove" "$stove_path1" "$stove_path2" "NonSteamLaunchers" "STOVELauncher" "" "stove_launcher"
+check_and_write "bigfish" "$bigfish_path1" "$bigfish_path2" "NonSteamLaunchers" "BigFishLauncher" "" "bigfish_launcher"
+check_and_write "gryphlink" "$gryphlink_path1" "$gryphlink_path2" "NonSteamLaunchers" "GryphlinkLauncher" "" "gryphlink_launcher"
 
 # Special Shortcut for EA App NoRepair
 eaapp_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe"

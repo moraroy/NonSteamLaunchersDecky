@@ -152,6 +152,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
   },
   {
+    name: 'gryphlink',
+    label: 'Gryphlink',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://pbs.twimg.com/media/G5ATb5jbIAEVaKy?format=png&name=large'
+  },
+  {
     name: 'vfunLauncher',
     label: 'VFUN Launcher',
     URL: '',
