@@ -17,315 +17,244 @@ TARGET_TITLE3 = "Steam Big Picture Mode"
 
 
 THEMEMUSIC_CODE = r"""(function () {
-  const LOCAL_STORAGE_KEY = "ThemeMusicData";
-
-  const themeMusicEvents = new EventTarget();
-  const originalSetItem = localStorage.setItem.bind(localStorage);
-
-  localStorage.setItem = function (key, value) {
-    originalSetItem(key, value);
-    if (key === LOCAL_STORAGE_KEY) {
-      let enabled = true;
-      try {
-        const data = JSON.parse(value || "{}");
-        enabled = !(data.themeMusic === false || data.themeMusic === "off");
-      } catch {}
-      themeMusicEvents.dispatchEvent(new CustomEvent("themeMusicToggle", { detail: { enabled } }));
-    }
-  };
-
-  themeMusicEvents.addEventListener("themeMusicToggle", (e) => {
-      console.log("Theme music toggled (same tab):", e.detail.enabled);
-      if (!e.detail.enabled && ytPlayer) {
-          // Stop the music first
-          fadeOutAndStop().then(() => {
-              // Clear the currently playing music data after it has stopped
-              clearCurrentlyPlaying();
-          });
-      }
-  });
-
-
-  // Listen to changes from other tabs
-  window.addEventListener("storage", (e) => {
-    if (e.key === LOCAL_STORAGE_KEY) {
-      let enabled = true;
-      try {
-        const data = JSON.parse(e.newValue || "{}");
-        enabled = !(data.themeMusic === false || data.themeMusic === "off");
-      } catch {}
-      console.log("Theme music toggled (other tab):", enabled);
-      if (!enabled && ytPlayer) fadeOutAndStop();
-    }
-  });
-
-  function isThemeMusicEnabled() {
-    try {
-      const data = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
-      return !(data.themeMusic === false || data.themeMusic === "off");
-    } catch {
-      return true; // default ON if parsing fails
-    }
-  }
-
-  let stoppingMusic = false;
-  let pausedForGame = false;
-
-  if (window.SteamClient && SteamClient.Apps && SteamClient.Apps.RegisterForGameActionStart) {
-    SteamClient.Apps.RegisterForGameActionStart((appID) => {
-      if (stoppingMusic) return;
-      stoppingMusic = true;
-
-      console.log("Play clicked! Game starting… AppID:", appID);
-
-      fadeOutAndStop().finally(() => { stoppingMusic = false; });
-
-      var mgr = window.MainWindowBrowserManager;
-      if (mgr) mgr.LoadURL("/library");
+    if (window.__MY_THEMEMUSIC_SCRIPT_LOADED__) return;
+    Object.defineProperty(window, "__MY_THEMEMUSIC_SCRIPT_LOADED__", {
+        value: true,
+        writable: false,
+        configurable: false
     });
-  }
 
-  var mgr = window.MainWindowBrowserManager;
-  if (!mgr) return;
+    const LOCAL_STORAGE_KEY = "ThemeMusicData";
 
-  var lastUrl = null;
-  var lastAppID = null;
+    const themeMusicEvents = new EventTarget();
+    const originalSetItem = localStorage.setItem.bind(localStorage);
 
-  var ytAudioIframe = null;
-  var ytPlayer = null;
-  var ytPlayerReady = false;
-  var fadeInterval = null;
-  var currentQuery = null;
-
-  var sessionCache = new Map();
-  const CACHE_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
-
-  if (!window.YT) {
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-  }
-
-  function waitForYouTubeAPI() {
-    if (window.YT && window.YT.Player) return Promise.resolve();
-    return new Promise(function (resolve) {
-      window.onYouTubeIframeAPIReady = function () { resolve(); };
-    });
-  }
-
-  function loadCache() {
-    try { return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}"); }
-    catch { return {}; }
-  }
-
-  function saveCache(data) {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-  }
-
-  function getCachedVideo(query) {
-      // First, check if there's a cached video ID in the session cache
-      if (sessionCache.has(query)) {
-          // Retrieve the session cache entry
-          const sessionEntry = sessionCache.get(query);
-          const cache = loadCache();  // Load the localStorage cache
-          const localStorageEntry = cache[query];
-
-          if (localStorageEntry && localStorageEntry.timestamp > sessionEntry.timestamp) {
-              // If the timestamp in localStorage is newer, use the localStorage entry
-              sessionCache.set(query, localStorageEntry);  // Update the session cache with the newer entry
-              return localStorageEntry.videoId;
-          }
-
-          // If session cache is newer or no localStorage entry, return session cache ID
-          return sessionEntry.videoId;
-      }
-
-      // If no session cache, check the localStorage cache
-      var cache = loadCache();
-      var entry = cache[query];
-      if (!entry) return null;
-
-      // If the entry exists in localStorage and it's not expired, use it
-      sessionCache.set(query, entry);  // Store the localStorage entry in session cache
-      return entry.videoId;
-  }
-
-
-  function storeCachedVideo(query, videoId) {
-    var cache = loadCache();
-    const entry = { videoId: videoId, timestamp: Date.now() };
-
-    cache[query] = entry;
-    saveCache(cache);
-
-
-    sessionCache.set(query, entry);
-  }
-
-  function fadeOutAndStop() {
-    return new Promise(function (resolve) {
-      if (!ytPlayer) return resolve();
-      pausedForGame = true;
-      var volume = 100;
-      clearInterval(fadeInterval);
-      fadeInterval = setInterval(function () {
-        if (!ytPlayer) return cleanup();
-        volume = Math.max(0, volume - 10);
-        if (ytPlayer.setVolume) ytPlayer.setVolume(volume);
-        if (volume <= 0) cleanup();
-      }, 50);
-
-      function cleanup() {
-        clearInterval(fadeInterval);
-        fadeInterval = null;
-        try { ytPlayer.stopVideo && ytPlayer.stopVideo(); ytPlayer.destroy && ytPlayer.destroy(); } catch (e) {}
-        ytAudioIframe && ytAudioIframe.remove();
-        ytAudioIframe = null;
-        ytPlayer = null;
-        ytPlayerReady = false;
-        currentQuery = null;
-        setTimeout(() => { pausedForGame = false; }, 2000);
-
-        resolve();
-      }
-    });
-  }
-
-  function createYTPlayer(videoId) {
-    if (!isThemeMusicEnabled()) return Promise.resolve();
-    return waitForYouTubeAPI().then(function () {
-      ytAudioIframe && ytAudioIframe.remove();
-      ytAudioIframe = document.createElement("div");
-      ytAudioIframe.id = "yt-audio-player";
-      Object.assign(ytAudioIframe.style, { width: "0", height: "0", position: "absolute", opacity: "0", pointerEvents: "none" });
-      document.body.appendChild(ytAudioIframe);
-      ytPlayerReady = false;
-      ytPlayer = new YT.Player("yt-audio-player", {
-        height: "0",
-        width: "0",
-        videoId: videoId,
-        playerVars: { autoplay: 1 },
-        events: {
-          onReady: function () { ytPlayerReady = true; ytPlayer.setVolume && ytPlayer.setVolume(100); },
-          onError: function () { fadeOutAndStop(); }
+    localStorage.setItem = function (key, value) {
+        originalSetItem(key, value);
+        if (key === LOCAL_STORAGE_KEY) {
+            let enabled = true;
+            try {
+                const data = JSON.parse(value || "{}");
+                enabled = !(data.themeMusic === false || data.themeMusic === "off");
+            } catch {}
+            themeMusicEvents.dispatchEvent(new CustomEvent("themeMusicToggle", { detail: { enabled } }));
         }
-      });
+    };
+
+    themeMusicEvents.addEventListener("themeMusicToggle", (e) => {
+        console.log("Theme music toggled (same tab):", e.detail.enabled);
+        if (!e.detail.enabled && ytPlayer) {
+            fadeOutAndStop().then(() => clearCurrentlyPlaying());
+        }
     });
-  }
+
+    window.addEventListener("storage", (e) => {
+        if (e.key === LOCAL_STORAGE_KEY) {
+            let enabled = true;
+            try {
+                const data = JSON.parse(e.newValue || "{}");
+                enabled = !(data.themeMusic === false || data.themeMusic === "off");
+            } catch {}
+            console.log("Theme music toggled (other tab):", enabled);
+            if (!enabled && ytPlayer) fadeOutAndStop().then(() => clearCurrentlyPlaying());
+        }
+    });
+
+    function isThemeMusicEnabled() {
+        try {
+            const data = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+            return !(data.themeMusic === false || data.themeMusic === "off");
+        } catch { return false; }
+    }
+
+    let stoppingMusic = false;
+    let pausedForGame = false;
+
+    if (window.SteamClient && SteamClient.Apps && SteamClient.Apps.RegisterForGameActionStart) {
+        SteamClient.Apps.RegisterForGameActionStart((appID) => {
+            if (stoppingMusic) return;
+            stoppingMusic = true;
+
+            console.log("Play clicked! Game starting… AppID:", appID);
+
+            fadeOutAndStop().finally(() => { stoppingMusic = false; });
+
+            var mgr = window.MainWindowBrowserManager;
+            if (mgr) mgr.LoadURL("/library");
+        });
+    }
+
+    var mgr = window.MainWindowBrowserManager;
+    if (!mgr) return;
+
+    var lastUrl = null;
+    var lastAppID = null;
+
+    var ytAudioIframe = null;
+    var ytPlayer = null;
+    var ytPlayerReady = false;
+    var fadeInterval = null;
+    var currentQuery = null;
+
+    var sessionCache = new Map();
+
+    if (!window.YT) {
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+    }
+
+    function waitForYouTubeAPI() {
+        if (window.YT && window.YT.Player) return Promise.resolve();
+        return new Promise((resolve) => { window.onYouTubeIframeAPIReady = resolve; });
+    }
+
+    function loadCache() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}"); }
+        catch { return {}; }
+    }
+
+    function saveCache(data) { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); }
+
+    function getCachedVideo(query) {
+        if (sessionCache.has(query)) {
+            const sessionEntry = sessionCache.get(query);
+            const cache = loadCache();
+            const localStorageEntry = cache[query];
+            if (localStorageEntry && localStorageEntry.timestamp > sessionEntry.timestamp) {
+                sessionCache.set(query, localStorageEntry);
+                return localStorageEntry.videoId;
+            }
+            return sessionEntry.videoId;
+        }
+        const cache = loadCache();
+        const entry = cache[query];
+        if (!entry) return null;
+        sessionCache.set(query, entry);
+        return entry.videoId;
+    }
+
+    function storeCachedVideo(query, videoId) {
+        const cache = loadCache();
+        const entry = { videoId, timestamp: Date.now() };
+        cache[query] = entry;
+        saveCache(cache);
+        sessionCache.set(query, entry);
+    }
+
+    function fadeOutAndStop() {
+        return new Promise((resolve) => {
+            if (!ytPlayer) return resolve();
+            pausedForGame = true;
+            let volume = 100;
+            clearInterval(fadeInterval);
+            fadeInterval = setInterval(() => {
+                if (!ytPlayer) return cleanup();
+                volume = Math.max(0, volume - 10);
+                ytPlayer.setVolume && ytPlayer.setVolume(volume);
+                if (volume <= 0) cleanup();
+            }, 50);
+
+            function cleanup() {
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+                try { ytPlayer.stopVideo && ytPlayer.stopVideo(); ytPlayer.destroy && ytPlayer.destroy(); } catch {}
+                ytAudioIframe && ytAudioIframe.remove();
+                ytAudioIframe = null;
+                ytPlayer = null;
+                ytPlayerReady = false;
+                currentQuery = null;
+                setTimeout(() => { pausedForGame = false; }, 2000);
+                resolve();
+            }
+        });
+    }
+
+    function createYTPlayer(videoId) {
+        if (!isThemeMusicEnabled()) return Promise.resolve();
+        return waitForYouTubeAPI().then(() => {
+            ytAudioIframe && ytAudioIframe.remove();
+            ytAudioIframe = document.createElement("div");
+            ytAudioIframe.id = "yt-audio-player";
+            Object.assign(ytAudioIframe.style, { width: "0", height: "0", position: "absolute", opacity: "0", pointerEvents: "none" });
+            document.body.appendChild(ytAudioIframe);
+            ytPlayerReady = false;
+            ytPlayer = new YT.Player("yt-audio-player", {
+                height: "0",
+                width: "0",
+                videoId,
+                playerVars: { autoplay: 1 },
+                events: {
+                    onReady: () => { ytPlayerReady = true; ytPlayer.setVolume && ytPlayer.setVolume(100); },
+                    onError: () => { fadeOutAndStop(); }
+                }
+            });
+        });
+    }
+
+    function updateCurrentlyPlaying(query, videoId) {
+        try {
+            const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+            themeData.currentlyPlaying = { name: query, videoId: videoId || "loading", timestamp: Date.now() };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData));
+            themeMusicEvents.dispatchEvent(new CustomEvent("currentlyPlayingUpdated", { detail: { name: query, videoId } }));
+        } catch (e) { console.error("Error updating currentlyPlaying:", e); }
+    }
+
+    function playYouTubeAudio(query) {
+        if (!isThemeMusicEnabled()) return;
+        if (query === currentQuery) return;
+        currentQuery = query;
+        updateCurrentlyPlaying(query, "loading");
+        return fadeOutAndStop().then(() => {
+            const cachedId = getCachedVideo(query);
+            if (cachedId) { updateCurrentlyPlaying(query, cachedId); return createYTPlayer(cachedId); }
+            return fetch("https://nonsteamlaunchers.onrender.com/api/x7a9/" + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(data => { if (!data?.videoId) return; storeCachedVideo(query, data.videoId); updateCurrentlyPlaying(query, data.videoId); return createYTPlayer(data.videoId); })
+                .catch(() => { console.error("Theme music fetch failed"); updateCurrentlyPlaying(query, null); });
+        });
+    }
 
 
+    themeMusicEvents.addEventListener("currentlyPlayingUpdated", (e) => {
+        const { name, videoId } = e.detail;
+        console.log("Currently Playing:", name, videoId);
+    });
 
+    function clearCurrentlyPlaying() {
+        try { const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}"); themeData.currentlyPlaying = null; localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData)); } catch (e) { console.error(e); }
+    }
 
-  function updateCurrentlyPlaying(query, videoId) {
-      try {
-          const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
-          themeData.currentlyPlaying = {
-              name: query,
-              videoId: videoId || "loading",  // Temporary placeholder while loading
-              timestamp: Date.now()
-          };
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData));
+    function handleAppId(appId) {
+        if (!isThemeMusicEnabled()) return;
+        if (pausedForGame) return;
+        if (!window.appStore || !window.appStore.m_mapApps) return;
+        const appInfo = window.appStore.m_mapApps.get(appId);
+        if (!appInfo?.display_name) return;
+        playYouTubeAudio(appInfo.display_name + " Theme Music");
+    }
 
-          // Dispatch an event to notify the update
-          themeMusicEvents.dispatchEvent(new CustomEvent("currentlyPlayingUpdated", {
-              detail: { name: query, videoId: videoId }
-          }));
-      } catch (e) {
-          console.error("Error updating currentlyPlaying:", e);
-      }
-  }
+    function handleUrl(url) {
+        if (!isThemeMusicEnabled()) return;
+        let decoded = decodeURIComponent(url);
+        let match = decoded.match(/\/library\/app\/(\d+)/) || window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
+        if (!match) return;
+        const appId = Number(match[1]);
+        if (appId === lastAppID) return;
+        lastAppID = appId;
+        handleAppId(appId);
+    }
 
-  function playYouTubeAudio(query) {
-      if (!isThemeMusicEnabled()) return;
-      if (query === currentQuery) return;
-      currentQuery = query;
+    lastUrl = mgr.m_URL;
+    handleUrl(lastUrl);
 
-      // Update "currentlyPlaying" state in localStorage immediately
-      updateCurrentlyPlaying(query, "loading"); // Temporary placeholder for the videoId
-
-      // Stop current track
-      return fadeOutAndStop().then(function () {
-          var cachedId = getCachedVideo(query);
-          if (cachedId) {
-              updateCurrentlyPlaying(query, cachedId);
-              return createYTPlayer(cachedId);
-          }
-
-          // Fetch new track from API
-          return fetch("https://nonsteamlaunchers.onrender.com/api/x7a9/" + encodeURIComponent(query))
-              .then(function (res) { return res.json(); })
-              .then(function (data) {
-                  if (!data || !data.videoId) return;
-
-                  // Cache the track
-                  storeCachedVideo(query, data.videoId);
-
-                  // Update "currentlyPlaying" state with the actual videoId
-                  updateCurrentlyPlaying(query, data.videoId);
-
-                  return createYTPlayer(data.videoId);
-               })
-               .catch(function () {
-                   console.error("Theme music fetch failed");
-                   updateCurrentlyPlaying(query, null); // optional: clear 'loading' state on error
-               });
-       });
-  }
-
-  // Handle the event when "currentlyPlaying" changes
-  themeMusicEvents.addEventListener("currentlyPlayingUpdated", (e) => {
-      const { name, videoId } = e.detail;
-      console.log("Currently Playing:", name, videoId);
-      // You can trigger UI updates or any other logic that depends on the new state here.
-  });
-
-  function clearCurrentlyPlaying() {
-      try {
-          const themeData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
-          themeData.currentlyPlaying = null;
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(themeData));
-          console.log("Currently playing data cleared");
-      } catch (e) {
-          console.error("Error clearing currentlyPlaying:", e);
-      }
-  }
-
-
-  function handleAppId(appId) {
-    if (!isThemeMusicEnabled()) return;
-    if (pausedForGame) return;
-    if (!window.appStore || !window.appStore.m_mapApps) return;
-    var appInfo = window.appStore.m_mapApps.get(appId);
-    if (!appInfo || !appInfo.display_name) return;
-    var query = appInfo.display_name + " Theme Music";
-    playYouTubeAudio(query);
-  }
-
-  function handleUrl(url) {
-    if (!isThemeMusicEnabled()) return;
-    var decoded = decodeURIComponent(url);
-    var match = decoded.match(/\/library\/app\/(\d+)/);
-    if (!match) match = window.location.pathname.match(/\/routes?\/library\/app\/(\d+)/);
-    if (!match) return;
-    var appId = Number(match[1]);
-    if (appId === lastAppID) return;
-    lastAppID = appId;
-    handleAppId(appId);
-  }
-
-  lastUrl = mgr.m_URL;
-  handleUrl(lastUrl);
-
-  function watchUrl() {
-    var current = mgr.m_URL;
-    if (current && current !== lastUrl) {
-      lastUrl = current;
-      handleUrl(current);
+    function watchUrl() {
+        const current = mgr.m_URL;
+        if (current && current !== lastUrl) { lastUrl = current; handleUrl(current); }
+        requestAnimationFrame(watchUrl);
     }
     requestAnimationFrame(watchUrl);
-  }
-
-  requestAnimationFrame(watchUrl);
 })();"""
 
 
@@ -537,774 +466,779 @@ inject_thememusic_code(ws_socket)
 
 
 ### METADATA ONLY
-
 METADATA_CODE = r"""
 (function () {
-    // Cache object to store game details
-    const gameCache = {};
+    if (window.__MY_METADATA_SCRIPT_LOADED__) {
+        return;
+    } else {
+        window.__MY_METADATA_SCRIPT_LOADED__ = true;
 
-    async function getSteamGameDetails(gameName) {
-        if (gameCache[gameName]) return gameCache[gameName];
+        // Cache object to store game details
+        const gameCache = {};
 
-        try {
-            const searchRes = await fetch(`https://store.steampowered.com/search/?term=${encodeURIComponent(gameName)}`, {
-                credentials: "omit"
-            });
-            const searchHtml = await searchRes.text();
-            const searchDoc = new DOMParser().parseFromString(searchHtml, "text/html");
 
-            const results = [...searchDoc.querySelectorAll("a.search_result_row")].map(r => ({
-                appid: r.dataset.dsAppid,
-                title: r.querySelector(".title")?.innerText.trim()
-            }));
+        async function getSteamGameDetails(gameName) {
+            if (gameCache[gameName]) return gameCache[gameName];
 
-            if (!results.length) {
+            try {
+                const searchRes = await fetch(`https://store.steampowered.com/search/?term=${encodeURIComponent(gameName)}`, {
+                    credentials: "omit"
+                });
+                const searchHtml = await searchRes.text();
+                const searchDoc = new DOMParser().parseFromString(searchHtml, "text/html");
+
+                const results = [...searchDoc.querySelectorAll("a.search_result_row")].map(r => ({
+                    appid: r.dataset.dsAppid,
+                    title: r.querySelector(".title")?.innerText.trim()
+                }));
+
+                if (!results.length) {
+                    return await getWikipediaGameDetails(gameName);
+                }
+
+                const normalize = str => str?.toLowerCase().replace(/[-()]/g, "").replace(/\s+/g, " ").trim();
+                const match = results.find(r => normalize(r.title) === normalize(gameName));
+
+                if (!match) {
+                    return await getWikipediaGameDetails(gameName);
+                }
+
+                const appid = match.appid;
+                const apiRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}`);
+                const apiData = await apiRes.json();
+                const info = apiData[appid].data;
+
+                if (info) {
+                    const platformsStr = info.platforms
+                        ? Object.entries(info.platforms)
+                            .filter(([k,v]) => v)
+                            .map(([k]) => k)
+                            .join(", ")
+                        : "Unknown";
+
+                    const gameData = {
+                        appid: appid,
+                        about_the_game: info.short_description || null,
+                        developer: info.developers?.join(", ") || "Unknown",
+                        publisher: info.publishers?.join(", ") || "Unknown",
+                        release_date: info.release_date?.date || null,
+                        genres: info.genres?.map(g => g.description).join(", ") || null,
+                        platforms: platformsStr,
+                        metacritic_score: info.metacritic?.score || null,
+                        metacritic_url: info.metacritic?.url || null,
+                        image_url: info.screenshots?.[0]?.path_full || null
+                    };
+
+                    gameCache[gameName] = gameData;
+                    return gameData;
+                }
+
+                return await getWikipediaGameDetails(gameName);
+            } catch (err) {
                 return await getWikipediaGameDetails(gameName);
             }
+        }
 
-            const normalize = str => str?.toLowerCase().replace(/[-()]/g, "").replace(/\s+/g, " ").trim();
-            const match = results.find(r => normalize(r.title) === normalize(gameName));
+        async function getWikipediaGameDetails(gameName) {
+            if (gameCache[gameName]) return gameCache[gameName];
 
-            if (!match) {
-                return await getWikipediaGameDetails(gameName);
-            }
+            try {
+                let gameTitle = gameName.replace(/\s+/g, "_");
+                let url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(gameTitle)}`;
+                let res = await fetch(url);
 
-            const appid = match.appid;
-            const apiRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}`);
-            const apiData = await apiRes.json();
-            const info = apiData[appid].data;
+                if (!res.ok) {
+                    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(gameName)}&format=json&origin=*`;
+                    const searchRes = await fetch(searchUrl);
+                    const searchData = await searchRes.json();
+                    if (!searchData.query.search.length) return null;
 
-            if (info) {
-                const platformsStr = info.platforms
-                    ? Object.entries(info.platforms)
-                          .filter(([k,v]) => v)
-                          .map(([k]) => k)
-                          .join(", ")
-                    : "Unknown";
+                    gameTitle = searchData.query.search[0].title.replace(/\s+/g, "_");
+                    url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(gameTitle)}`;
+                    res = await fetch(url);
+                    if (!res.ok) return null;
+                }
 
-                const gameData = {
-                    appid: appid,
-                    about_the_game: info.short_description || null,
-                    developer: info.developers?.join(", ") || "Unknown",
-                    publisher: info.publishers?.join(", ") || "Unknown",
-                    release_date: info.release_date?.date || null,
-                    genres: info.genres?.map(g => g.description).join(", ") || null,
-                    platforms: platformsStr,
-                    metacritic_score: info.metacritic?.score || null,
-                    metacritic_url: info.metacritic?.url || null,
-                    image_url: info.screenshots?.[0]?.path_full || null
+                const data = await res.json();
+                const sentences = data.extract?.match(/[^.!?]+[.!?]+/g) || [];
+                const description = sentences.slice(0, 2).join(" ").trim();
+                const displayTitle = data.displaytitle?.replace(/<[^>]+>/g, "").replace(/\//g, "").trim();
+
+                const game = {
+                    appid: null,
+                    displayTitle,
+                    about_the_game: description || data.extract || null,
+                    developer: "Unknown",
+                    publisher: "Unknown",
+                    release_date: null,
+                    genres: null,
+                    platforms: "Unknown",
+                    metacritic_score: null,
+                    metacritic_url: null,
+                    image_url: data.originalimage?.source || null
                 };
 
-                gameCache[gameName] = gameData;
-                return gameData;
-            }
+                const wikidataId = data.wikibase_item;
+                if (wikidataId) {
+                    const wdRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${wikidataId}.json`);
+                    const wdData = await wdRes.json();
+                    const claims = wdData.entities[wikidataId].claims;
 
-            return await getWikipediaGameDetails(gameName);
-        } catch (err) {
-            return await getWikipediaGameDetails(gameName);
-        }
-    }
+                    const getClaimId = prop => claims?.[prop]?.[0]?.mainsnak?.datavalue?.value?.id || null;
+                    const getClaimTime = prop => claims?.[prop]?.[0]?.mainsnak?.datavalue?.value?.time || null;
+                    const getClaimIdList = prop => claims?.[prop]?.map(c => c.mainsnak.datavalue.value.id) || [];
 
-    async function getWikipediaGameDetails(gameName) {
-        if (gameCache[gameName]) return gameCache[gameName];
+                    const developerId = getClaimId("P178");
+                    const publisherId = getClaimId("P123");
+                    const releaseTime = getClaimTime("P577");
+                    const genreIds = getClaimIdList("P136");
+                    const platformIds = getClaimIdList("P400");
 
-        try {
-            let gameTitle = gameName.replace(/\s+/g, "_");
-            let url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(gameTitle)}`;
-            let res = await fetch(url);
+                    const idsToResolve = [developerId, publisherId, ...genreIds, ...platformIds].filter(Boolean);
+                    let labelsData = {};
 
-            if (!res.ok) {
-                const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(gameName)}&format=json&origin=*`;
-                const searchRes = await fetch(searchUrl);
-                const searchData = await searchRes.json();
-                if (!searchData.query.search.length) return null;
+                    if (idsToResolve.length) {
+                        const labelsRes = await fetch(
+                            `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${idsToResolve.join("|")}&props=labels&languages=en&format=json&origin=*`
+                        );
+                        const labelsJson = await labelsRes.json();
+                        labelsData = labelsJson.entities || {};
+                    }
 
-                gameTitle = searchData.query.search[0].title.replace(/\s+/g, "_");
-                url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(gameTitle)}`;
-                res = await fetch(url);
-                if (!res.ok) return null;
-            }
+                    game.developer = developerId ? labelsData[developerId]?.labels?.en?.value ?? "Unknown" : "Unknown";
+                    game.publisher = publisherId ? labelsData[publisherId]?.labels?.en?.value ?? "Unknown" : "Unknown";
+                    game.release_date = releaseTime ? releaseTime.match(/\d{4}/)[0] : null;
 
-            const data = await res.json();
-            const sentences = data.extract?.match(/[^.!?]+[.!?]+/g) || [];
-            const description = sentences.slice(0, 2).join(" ").trim();
-            const displayTitle = data.displaytitle?.replace(/<[^>]+>/g, "").replace(/\//g, "").trim();
+                    if (genreIds.length) {
+                        const genreLabel = labelsData[genreIds[0]]?.labels?.en?.value ?? "Unknown";
+                        game.genres = genreLabel.replace(/\s*\(.*?\)\s*/g, "").trim();
+                    }
 
-            const game = {
-                appid: null,
-                displayTitle,
-                about_the_game: description || data.extract || null,
-                developer: "Unknown",
-                publisher: "Unknown",
-                release_date: null,
-                genres: null,
-                platforms: "Unknown",
-                metacritic_score: null,
-                metacritic_url: null,
-                image_url: data.originalimage?.source || null
-            };
-
-            const wikidataId = data.wikibase_item;
-            if (wikidataId) {
-                const wdRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${wikidataId}.json`);
-                const wdData = await wdRes.json();
-                const claims = wdData.entities[wikidataId].claims;
-
-                const getClaimId = prop => claims?.[prop]?.[0]?.mainsnak?.datavalue?.value?.id || null;
-                const getClaimTime = prop => claims?.[prop]?.[0]?.mainsnak?.datavalue?.value?.time || null;
-                const getClaimIdList = prop => claims?.[prop]?.map(c => c.mainsnak.datavalue.value.id) || [];
-
-                const developerId = getClaimId("P178");
-                const publisherId = getClaimId("P123");
-                const releaseTime = getClaimTime("P577");
-                const genreIds = getClaimIdList("P136");
-                const platformIds = getClaimIdList("P400");
-
-                const idsToResolve = [developerId, publisherId, ...genreIds, ...platformIds].filter(Boolean);
-                let labelsData = {};
-
-                if (idsToResolve.length) {
-                    const labelsRes = await fetch(
-                        `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${idsToResolve.join("|")}&props=labels&languages=en&format=json&origin=*`
-                    );
-                    const labelsJson = await labelsRes.json();
-                    labelsData = labelsJson.entities || {};
+                    const platformsClean = platformIds.map(id => {
+                        const label = labelsData[id]?.labels?.en?.value ?? "Unknown";
+                        return label.replace(/\s*\(.*?\)\s*/g, "").trim();
+                    });
+                    game.platforms = platformsClean.length
+                        ? platformsClean.join(", ")
+                        : "Unknown"; // <- Always string
                 }
 
-                game.developer = developerId ? labelsData[developerId]?.labels?.en?.value ?? "Unknown" : "Unknown";
-                game.publisher = publisherId ? labelsData[publisherId]?.labels?.en?.value ?? "Unknown" : "Unknown";
-                game.release_date = releaseTime ? releaseTime.match(/\d{4}/)[0] : null;
+                gameCache[gameName] = game;
+                return game;
 
-                if (genreIds.length) {
-                    const genreLabel = labelsData[genreIds[0]]?.labels?.en?.value ?? "Unknown";
-                    game.genres = genreLabel.replace(/\s*\(.*?\)\s*/g, "").trim();
+            } catch (err) {
+                return null;
+            }
+        }
+
+        async function getGameDetails(gameName) {
+            let gameData = await getSteamGameDetails(gameName);
+            if (!gameData) gameData = await getWikipediaGameDetails(gameName);
+            return gameData;
+        }
+
+
+
+        function replaceText() {
+            document.querySelectorAll("div").forEach(div => {
+                if (
+                    div.childNodes.length === 1 &&
+                    div.firstChild.nodeType === Node.TEXT_NODE
+                ) {
+                    const originalText = div.firstChild.nodeValue;
+                    const match = originalText.match(/Some detailed information on (.*?) is unavailable/i);
+                    if (match) {
+                        const gameName = match[1];
+                        const key = gameName.toUpperCase();
+                        // Fetch game details from Steam (from cache or API)
+                        getSteamGameDetails(gameName).then(gameData => {
+                            if (!gameData) return;
+                            const descriptionText = gameData.about_the_game || "No description available.";
+                            const bgImage = gameData.image_url || "https://images-1.gog-statics.com/6f3d015c3029fea5221ccd9802de5e2f92c6afccc0196b15540677341936a656.jpg";
+                            div.textContent = '';
+
+                            //Check div
+                            const currentDiv = div;
+
+                            const nextDiv = currentDiv.nextElementSibling;
+
+                            if (nextDiv) {
+                                nextDiv.appendChild(currentDiv);
+                            }
+
+
+                // Main div styling
+                div.style.position = "relative";
+                div.style.overflow = "hidden";
+                div.style.height = "250px";
+                div.style.borderRadius = "6px";
+                div.style.fontFamily = '"Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+                div.style.color = "white";
+                div.style.outline = "none";
+                div.style.border = "none";
+
+                // Background image
+                const img = document.createElement('img');
+                img.src = bgImage;
+                img.alt = gameName;
+                img.style.width = "100%";
+                img.style.height = "100%";
+                img.style.objectFit = "cover";
+                img.style.position = "absolute";
+                img.style.top = 0;
+                img.style.left = 0;
+                img.style.opacity = 0.5;
+
+                // Overlay
+                const overlay = document.createElement('div');
+                overlay.style.position = "absolute";
+                overlay.style.top = 0;
+                overlay.style.left = 0;
+                overlay.style.width = "100%";
+                overlay.style.height = "100%";
+                overlay.style.padding = "10px";
+                overlay.style.display = "flex";
+                overlay.style.flexDirection = "column";
+                overlay.style.justifyContent = "flex-start";
+                overlay.style.background =
+                "linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))";
+
+                // Content row
+                const contentRow = document.createElement('div');
+                contentRow.style.display = "flex";
+                contentRow.style.flexDirection = "row";
+                contentRow.style.flex = "1 1 auto";
+
+                // Left column (launcher icon + tags)
+                const leftColumn = document.createElement('div');
+                leftColumn.style.display = "flex";
+                leftColumn.style.flexDirection = "column";
+                leftColumn.style.alignItems = "flex-start";
+                leftColumn.style.marginRight = "15px";
+                leftColumn.style.flexShrink = "0";
+
+
+                // Add these:
+                leftColumn.style.maxWidth = "250px"; // or a % like "35%" depending on your layout
+                leftColumn.style.overflow = "visible"; // ensures it doesn’t break layout
+
+                // New method for obtaining launcher info
+                let foundLauncher = null;
+                let ancestor = div;
+                for (let i = 0; i < 9; i++) {
+                if (!ancestor.parentElement) break;
+                ancestor = ancestor.parentElement;
                 }
 
-                const platformsClean = platformIds.map(id => {
-                    const label = labelsData[id]?.labels?.en?.value ?? "Unknown";
-                    return label.replace(/\s*\(.*?\)\s*/g, "").trim();
-                });
-                game.platforms = platformsClean.length
-                    ? platformsClean.join(", ")
-                    : "Unknown"; // <- Always string
-            }
+                if (ancestor) {
+                const launcher = ancestor.querySelector('div[role="button"], div.Focusable');
+                if (launcher) {
+                    foundLauncher = launcher.textContent.trim();
+                }
+                }
 
-            gameCache[gameName] = game;
-            return game;
+                // Launcher icons
+                const launcherIcons = {
+                "Epic Games": "https://cdn2.steamgriddb.com/icon/34ffeb359a192eb8174b6854643cc046/32/96x96.png",
+                "GOG Galaxy": "https://cdn2.steamgriddb.com/icon/a928731e103dfc64c0027fa84709689e/32/96x96.png",
+                "NonSteamLaunchers": "https://raw.githubusercontent.com/moraroy/NonSteamLaunchers-On-Steam-Deck/refs/heads/main/logo.png",
+                "Ubisoft Connect": "https://cdn2.steamgriddb.com/icon/dabcff9ba10224b01fd2ce83f7d73ad6/32/96x96.png",
+                "EA App": "https://cdn2.steamgriddb.com/icon/ff51fb7a9bcb22c595616b4fa368880a/32/96x96.png",
+                "Amazon Games": "https://cdn2.steamgriddb.com/icon_thumb/6e88ec1459f337d5bea6353f8bff8026.png",
+                "itch.io": "https://cdn2.steamgriddb.com/icon/2ad9e5e943e43cad612a7996c12a8796/32/96x96.png",
+                "Battle.net": "https://cdn2.steamgriddb.com/icon/739465804a0e17d2a47c9bc9c805d60a/32/96x96.png",
+                "Legacy Games": "https://cdn2.steamgriddb.com/icon_thumb/5225802cb9758f9fcd34a679bf9326ec.png",
+                "VK Play": "https://cdn2.steamgriddb.com/icon_thumb/5d35998237b55b8778a75732afc080aa.png",
+                "HoyoPlay": "https://cdn2.steamgriddb.com/icon/817fccd834f01fb5e1770c8679c0824e/32/256x256.png",
+                "Game Jolt Client": "https://cdn2.steamgriddb.com/icon_thumb/17df67628bb89193838f83015a3e7d30.png",
+                "Minecraft Launcher": "https://cdn2.steamgriddb.com/icon/0678c572b0d5597d2d4a6b5bd135754c/32/96x96.png",
+                "Humble Games Collection": "https://cdn2.steamgriddb.com/icon_thumb/3126ed973cbecde2bbffe419f139f456.png",
+                "NVIDIA GeForce NOW": "https://cdn2.steamgriddb.com/icon_thumb/f91ee142269ec908c23e1cd87286e254.png",
+                "Waydroid": "https://cdn2.steamgriddb.com/icon_thumb/d6de4f0418bf4015017f5c65cdecc46e.png",
+                "Google Chrome": "https://cdn2.steamgriddb.com/icon/3941c4358616274ac2436eacf67fae05/32/256x256.png",
+                "Brave": "https://cdn2.steamgriddb.com/icon_thumb/192d80a88b27b3e4115e1a45a782fe1b.png",
+                "Vivaldi": "https://cdn2.steamgriddb.com/icon_thumb/51934729f32d36841a17e43e9390483a.png",
+                "Mozilla Firefox": "https://cdn2.steamgriddb.com/icon_thumb/fe998b49c41c4208c968bce204fa1cbb.png",
+                "LibreWolf": "https://cdn2.steamgriddb.com/icon/791608b685d1c61fb2fe8acdc69dc6b5/32/128x128.png",
+                "Microsoft Edge": "https://cdn2.steamgriddb.com/icon_thumb/714cb7478d98b1cb51d1f5f515f060c7.png",
+                "Gryphlink": "https://i.namu.wiki/i/1CZOhlpjxh3owDKXC9axrnMHtotdDaoFMmnzBvQ0yOqCDOL3rIZpH2DyLfX2UCRul9CxIH0gCn1DmRodHnKr6-IUmEzSZpZ6p4r9zRbDvwPe94gZnek0VaIvKfsWsx6L28czwaiz0Mj1NNayAkypNQ.webp"
+                };
 
-        } catch (err) {
-            return null;
-        }
-    }
+                const launcherName = foundLauncher;
+                const launcherIcon = (launcherName && launcherIcons[launcherName]) || null;
 
-    async function getGameDetails(gameName) {
-        let gameData = await getSteamGameDetails(gameName);
-        if (!gameData) gameData = await getWikipediaGameDetails(gameName);
-        return gameData;
-    }
+                if (launcherIcon) {
+                // Row that holds launcher icon + music button
+                const launcherRow = document.createElement('div');
+                launcherRow.style.display = "flex";
+                launcherRow.style.alignItems = "center";
+                launcherRow.style.gap = "8px";
+                launcherRow.style.marginBottom = "8px";
 
+                // Launcher icon
+                const icon = document.createElement('img');
+                icon.src = launcherIcon;
+                icon.alt = launcherName;
+                icon.style.width = "60px";
+                icon.style.height = "60px";
+                icon.style.objectFit = "contain";
+                icon.onerror = () => icon.remove();
 
+                launcherRow.appendChild(icon);
 
-
-    function replaceText() {
-        document.querySelectorAll("div").forEach(div => {
-            if (
-                div.childNodes.length === 1 &&
-                div.firstChild.nodeType === Node.TEXT_NODE
-            ) {
-                const originalText = div.firstChild.nodeValue;
-                const match = originalText.match(/Some detailed information on (.*?) is unavailable/i);
-                if (match) {
-                    const gameName = match[1];
-                    const key = gameName.toUpperCase();
-                    // Fetch game details from Steam (from cache or API)
-                    getSteamGameDetails(gameName).then(gameData => {
-                        if (!gameData) return;
-                        const descriptionText = gameData.about_the_game || "No description available.";
-                        const bgImage = gameData.image_url || "https://images-1.gog-statics.com/6f3d015c3029fea5221ccd9802de5e2f92c6afccc0196b15540677341936a656.jpg";
-                        div.textContent = '';
-
-                        //Check div
-                        const currentDiv = div;
-
-                        const nextDiv = currentDiv.nextElementSibling;
-
-                        if (nextDiv) {
-                            nextDiv.appendChild(currentDiv);
-                        }
-
-
-            // Main div styling
-            div.style.position = "relative";
-            div.style.overflow = "hidden";
-            div.style.height = "250px";
-            div.style.borderRadius = "6px";
-            div.style.fontFamily = '"Roboto", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
-            div.style.color = "white";
-            div.style.outline = "none";
-            div.style.border = "none";
-
-            // Background image
-            const img = document.createElement('img');
-            img.src = bgImage;
-            img.alt = gameName;
-            img.style.width = "100%";
-            img.style.height = "100%";
-            img.style.objectFit = "cover";
-            img.style.position = "absolute";
-            img.style.top = 0;
-            img.style.left = 0;
-            img.style.opacity = 0.5;
-
-            // Overlay
-            const overlay = document.createElement('div');
-            overlay.style.position = "absolute";
-            overlay.style.top = 0;
-            overlay.style.left = 0;
-            overlay.style.width = "100%";
-            overlay.style.height = "100%";
-            overlay.style.padding = "10px";
-            overlay.style.display = "flex";
-            overlay.style.flexDirection = "column";
-            overlay.style.justifyContent = "flex-start";
-            overlay.style.background =
-              "linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7))";
-
-            // Content row
-            const contentRow = document.createElement('div');
-            contentRow.style.display = "flex";
-            contentRow.style.flexDirection = "row";
-            contentRow.style.flex = "1 1 auto";
-
-            // Left column (launcher icon + tags)
-            const leftColumn = document.createElement('div');
-            leftColumn.style.display = "flex";
-            leftColumn.style.flexDirection = "column";
-            leftColumn.style.alignItems = "flex-start";
-            leftColumn.style.marginRight = "15px";
-            leftColumn.style.flexShrink = "0";
+                // Placeholder music button (no logic)
+                const musicBtn = document.createElement('button');
+                musicBtn.textContent = "🎵";
+                musicBtn.style.background = "rgba(36,40,47,0.7)";
+                musicBtn.style.color = "white";
+                musicBtn.style.border = "none";
+                musicBtn.style.borderRadius = "12px";
+                musicBtn.style.padding = "6px 10px";
+                musicBtn.style.fontSize = "14px";
+                musicBtn.style.lineHeight = "1";
+                musicBtn.style.cursor = "pointer";
+                musicBtn.style.display = "flex";
+                musicBtn.style.alignItems = "center";
+                musicBtn.style.justifyContent = "center";
+                musicBtn.style.transition = "background 0.2s ease";
 
 
-            // Add these:
-            leftColumn.style.maxWidth = "250px"; // or a % like "35%" depending on your layout
-            leftColumn.style.overflow = "visible"; // ensures it doesn’t break layout
-
-            // New method for obtaining launcher info
-            let foundLauncher = null;
-            let ancestor = div;
-            for (let i = 0; i < 9; i++) {
-              if (!ancestor.parentElement) break;
-              ancestor = ancestor.parentElement;
-            }
-
-            if (ancestor) {
-              const launcher = ancestor.querySelector('div[role="button"], div.Focusable');
-              if (launcher) {
-                foundLauncher = launcher.textContent.trim();
-              }
-            }
-
-            // Launcher icons
-            const launcherIcons = {
-              "Epic Games": "https://cdn2.steamgriddb.com/icon/34ffeb359a192eb8174b6854643cc046/32/96x96.png",
-              "GOG Galaxy": "https://cdn2.steamgriddb.com/icon/a928731e103dfc64c0027fa84709689e/32/96x96.png",
-              "NonSteamLaunchers": "https://raw.githubusercontent.com/moraroy/NonSteamLaunchers-On-Steam-Deck/refs/heads/main/logo.png",
-              "Ubisoft Connect": "https://cdn2.steamgriddb.com/icon/dabcff9ba10224b01fd2ce83f7d73ad6/32/96x96.png",
-              "EA App": "https://cdn2.steamgriddb.com/icon/ff51fb7a9bcb22c595616b4fa368880a/32/96x96.png",
-              "Amazon Games": "https://cdn2.steamgriddb.com/icon_thumb/6e88ec1459f337d5bea6353f8bff8026.png",
-              "itch.io": "https://cdn2.steamgriddb.com/icon/2ad9e5e943e43cad612a7996c12a8796/32/96x96.png",
-              "Battle.net": "https://cdn2.steamgriddb.com/icon/739465804a0e17d2a47c9bc9c805d60a/32/96x96.png",
-              "Legacy Games": "https://cdn2.steamgriddb.com/icon_thumb/5225802cb9758f9fcd34a679bf9326ec.png",
-              "VK Play": "https://cdn2.steamgriddb.com/icon_thumb/5d35998237b55b8778a75732afc080aa.png",
-              "HoyoPlay": "https://cdn2.steamgriddb.com/icon/817fccd834f01fb5e1770c8679c0824e/32/256x256.png",
-              "Game Jolt Client": "https://cdn2.steamgriddb.com/icon_thumb/17df67628bb89193838f83015a3e7d30.png",
-              "Minecraft Launcher": "https://cdn2.steamgriddb.com/icon/0678c572b0d5597d2d4a6b5bd135754c/32/96x96.png",
-              "Humble Games Collection": "https://cdn2.steamgriddb.com/icon_thumb/3126ed973cbecde2bbffe419f139f456.png",
-              "NVIDIA GeForce NOW": "https://cdn2.steamgriddb.com/icon_thumb/f91ee142269ec908c23e1cd87286e254.png",
-              "Waydroid": "https://cdn2.steamgriddb.com/icon_thumb/d6de4f0418bf4015017f5c65cdecc46e.png",
-              "Google Chrome": "https://cdn2.steamgriddb.com/icon/3941c4358616274ac2436eacf67fae05/32/256x256.png",
-              "Brave": "https://cdn2.steamgriddb.com/icon_thumb/192d80a88b27b3e4115e1a45a782fe1b.png",
-              "Vivaldi": "https://cdn2.steamgriddb.com/icon_thumb/51934729f32d36841a17e43e9390483a.png",
-              "Mozilla Firefox": "https://cdn2.steamgriddb.com/icon_thumb/fe998b49c41c4208c968bce204fa1cbb.png",
-              "LibreWolf": "https://cdn2.steamgriddb.com/icon/791608b685d1c61fb2fe8acdc69dc6b5/32/128x128.png",
-              "Microsoft Edge": "https://cdn2.steamgriddb.com/icon_thumb/714cb7478d98b1cb51d1f5f515f060c7.png",
-            };
-
-            const launcherName = foundLauncher;
-            const launcherIcon = (launcherName && launcherIcons[launcherName]) || null;
-
-            if (launcherIcon) {
-              // Row that holds launcher icon + music button
-              const launcherRow = document.createElement('div');
-              launcherRow.style.display = "flex";
-              launcherRow.style.alignItems = "center";
-              launcherRow.style.gap = "8px";
-              launcherRow.style.marginBottom = "8px";
-
-              // Launcher icon
-              const icon = document.createElement('img');
-              icon.src = launcherIcon;
-              icon.alt = launcherName;
-              icon.style.width = "60px";
-              icon.style.height = "60px";
-              icon.style.objectFit = "contain";
-              icon.onerror = () => icon.remove();
-
-              launcherRow.appendChild(icon);
-
-              // Placeholder music button (no logic)
-              const musicBtn = document.createElement('button');
-              musicBtn.textContent = "🎵";
-              musicBtn.style.background = "rgba(36,40,47,0.7)";
-              musicBtn.style.color = "white";
-              musicBtn.style.border = "none";
-              musicBtn.style.borderRadius = "12px";
-              musicBtn.style.padding = "6px 10px";
-              musicBtn.style.fontSize = "14px";
-              musicBtn.style.lineHeight = "1";
-              musicBtn.style.cursor = "pointer";
-              musicBtn.style.display = "flex";
-              musicBtn.style.alignItems = "center";
-              musicBtn.style.justifyContent = "center";
-              musicBtn.style.transition = "background 0.2s ease";
+                launcherRow.appendChild(musicBtn);
+                attachThemeMusicBehavior(musicBtn);
 
 
-              launcherRow.appendChild(musicBtn);
-              attachThemeMusicBehavior(musicBtn);
+                // Add row to left column
+                leftColumn.appendChild(launcherRow);
+                }
 
 
-              // Add row to left column
-              leftColumn.appendChild(launcherRow);
-            }
+                function createTag(text, fontSize) {
+                const tag = document.createElement('span');
+                tag.textContent = text;
+                tag.style.fontSize = fontSize; // ← use the value passed in
+                tag.style.background = "rgba(36,40,47,0.7)";
+                tag.style.padding = "3px 8px";
+                tag.style.borderRadius = "12px";
+                tag.style.whiteSpace = "normal";
+                tag.style.display = "inline-block";
+                tag.style.wordBreak = "break-word";
+                tag.style.marginRight = "4px";
+                tag.style.marginBottom = "4px";
+                return tag;
+                }
+
+                function createTagRow(items) {
+                const row = document.createElement('div');
+                row.style.display = "flex";
+                row.style.flexWrap = "wrap";
+                row.style.gap = "4px";
+
+                // Determine font size based on number of items
+                const fontSize = items.length > 3 ? "7.8px" : "12px";
+
+                items.forEach(item => row.appendChild(createTag(item, fontSize)));
+                return row;
+                }
 
 
-            function createTag(text, fontSize) {
-              const tag = document.createElement('span');
-              tag.textContent = text;
-              tag.style.fontSize = fontSize; // ← use the value passed in
-              tag.style.background = "rgba(36,40,47,0.7)";
-              tag.style.padding = "3px 8px";
-              tag.style.borderRadius = "12px";
-              tag.style.whiteSpace = "normal";
-              tag.style.display = "inline-block";
-              tag.style.wordBreak = "break-word";
-              tag.style.marginRight = "4px";
-              tag.style.marginBottom = "4px";
-              return tag;
-            }
-
-            function createTagRow(items) {
-              const row = document.createElement('div');
-              row.style.display = "flex";
-              row.style.flexWrap = "wrap";
-              row.style.gap = "4px";
-
-              // Determine font size based on number of items
-              const fontSize = items.length > 3 ? "7.8px" : "12px";
-
-              items.forEach(item => row.appendChild(createTag(item, fontSize)));
-              return row;
-            }
-
-
-            leftColumn.appendChild(createTagRow((gameData.platforms || "Unknown").split(",").map(p => p.trim())));
-            leftColumn.appendChild(createTagRow((gameData.developer || "Unknown").split(",").map(d => d.trim())));
-            leftColumn.appendChild(createTagRow((gameData.publisher || "Unknown").split(",").map(p => p.trim())));
-            leftColumn.appendChild(createTagRow([gameData.release_date || "Unknown"]));
-            leftColumn.appendChild(createTagRow((gameData.genres || "Unknown").split(",").map(g => g.trim())));
+                leftColumn.appendChild(createTagRow((gameData.platforms || "Unknown").split(",").map(p => p.trim())));
+                leftColumn.appendChild(createTagRow((gameData.developer || "Unknown").split(",").map(d => d.trim())));
+                leftColumn.appendChild(createTagRow((gameData.publisher || "Unknown").split(",").map(p => p.trim())));
+                leftColumn.appendChild(createTagRow([gameData.release_date || "Unknown"]));
+                leftColumn.appendChild(createTagRow((gameData.genres || "Unknown").split(",").map(g => g.trim())));
 
             // Right column (description + Metacritic tab)
-            const rightColumn = document.createElement('div');
-            rightColumn.style.display = "flex";
-            rightColumn.style.flexDirection = "column";
-            rightColumn.style.flex = "1";
+                const rightColumn = document.createElement('div');
+                rightColumn.style.display = "flex";
+                rightColumn.style.flexDirection = "column";
+                rightColumn.style.flex = "1";
 
-            const descriptionWrapper = document.createElement('div');
-            descriptionWrapper.style.position = "relative";
-            descriptionWrapper.style.width = "100%"; // ensures tab positions correctly
+                // Wrap description in a container for absolute tabs
+                const descriptionWrapper = document.createElement('div');
+                descriptionWrapper.style.position = "relative";
+                descriptionWrapper.style.width = "100%"; // ensures tab positions correctly
 
-            const description = document.createElement('p');
-            description.textContent = descriptionText;
-            description.style.fontSize = "14px";
-            description.style.lineHeight = "1.4";
-            description.style.background = "rgba(36,40,47,0.7)";
-            description.style.padding = "8px 12px";
-            description.style.borderRadius = "12px";
-            description.style.wordBreak = "break-word";
-            description.style.overflowWrap = "break-word";
+                const description = document.createElement('p');
+                description.textContent = descriptionText;
+                description.style.fontSize = "14px";
+                description.style.lineHeight = "1.4";
+                description.style.background = "rgba(36,40,47,0.7)";
+                description.style.padding = "8px 12px";
+                description.style.borderRadius = "12px";
+                description.style.wordBreak = "break-word";
+                description.style.overflowWrap = "break-word";
 
-            descriptionWrapper.appendChild(description);
+                descriptionWrapper.appendChild(description);
 
-            // --- Metacritic tab ---
-            if (gameData.metacritic_score && gameData.metacritic_url) {
-                const metaTab = document.createElement('a');
-                metaTab.href = gameData.metacritic_url;
-                metaTab.target = "_blank";
-                metaTab.style.position = "absolute";
-                metaTab.style.top = "14px";
-                metaTab.style.left = "-18px";
-                metaTab.style.display = "flex";
-                metaTab.style.flexDirection = "column";
-                metaTab.style.alignItems = "center";
-                metaTab.style.justifyContent = "center";
-                metaTab.style.background = "rgba(36,40,47,0.85)";
-                metaTab.style.color = "white";
-                metaTab.style.fontSize = "12px";
-                metaTab.style.padding = "4px 6px";
-                metaTab.style.borderRadius = "8px";
-                metaTab.style.textDecoration = "none";
-                metaTab.style.cursor = "pointer";
-                metaTab.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
-                metaTab.style.zIndex = "10";
+                // --- Metacritic tab ---
+                if (gameData.metacritic_score && gameData.metacritic_url) {
+                    const metaTab = document.createElement('a');
+                    metaTab.href = gameData.metacritic_url;
+                    metaTab.target = "_blank";
+                    metaTab.style.position = "absolute";
+                    metaTab.style.top = "14px";
+                    metaTab.style.left = "-18px";
+                    metaTab.style.display = "flex";
+                    metaTab.style.flexDirection = "column";
+                    metaTab.style.alignItems = "center";
+                    metaTab.style.justifyContent = "center";
+                    metaTab.style.background = "rgba(36,40,47,0.85)";
+                    metaTab.style.color = "white";
+                    metaTab.style.fontSize = "12px";
+                    metaTab.style.padding = "4px 6px";
+                    metaTab.style.borderRadius = "8px";
+                    metaTab.style.textDecoration = "none";
+                    metaTab.style.cursor = "pointer";
+                    metaTab.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+                    metaTab.style.zIndex = "10";
 
-                metaTab.onmouseover = () => metaTab.style.background = "rgba(80,80,80,0.9)";
-                metaTab.onmouseout = () => metaTab.style.background = "rgba(36,40,47,0.85)";
+                    metaTab.onmouseover = () => metaTab.style.background = "rgba(80,80,80,0.9)";
+                    metaTab.onmouseout = () => metaTab.style.background = "rgba(36,40,47,0.85)";
 
-                const metaLogo = document.createElement('img');
-                metaLogo.src = "https://static.wikia.nocookie.net/logopedia/images/1/1f/Metacritic_2.svg";
-                metaLogo.style.width = "16px";
-                metaLogo.style.height = "16px";
-                metaLogo.style.marginBottom = "2px";
+                    const metaLogo = document.createElement('img');
+                    metaLogo.src = "https://static.wikia.nocookie.net/logopedia/images/1/1f/Metacritic_2.svg";
+                    metaLogo.style.width = "16px";
+                    metaLogo.style.height = "16px";
+                    metaLogo.style.marginBottom = "2px";
 
-                const scoreText = document.createElement('span');
-                scoreText.textContent = gameData.metacritic_score;
-                scoreText.style.fontWeight = "bold";
-                scoreText.style.fontSize = "12px";
+                    const scoreText = document.createElement('span');
+                    scoreText.textContent = gameData.metacritic_score;
+                    scoreText.style.fontWeight = "bold";
+                    scoreText.style.fontSize = "12px";
 
 
-                // Set color based on Metacritic score using RGB
-                const score = parseInt(gameData.metacritic_score, 10);
+                    // Set color based on Metacritic score using RGB
+                    const score = parseInt(gameData.metacritic_score, 10);
 
-                if (score >= 0 && score <= 49) {
-                    // Dark faded pink (red-ish)
-                    scoreText.style.color = "rgb(139, 75, 90)"; // muted/dark pink
-                } else if (score >= 50 && score <= 79) {
-                    // Dark faded orange
-                    scoreText.style.color = "rgb(166, 106, 58)"; // muted/dark orange
-                } else if (score >= 80) {
-                    // Dark faded green
-                    scoreText.style.color = "rgb(75, 139, 90)"; // muted/dark green
+                    if (score >= 0 && score <= 49) {
+                        // Dark faded pink (red-ish)
+                        scoreText.style.color = "rgb(139, 75, 90)"; // muted/dark pink
+                    } else if (score >= 50 && score <= 79) {
+                        // Dark faded orange
+                        scoreText.style.color = "rgb(166, 106, 58)"; // muted/dark orange
+                    } else if (score >= 80) {
+                        // Dark faded green
+                        scoreText.style.color = "rgb(75, 139, 90)"; // muted/dark green
+                    }
+
+                    metaTab.appendChild(metaLogo);
+                    metaTab.appendChild(scoreText);
+
+                    // Attach to wrapper (so it floats above description)
+                    descriptionWrapper.appendChild(metaTab);
                 }
 
-                metaTab.appendChild(metaLogo);
-                metaTab.appendChild(scoreText);
+                rightColumn.appendChild(descriptionWrapper);
+                contentRow.appendChild(leftColumn);
+                contentRow.appendChild(rightColumn);
+                overlay.appendChild(contentRow);
 
-                // Attach to wrapper (so it floats above description)
-                descriptionWrapper.appendChild(metaTab);
+
+
+                // Bottom links
+                const bottomLinks = document.createElement('div');
+                bottomLinks.style.position = "absolute";
+                bottomLinks.style.bottom = "34px";
+                bottomLinks.style.left = "10px";
+                bottomLinks.style.right = "10px";
+                bottomLinks.style.display = "flex";
+                bottomLinks.style.flexWrap = "wrap";
+                bottomLinks.style.gap = "6px";
+
+                const searchSites = [
+                { name: "Google", url: "https://www.google.com/search?q=", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" },
+
+                { name: "PCGW", url: "https://www.pcgamingwiki.com/w/index.php?search=", extra: "&title=Special%3ASearch", icon: "https://pbs.twimg.com/profile_images/876511628258418689/Joehp5YI_400x400.jpg" },
+                { name: "HLTB", url: "https://howlongtobeat.com/?q=", icon: "https://howlongtobeat.com/favicon.ico" },
+                { name: "SDHQ", url: "https://steamdeckhq.com/?s=", icon: "https://pbs.twimg.com/profile_images/1539310786614419459/5ohiy0ZX_400x400.jpg" },
+                { name: "GameFAQs", url: "https://gamefaqs.gamespot.com/search?game=", icon: "https://gamefaqs.gamespot.com/favicon.ico" },
+                { name: "AWACY", url: "https://areweanticheatyet.com/?search=", icon: "https://areweanticheatyet.com/icon.webp" },
+                { name: "ProtonDB", url: "https://www.protondb.com/search?q=", icon: "https://www.protondb.com/sites/protondb/images/site-logo.svg"},
+                ];
+
+                searchSites.forEach(site => {
+                const link = document.createElement('a');
+                // Minimal change: only modify IsThereAnyDeal URL
+                let gameUrl = site.url + encodeURIComponent(gameName) + (site.extra || "");
+                if (site.name === "IsThereAnyDeal") {
+                    // Convert gameName into ITAD slug
+                    const slug = gameName
+                    .toLowerCase()
+                    .replace(/[^a-z0-9 ]/g, '') // remove special chars
+                    .trim()
+                    .replace(/\s+/g, '-');      // spaces → hyphens
+                    gameUrl = `${site.url}${slug}/info/`;
+                }
+
+
+                link.href = gameUrl;
+                link.target = "_blank";
+                link.style.display = "inline-flex";
+                link.style.alignItems = "center";
+                link.style.background = "rgba(36,40,47,0.7)";
+                link.style.color = "white";
+                link.style.fontSize = "13px";
+                link.style.padding = "4px 4px";
+                link.style.borderRadius = "6px";
+                link.style.textDecoration = "none";
+                link.style.transition = "background 0.2s"; // Smooth transition on hover
+
+                // Set initial background on hover state using CSS
+                link.onmouseover = () => {
+                    link.style.background = "rgba(80,80,80,0.9)";
+                };
+                link.onmouseout = () => {
+                    link.style.background = "rgba(36,40,47,0.7)";
+                };
+
+                const linkIcon = document.createElement('img');
+                linkIcon.src = site.icon;
+                linkIcon.style.width = "16px";
+                linkIcon.style.height = "16px";
+                linkIcon.style.marginRight = "4px";
+                link.prepend(linkIcon);
+
+                link.appendChild(document.createTextNode(site.name));
+                bottomLinks.appendChild(link);
+                });
+
+
+                // --- ITAD button directly under description ---
+                const itadSite = {
+                    name: "",
+                    url: "https://isthereanydeal.com/game/",
+                    icon: "https://isthereanydeal.com/public/assets/logo-GBHE6XF2.svg"
+                };
+
+                const slug = gameName.toLowerCase()
+                    .replace(/[^a-z0-9 ]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '-');
+
+                const itadUrl = `${itadSite.url}${slug}/info/`;
+
+                const itadLink = document.createElement('a');
+                itadLink.href = itadUrl;
+                itadLink.target = "_blank";
+                itadLink.style.display = "inline-flex";
+                itadLink.style.alignItems = "center";
+                itadLink.style.background = "rgba(36,40,47,0.7)";
+                itadLink.style.color = "white";
+                itadLink.style.fontSize = "13px";
+                itadLink.style.padding = "6px 12px";
+                itadLink.style.borderRadius = "12px";
+                itadLink.style.textDecoration = "none";
+                itadLink.style.width = "max-content"; // ← keeps button snug
+                rightColumn.style.display = "flex";
+                rightColumn.style.flexDirection = "column";
+                rightColumn.style.alignItems = "flex-end"; // ← aligns all children (including ITAD) to the right
+
+
+                itadLink.style.marginTop = "0px"; // spacing below description
+
+                itadLink.onmouseover = () => itadLink.style.background = "rgba(80,80,80,0.9)";
+                itadLink.onmouseout = () => itadLink.style.background = "rgba(36,40,47,0.7)";
+
+                const itadIcon = document.createElement('img');
+                itadIcon.src = itadSite.icon;
+                itadIcon.style.width = "16px";
+                itadIcon.style.height = "16px";
+                itadIcon.style.marginRight = "6px";
+                itadLink.prepend(itadIcon);
+
+                itadLink.appendChild(document.createTextNode(itadSite.name));
+
+                // append it **directly under description** in right column
+                rightColumn.appendChild(itadLink);
+
+
+
+
+
+                overlay.appendChild(bottomLinks);
+                div.appendChild(img);
+                div.appendChild(overlay);
+            });
+            }
+        }
+        });
+    }
+
+
+    function attachThemeMusicBehavior(musicBtn) {
+        const KEY = "ThemeMusicData";
+
+        const load = () => {
+            try { return JSON.parse(localStorage.getItem(KEY) || "{}"); }
+            catch { return {}; }
+        };
+
+        const save = (data) => {
+            try { localStorage.setItem(KEY, JSON.stringify(data)); }
+            catch(e){ console.error(e); }
+        };
+
+        let data = load();
+        let on = data.themeMusic === undefined ? true : !!data.themeMusic;
+
+        // --- Container ---
+        const container = document.createElement("div");
+        Object.assign(container.style, {
+            display: "inline-flex",
+            alignItems: "center",
+            position: "relative"
+        });
+        musicBtn.parentElement.insertBefore(container, musicBtn);
+        container.appendChild(musicBtn);
+
+        // Initial icon
+        musicBtn.textContent = on ? "🎵" : "🔇";
+
+        // --- Bubble tooltip ---
+        const bubble = document.createElement("div");
+        bubble.innerHTML = "Don't like what you hear? Use paste!";
+        Object.assign(bubble.style, {
+            position: "absolute",
+            bottom: "30px",       // ← move above the button
+            top: "auto",           // reset top
+            left: "0",
+            background: musicBtn.style.background,
+            color: musicBtn.style.color,
+            border: "none",
+            borderRadius: musicBtn.style.borderRadius,
+            padding: musicBtn.style.padding,
+            fontSize: musicBtn.style.fontSize,
+            whiteSpace: "nowrap",
+            opacity: "0",
+            transform: "translateY(10px)", // ← nudge down slightly for animation
+            transition: "opacity 0.3s ease, transform 0.3s ease",
+            pointerEvents: "auto",
+            zIndex: "1000",
+            cursor: "default"
+        });
+
+        container.appendChild(bubble);
+
+        const showBubble = (text, isError=false) => {
+            if (!on) return;
+
+            if (text) {
+                bubble.innerHTML = text;
+            } else {
+                const themeData = load();
+                const current = themeData.currentlyPlaying;
+                let linkHTML = "hear";
+                if (current?.videoId) {
+                    const videoUrl = `https://youtu.be/${current.videoId}`;
+                    linkHTML = `<a href="${videoUrl}" target="_blank" style="color:#0af;text-decoration:underline; cursor:pointer;">hear</a>`;
+                }
+                bubble.innerHTML = `Don't like what you ${linkHTML}? Use paste!`;
             }
 
-            // Append wrapper to right column
-            rightColumn.appendChild(descriptionWrapper);
+            bubble.style.opacity = "1";
+            bubble.style.transform = "translateY(0)";
+            bubble.style.backgroundColor = isError ? "#F44336" : musicBtn.style.background;
+        };
 
-            // Then append leftColumn and rightColumn to contentRow
-            contentRow.appendChild(leftColumn);
-            contentRow.appendChild(rightColumn);
+        const hideBubble = () => {
+            bubble.style.opacity = "0";
+            bubble.style.transform = "translateY(-10px)";
+        };
 
-            // Overlay container
-            overlay.appendChild(contentRow);
+        // --- Paste button (pill style like music button) ---
+        const pasteBtn = document.createElement("button");
+        pasteBtn.textContent = "📋";
+        Object.assign(pasteBtn.style, {
+            background: musicBtn.style.background,
+            color: musicBtn.style.color,
+            border: "none",
+            borderRadius: musicBtn.style.borderRadius,  // pill shape
+            padding: musicBtn.style.padding,
+            fontSize: musicBtn.style.fontSize,
+            cursor: "pointer",
+            marginLeft: "6px",
+            opacity: 0,
+            pointerEvents: "none",
+            transition: "opacity 0.3s"
+        });
+        container.appendChild(pasteBtn);
 
+        // --- Paste button logic ---
+        pasteBtn.onclick = async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                const match = text.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                if (!match) return showBubble("Invalid YouTube link!", true);
 
-            // Bottom links
-            const bottomLinks = document.createElement('div');
-            bottomLinks.style.position = "absolute";
-            bottomLinks.style.bottom = "34px";
-            bottomLinks.style.left = "10px";
-            bottomLinks.style.right = "10px";
-            bottomLinks.style.display = "flex";
-            bottomLinks.style.flexWrap = "wrap";
-            bottomLinks.style.gap = "6px";
+                const newVideoId = match[1];
+                const themeData = load();
+                const currentThemeName = themeData.currentlyPlaying?.name;
+                if (!currentThemeName || !themeData[currentThemeName])
+                    return showBubble("No theme currently playing!", true);
 
-            const searchSites = [
-              { name: "Google", url: "https://www.google.com/search?q=", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" },
+                themeData[currentThemeName].videoId = newVideoId;
+                themeData[currentThemeName].timestamp = Date.now();
+                save(themeData);
 
-              { name: "PCGW", url: "https://www.pcgamingwiki.com/w/index.php?search=", extra: "&title=Special%3ASearch", icon: "https://pbs.twimg.com/profile_images/876511628258418689/Joehp5YI_400x400.jpg" },
-              { name: "HLTB", url: "https://howlongtobeat.com/?q=", icon: "https://howlongtobeat.com/favicon.ico" },
-              { name: "SDHQ", url: "https://steamdeckhq.com/?s=", icon: "https://pbs.twimg.com/profile_images/1539310786614419459/5ohiy0ZX_400x400.jpg" },
-              { name: "GameFAQs", url: "https://gamefaqs.gamespot.com/search?game=", icon: "https://gamefaqs.gamespot.com/favicon.ico" },
-              { name: "AWACY", url: "https://areweanticheatyet.com/?search=", icon: "https://areweanticheatyet.com/icon.webp" },
-              { name: "ProtonDB", url: "https://www.protondb.com/search?q=", icon: "https://www.protondb.com/sites/protondb/images/site-logo.svg"},
-            ];
+                musicBtn.textContent = "🎵";
+                showBubble(`Updated "${currentThemeName}"!`);
+                setTimeout(() => {
+                    pasteBtn.style.opacity = "0";
+                    pasteBtn.style.pointerEvents = "none";
+                }, 3000);
+            } catch (e) {
+                console.error(e);
+                showBubble("Failed to read clipboard.", true);
+            }
+        };
 
-            searchSites.forEach(site => {
-              const link = document.createElement('a');
-              // Minimal change: only modify IsThereAnyDeal URL
-              let gameUrl = site.url + encodeURIComponent(gameName) + (site.extra || "");
-              if (site.name === "IsThereAnyDeal") {
-                // Convert gameName into ITAD slug
-                const slug = gameName
-                  .toLowerCase()
-                  .replace(/[^a-z0-9 ]/g, '') // remove special chars
-                  .trim()
-                  .replace(/\s+/g, '-');      // spaces → hyphens
-                gameUrl = `${site.url}${slug}/info/`;
-              }
-
-
-              link.href = gameUrl;
-              link.target = "_blank";
-              link.style.display = "inline-flex";
-              link.style.alignItems = "center";
-              link.style.background = "rgba(36,40,47,0.7)";
-              link.style.color = "white";
-              link.style.fontSize = "13px";
-              link.style.padding = "4px 4px";
-              link.style.borderRadius = "6px";
-              link.style.textDecoration = "none";
-              link.style.transition = "background 0.2s"; // Smooth transition on hover
-
-              // Set initial background on hover state using CSS
-              link.onmouseover = () => {
-                link.style.background = "rgba(80,80,80,0.9)";
-              };
-              link.onmouseout = () => {
-                link.style.background = "rgba(36,40,47,0.7)";
-              };
-
-              const linkIcon = document.createElement('img');
-              linkIcon.src = site.icon;
-              linkIcon.style.width = "16px";
-              linkIcon.style.height = "16px";
-              linkIcon.style.marginRight = "4px";
-              link.prepend(linkIcon);
-
-              link.appendChild(document.createTextNode(site.name));
-              bottomLinks.appendChild(link);
+        // --- Hover logic (includes bubble itself) ---
+        [musicBtn, pasteBtn, bubble].forEach(el => {
+            el.addEventListener("mouseenter", () => {
+                if (on) {
+                    showBubble();
+                    pasteBtn.style.opacity = "1";
+                    pasteBtn.style.pointerEvents = "auto";
+                }
             });
+            el.addEventListener("mouseleave", () => {
+                setTimeout(() => {
+                    if (!on || ![musicBtn, pasteBtn, bubble].some(el => el.matches(':hover'))) {
+                        hideBubble();
+                        pasteBtn.style.opacity = "0";
+                        pasteBtn.style.pointerEvents = "none";
+                    }
+                }, 200); // slightly longer delay to allow moving into bubble
+            });
+        });
 
+        // --- Toggle music on/off ---
+        musicBtn.onclick = () => {
+            on = !on;
+            musicBtn.textContent = on ? "🎵" : "🔇";
+            const saved = load();
+            saved.themeMusic = on;
+            save(saved);
+            if (!on) {
+                hideBubble();
+                pasteBtn.style.opacity = "0";
+                pasteBtn.style.pointerEvents = "none";
+            }
+        };
+    }
 
-            // --- ITAD button directly under description ---
-            const itadSite = {
-                name: "",
-                url: "https://isthereanydeal.com/game/",
-                icon: "https://isthereanydeal.com/public/assets/logo-GBHE6XF2.svg"
-            };
+    replaceText();
 
-            const slug = gameName.toLowerCase()
-                .replace(/[^a-z0-9 ]/g, '')
-                .trim()
-                .replace(/\s+/g, '-');
+    // Only create a new observer if one doesn’t already exist
+    if (!window.steamEnhancerObserver) {
+        const observer = new MutationObserver(replaceText);
+        observer.observe(document.body, { childList: true, subtree: true });
 
-            const itadUrl = `${itadSite.url}${slug}/info/`;
+        // Save it globally so future runs know it exists
+        window.steamEnhancerObserver = observer;
+    }
 
-            const itadLink = document.createElement('a');
-            itadLink.href = itadUrl;
-            itadLink.target = "_blank";
-            itadLink.style.display = "inline-flex";
-            itadLink.style.alignItems = "center";
-            itadLink.style.background = "rgba(36,40,47,0.7)";
-            itadLink.style.color = "white";
-            itadLink.style.fontSize = "13px";
-            itadLink.style.padding = "6px 12px";
-            itadLink.style.borderRadius = "12px";
-            itadLink.style.textDecoration = "none";
-            itadLink.style.width = "max-content"; // ← keeps button snug
-            rightColumn.style.display = "flex";
-            rightColumn.style.flexDirection = "column";
-            rightColumn.style.alignItems = "flex-end"; // ← aligns all children (including ITAD) to the right
-
-
-            itadLink.style.marginTop = "0px"; // spacing below description
-
-            itadLink.onmouseover = () => itadLink.style.background = "rgba(80,80,80,0.9)";
-            itadLink.onmouseout = () => itadLink.style.background = "rgba(36,40,47,0.7)";
-
-            const itadIcon = document.createElement('img');
-            itadIcon.src = itadSite.icon;
-            itadIcon.style.width = "16px";
-            itadIcon.style.height = "16px";
-            itadIcon.style.marginRight = "6px";
-            itadLink.prepend(itadIcon);
-
-            itadLink.appendChild(document.createTextNode(itadSite.name));
-
-            // append it **directly under description** in right column
-            rightColumn.appendChild(itadLink);
-
-
-
-
-
-            overlay.appendChild(bottomLinks);
-            div.appendChild(img);
-            div.appendChild(overlay);
-          });
-        }
-      }
-    });
-  }
-
-
-  function attachThemeMusicBehavior(musicBtn) {
-      const KEY = "ThemeMusicData";
-
-      const load = () => {
-          try { return JSON.parse(localStorage.getItem(KEY) || "{}"); }
-          catch { return {}; }
-      };
-
-      const save = (data) => {
-          try { localStorage.setItem(KEY, JSON.stringify(data)); }
-          catch(e){ console.error(e); }
-      };
-
-      let data = load();
-      let on = data.themeMusic === undefined ? true : !!data.themeMusic;
-
-      // --- Container ---
-      const container = document.createElement("div");
-      Object.assign(container.style, {
-          display: "inline-flex",
-          alignItems: "center",
-          position: "relative"
-      });
-      musicBtn.parentElement.insertBefore(container, musicBtn);
-      container.appendChild(musicBtn);
-
-      // Initial icon
-      musicBtn.textContent = on ? "🎵" : "🔇";
-
-      // --- Bubble tooltip ---
-      const bubble = document.createElement("div");
-      bubble.innerHTML = "Don't like what you hear? Use paste!";
-      Object.assign(bubble.style, {
-          position: "absolute",
-          bottom: "30px",       // ← move above the button
-          top: "auto",           // reset top
-          left: "0",
-          background: musicBtn.style.background,
-          color: musicBtn.style.color,
-          border: "none",
-          borderRadius: musicBtn.style.borderRadius,
-          padding: musicBtn.style.padding,
-          fontSize: musicBtn.style.fontSize,
-          whiteSpace: "nowrap",
-          opacity: "0",
-          transform: "translateY(10px)", // ← nudge down slightly for animation
-          transition: "opacity 0.3s ease, transform 0.3s ease",
-          pointerEvents: "auto",
-          zIndex: "1000",
-          cursor: "default"
-      });
-
-      container.appendChild(bubble);
-
-      const showBubble = (text, isError=false) => {
-          if (!on) return;
-
-          if (text) {
-              bubble.innerHTML = text;
-          } else {
-              const themeData = load();
-              const current = themeData.currentlyPlaying;
-              let linkHTML = "hear";
-              if (current?.videoId) {
-                  const videoUrl = `https://youtu.be/${current.videoId}`;
-                  linkHTML = `<a href="${videoUrl}" target="_blank" style="color:#0af;text-decoration:underline; cursor:pointer;">hear</a>`;
-              }
-              bubble.innerHTML = `Don't like what you ${linkHTML}? Use paste!`;
-          }
-
-          bubble.style.opacity = "1";
-          bubble.style.transform = "translateY(0)";
-          bubble.style.backgroundColor = isError ? "#F44336" : musicBtn.style.background;
-      };
-
-      const hideBubble = () => {
-          bubble.style.opacity = "0";
-          bubble.style.transform = "translateY(-10px)";
-      };
-
-      // --- Paste button (pill style like music button) ---
-      const pasteBtn = document.createElement("button");
-      pasteBtn.textContent = "📋";
-      Object.assign(pasteBtn.style, {
-          background: musicBtn.style.background,
-          color: musicBtn.style.color,
-          border: "none",
-          borderRadius: musicBtn.style.borderRadius,  // pill shape
-          padding: musicBtn.style.padding,
-          fontSize: musicBtn.style.fontSize,
-          cursor: "pointer",
-          marginLeft: "6px",
-          opacity: 0,
-          pointerEvents: "none",
-          transition: "opacity 0.3s"
-      });
-      container.appendChild(pasteBtn);
-
-      // --- Paste button logic ---
-      pasteBtn.onclick = async () => {
-          try {
-              const text = await navigator.clipboard.readText();
-              const match = text.match(/(?:youtube\.com\/.*v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-              if (!match) return showBubble("Invalid YouTube link!", true);
-
-              const newVideoId = match[1];
-              const themeData = load();
-              const currentThemeName = themeData.currentlyPlaying?.name;
-              if (!currentThemeName || !themeData[currentThemeName])
-                  return showBubble("No theme currently playing!", true);
-
-              themeData[currentThemeName].videoId = newVideoId;
-              themeData[currentThemeName].timestamp = Date.now();
-              save(themeData);
-
-              musicBtn.textContent = "🎵";
-              showBubble(`Updated "${currentThemeName}"!`);
-              setTimeout(() => {
-                  pasteBtn.style.opacity = "0";
-                  pasteBtn.style.pointerEvents = "none";
-              }, 3000);
-          } catch (e) {
-              console.error(e);
-              showBubble("Failed to read clipboard.", true);
-          }
-      };
-
-      // --- Hover logic (includes bubble itself) ---
-      [musicBtn, pasteBtn, bubble].forEach(el => {
-          el.addEventListener("mouseenter", () => {
-              if (on) {
-                  showBubble();
-                  pasteBtn.style.opacity = "1";
-                  pasteBtn.style.pointerEvents = "auto";
-              }
-          });
-          el.addEventListener("mouseleave", () => {
-              setTimeout(() => {
-                  if (!on || ![musicBtn, pasteBtn, bubble].some(el => el.matches(':hover'))) {
-                      hideBubble();
-                      pasteBtn.style.opacity = "0";
-                      pasteBtn.style.pointerEvents = "none";
-                  }
-              }, 200); // slightly longer delay to allow moving into bubble
-          });
-      });
-
-      // --- Toggle music on/off ---
-      musicBtn.onclick = () => {
-          on = !on;
-          musicBtn.textContent = on ? "🎵" : "🔇";
-          const saved = load();
-          saved.themeMusic = on;
-          save(saved);
-          if (!on) {
-              hideBubble();
-              pasteBtn.style.opacity = "0";
-              pasteBtn.style.pointerEvents = "none";
-          }
-      };
-  }
-
-  replaceText();
-
-  if (!window.steamEnhancerObserver) {
-      const observer = new MutationObserver(replaceText);
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      window.steamEnhancerObserver = observer;
-  }
-
+}
 })();
 """
 
