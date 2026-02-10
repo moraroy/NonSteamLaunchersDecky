@@ -32,7 +32,7 @@ def gryphlink_scanner(logged_in_home, gryphlink_launcher, create_new_entry):
         display_name,
         launch_options,
         start_dir,
-        launcher_name="Gryphlink"
+        "Gryphlink"
     )
 
     track_game(display_name, "Gryphlink")
