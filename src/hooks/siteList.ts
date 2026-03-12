@@ -233,6 +233,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/560cc70f255b94b8408709e810914593.jpg'
   },
   {
+    name: 'supermonkeyballonline',
+    label: 'Super Monkey Ball Online',
+    URL: 'https://monkeyball-online.pages.dev',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://cdn2.steamgriddb.com/thumb/5308b821b535e6a56f27bf06f98cd0fb.jpg'
+  },
+  {
     name: 'venge',
     label: 'Venge',
     URL: 'https://www.venge.io',

@@ -770,6 +770,7 @@ launcher_entries=(
 chrome_entries=(
   "FALSE|Fortnite"
   "FALSE|Venge"
+  "FALSE|Super Monkey Ball Online"
   "FALSE|PokéRogue"
   "FALSE|Xbox Game Pass"
   "FALSE|Better xCloud"
@@ -2862,7 +2863,7 @@ echo "99"
 echo "# Checking if Chrome is installed...please wait..."
 
 # Check if user selected any of the options
-if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Better xCloud"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Youtube TV"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
+if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Super Monkey Ball Online"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Better xCloud"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Youtube TV"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
 
     # User selected one of the options
     echo "User selected one of the options"
@@ -3369,6 +3370,7 @@ declare -A services=(
     ["Fortnite"]="fortnite|https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2"
     ["Better xCloud"]="xcloud|https://better-xcloud.github.io"
     ["Venge"]="venge|https://venge.io"
+    ["Super Monkey Ball Online"]="monkey|https://monkeyball-online.pages.dev"
     ["PokéRogue"]="pokerogue|https://pokerogue.net"
     ["Boosteroid Cloud Gaming"]="boosteroid|https://cloud.boosteroid.com"
     ["WebRcade"]="webrcade|https://play.webrcade.com"
