@@ -145,7 +145,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               wordWrap: "break-word",  // Word wrap
             }}
           >
-            <div>Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe.</div>
+            <div>Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe</div>
 
             <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
               {isUpdating ? 'Updating...' : 'Update'}

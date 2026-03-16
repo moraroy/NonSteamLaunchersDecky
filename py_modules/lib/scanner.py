@@ -303,11 +303,12 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
 
 
+
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
     # Determine the path based on the operating system
     if platform.system() == "Windows":
-        vdf_path = f"C:\\Program Files (x86)\\Steam\\userdata\\{steamid3}\\config\\shortcuts.vdf"
+        vdf_path = env_vars.get("steam_shortcuts_vdf")
     else:
         vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
 

@@ -100,12 +100,10 @@ def refresh_env_vars():
     if SYSTEM == "Windows" and WINREG_AVAILABLE:
         decky_plugin.logger.info("Running Windows-specific logic")
 
-        # Launcher detection
         launcher_paths = find_launcher_path()
         for key, path in launcher_paths.items():
             check_and_set_path(env_vars, key, path)
 
-        # Steam detection
         USERS_DATA_DIR = get_steam_userdata_dir()
         decky_plugin.logger.info(f"Steam userdata directory: {USERS_DATA_DIR}")
 
@@ -129,6 +127,26 @@ def refresh_env_vars():
                     env_vars["steamid3"] = current_user
                     decky_plugin.logger.info(f"Active Steam user: {current_user}")
 
+                    # Write steamid3 to env_vars file (Windows support)
+                    try:
+                        os.makedirs(os.path.dirname(env_vars_path), exist_ok=True)
+
+                        already_exists = False
+                        if os.path.exists(env_vars_path):
+                            with open(env_vars_path, "r") as f:
+                                for line in f:
+                                    if line.startswith("steamid3="):
+                                        already_exists = True
+                                        break
+
+                        if not already_exists:
+                            with open(env_vars_path, "a") as f:
+                                f.write(f"steamid3={current_user}\n")
+
+                    except Exception as e:
+                        decky_plugin.logger.error(f"Failed writing steamid3 to env_vars file: {e}")
+
+                    # Handle shortcuts.vdf
                     shortcuts_path = os.path.join(USERS_DATA_DIR, current_user, "config", "shortcuts.vdf")
                     if not os.path.exists(shortcuts_path):
                         os.makedirs(os.path.dirname(shortcuts_path), exist_ok=True)
@@ -136,9 +154,49 @@ def refresh_env_vars():
                             file.write(vdf.binary_dumps({"shortcuts": {}}))
                         os.chmod(shortcuts_path, 0o755)
                         decky_plugin.logger.info(f"Created missing shortcuts.vdf at {shortcuts_path}")
+
+                    # Normalize the path, capitalize drive letter, preserve folder names
+                    if shortcuts_path and os.path.exists(shortcuts_path):
+                        # Normalize slashes
+                        shortcuts_path = os.path.normpath(shortcuts_path)
+                        # Capitalize drive letter
+                        if len(shortcuts_path) >= 2 and shortcuts_path[1] == ':':
+                            shortcuts_path = shortcuts_path[0].upper() + shortcuts_path[1:]
+                        # Optional: fix actual folder capitalization from disk
+                        def real_path_case(path):
+                            parts = path.split(os.sep)
+                            for i in range(1, len(parts)+1):
+                                p = os.sep.join(parts[:i])
+                                if os.path.exists(p):
+                                    entries = os.listdir(os.path.dirname(p)) if os.path.dirname(p) else [p]
+                                    for entry in entries:
+                                        if entry.lower() == os.path.basename(p).lower():
+                                            parts[i-1] = entry
+                                            break
+                            return os.sep.join(parts)
+                        shortcuts_path = real_path_case(shortcuts_path)
+
+                        env_vars["steam_shortcuts_vdf"] = shortcuts_path
+                        try:
+                            already_exists = False
+                            if os.path.exists(env_vars_path):
+                                with open(env_vars_path, "r") as f:
+                                    for line in f:
+                                        if line.startswith("steam_shortcuts_vdf="):
+                                            already_exists = True
+                                            break
+
+                            if not already_exists:
+                                with open(env_vars_path, "a") as f:
+                                    f.write(f"steam_shortcuts_vdf={shortcuts_path}\n")
+
+                        except Exception as e:
+                            decky_plugin.logger.error(f"Failed writing steam_shortcuts_vdf to env_vars file: {e}")
+
                 else:
                     env_vars["steamid3"] = None
                     decky_plugin.logger.warning("No Steam users found in userdata.")
+
             except Exception as e:
                 decky_plugin.logger.error(f"Error reading Steam userdata: {e}")
                 env_vars["steamid3"] = None
@@ -146,20 +204,16 @@ def refresh_env_vars():
         env_vars["logged_in_home"] = DECKY_USER_HOME
 
     else:
-        # Linux / other OS
         decky_plugin.logger.info("Running Linux/other OS logic")
 
-        # Ensure the env_vars file exists
         if not os.path.exists(env_vars_path):
             decky_plugin.logger.warning(f"{env_vars_path} does not exist. Creating empty env vars file.")
             os.makedirs(os.path.dirname(env_vars_path), exist_ok=True)
             with open(env_vars_path, "w") as f:
-                f.write("")  # create empty file
-            # Return an empty dict (valid)
+                f.write("")
             env_vars["logged_in_home"] = DECKY_USER_HOME
             return env_vars
 
-        # File exists (may be empty, may have values)
         with open(env_vars_path, "r") as f:
             lines = f.readlines()
 
@@ -178,7 +232,6 @@ def refresh_env_vars():
                 ):
                     f.write(line)
 
-        # Always include logged_in_home
         env_vars["logged_in_home"] = DECKY_USER_HOME
 
     return env_vars
