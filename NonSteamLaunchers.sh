@@ -1249,7 +1249,7 @@ eaapp_url=https://origin-a.akamaihd.net/EA-Desktop-Client-Download/installer-rel
 eaapp_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/EAappInstaller.exe
 
 # Set the URL to download the eighth file from
-itchio_url=https://itch.io/app/download?platform=windows
+itchio_url="https://itch.io/app/download?platform=windows"
 
 # Set the path to save the eighth file to
 itchio_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/itch-setup.exe
@@ -1740,10 +1740,12 @@ process_uninstall_options() {
                 handle_uninstall_ea "NonSteamLaunchers"
                 uninstall_launcher "$uninstall_options" "EA App" "$eaapp_path1" "$eaapp_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe" "eaapp" "ea_app"
                 sed -i '/repaireaapp/d' "${logged_in_home}/.config/systemd/user/env_vars"
+                rm -f "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe"
             elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/Program Files/Electronic Arts" ]]; then
                 handle_uninstall_ea "TheEAappLauncher"
                 uninstall_launcher "$uninstall_options" "EA App" "$eaapp_path1" "$eaapp_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe" "eaapp" "ea_app"
                 sed -i '/repaireaapp/d' "${logged_in_home}/.config/systemd/user/env_vars"
+                rm -f "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe"
             fi
         fi
         if [[ $uninstall_options == *"Uninstall Legacy Games"* ]]; then
@@ -1950,7 +1952,8 @@ else
             --width=508 --height=507 \
             FALSE "Epic Games" \
             FALSE "GOG Galaxy" \
-            FALSE "Uplay" \
+            FALSE "Ubisoft Connect
+            " \
             FALSE "Battle.net" \
             FALSE "EA App" \
             FALSE "Amazon Games" \
@@ -2696,6 +2699,28 @@ function install_launcher {
             mkdir -p "${logged_in_home}/.local/share/Steam/steamapps/compatdata/$appid"
         fi
 
+
+
+        if [[ "$launcher_name" == "Ubisoft Connect" ]]; then
+            shopt -s nullglob
+
+            for root in \
+                "$HOME/.local/share/Steam" \
+                "$HOME/.steam/steam" \
+                /run/media/"$USER"/* \
+                /mnt/* \
+                /media/*
+            do
+                [[ -d "$root" ]] || continue
+
+                if [[ -x "$root/steamapps/common/Proton - Experimental/proton" ]]; then
+                    proton_dir="$root/steamapps/common/Proton - Experimental"
+                    break
+                fi
+            done
+        fi
+
+
         # Change working directory to Proton's
         cd $proton_dir
 
@@ -2708,7 +2733,7 @@ function install_launcher {
         # Download file
         if [ ! -f "$file_name" ]; then
             echo "Downloading ${file_name}"
-            curl -L $file_url -o $file_name
+            curl -L "$file_url" -o "$file_name"
         fi
 
         # Execute the pre-installation command, if provided
@@ -2851,8 +2876,29 @@ install_launcher "Gryphlink" "GryphlinkLauncher" "$gryphlink_file" "$gryphlink_u
 
 #End of Launcher Installations
 
+#temp ea fix
+if [[ "$options" == *"EA App"* ]]; then
 
+  if [ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Electronic Arts/EA Desktop" ]; then
+    BASE="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Electronic Arts/EA Desktop"
 
+  elif [ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/Program Files/Electronic Arts/EA Desktop" ]; then
+    BASE="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/Program Files/Electronic Arts/EA Desktop"
+  else
+    echo "EA Desktop folder not found."
+    return
+  fi
+
+  cd "$BASE" || return
+
+  VER=$(ls -d */ 2>/dev/null | grep -v "EA Desktop" | head -n 1 | sed 's#/##')
+
+  if [ -n "$VER" ] && [ -d "$VER/EA Desktop" ]; then
+    mv "$VER/EA Desktop" .
+    rmdir "$VER"
+  fi
+
+fi
 
 
 
