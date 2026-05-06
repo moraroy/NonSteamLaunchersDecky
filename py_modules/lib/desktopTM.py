@@ -997,42 +997,51 @@ METADATA_CODE = r"""
                 overlay.appendChild(contentRow);
 
 
-
                 // Bottom links
                 const bottomLinks = document.createElement('div');
                 bottomLinks.style.position = "absolute";
                 bottomLinks.style.bottom = "34px";
-                bottomLinks.style.left = "10px";
-                bottomLinks.style.right = "10px";
+
+                bottomLinks.style.left = "42px";
+                bottomLinks.style.right = "42px";
+
                 bottomLinks.style.display = "flex";
-                bottomLinks.style.flexWrap = "wrap";
+                bottomLinks.style.flexWrap = "nowrap";
                 bottomLinks.style.gap = "6px";
+
+                bottomLinks.style.overflow = "hidden";
+                bottomLinks.style.whiteSpace = "nowrap";
+                bottomLinks.style.scrollBehavior = "smooth";
+                bottomLinks.style.alignItems = "center";
+
+                bottomLinks.style.paddingLeft = "1px";
+                bottomLinks.style.paddingRight = "6px";
 
                 const searchSites = [
                 { name: "Google", url: "https://www.google.com/search?q=", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" },
-
                 { name: "PCGW", url: "https://www.pcgamingwiki.com/w/index.php?search=", extra: "&title=Special%3ASearch", icon: "https://pbs.twimg.com/profile_images/876511628258418689/Joehp5YI_400x400.jpg" },
                 { name: "HLTB", url: "https://howlongtobeat.com/?q=", icon: "https://howlongtobeat.com/favicon.ico" },
                 { name: "SDHQ", url: "https://steamdeckhq.com/?s=", icon: "https://pbs.twimg.com/profile_images/1539310786614419459/5ohiy0ZX_400x400.jpg" },
+                { name: "GOS", url: "https://gamingonsteam.com/?post_type=post&s=", extra: "&btnSubmit=", icon: "https://gamingonsteam.com/wp-content/uploads/2025/12/X-BS-1-e1765643013126.png" },
                 { name: "GameFAQs", url: "https://gamefaqs.gamespot.com/search?game=", icon: "https://gamefaqs.gamespot.com/favicon.ico" },
-                { name: "AWACY", url: "https://areweanticheatyet.com/?search=", icon: "https://areweanticheatyet.com/icon.webp" },
                 { name: "ProtonDB", url: "https://www.protondb.com/search?q=", icon: "https://www.protondb.com/sites/protondb/images/site-logo.svg"},
+                { name: "AWACY", url: "https://areweanticheatyet.com/?search=", icon: "https://areweanticheatyet.com/icon.webp" },
                 ];
 
                 searchSites.forEach(site => {
                 const link = document.createElement('a');
-                // Minimal change: only modify IsThereAnyDeal URL
+
                 let gameUrl = site.url + encodeURIComponent(gameName) + (site.extra || "");
+
                 if (site.name === "IsThereAnyDeal") {
-                    // Convert gameName into ITAD slug
                     const slug = gameName
-                    .toLowerCase()
-                    .replace(/[^a-z0-9 ]/g, '') // remove special chars
-                    .trim()
-                    .replace(/\s+/g, '-');      // spaces → hyphens
+                        .toLowerCase()
+                        .replace(/[^a-z0-9 ]/g, '')
+                        .trim()
+                        .replace(/\s+/g, '-');
+
                     gameUrl = `${site.url}${slug}/info/`;
                 }
-
 
                 link.href = gameUrl;
                 link.target = "_blank";
@@ -1044,9 +1053,8 @@ METADATA_CODE = r"""
                 link.style.padding = "4px 4px";
                 link.style.borderRadius = "6px";
                 link.style.textDecoration = "none";
-                link.style.transition = "background 0.2s"; // Smooth transition on hover
+                link.style.transition = "background 0.2s";
 
-                // Set initial background on hover state using CSS
                 link.onmouseover = () => {
                     link.style.background = "rgba(80,80,80,0.9)";
                 };
@@ -1059,21 +1067,23 @@ METADATA_CODE = r"""
                 linkIcon.style.width = "16px";
                 linkIcon.style.height = "16px";
                 linkIcon.style.marginRight = "4px";
-                link.prepend(linkIcon);
 
+                link.prepend(linkIcon);
                 link.appendChild(document.createTextNode(site.name));
+
                 bottomLinks.appendChild(link);
                 });
 
-                const itadSite = {
-                    name:
-                        gameData.discounted_price && gameData.discount_percent
-                            ? `${gameData.discounted_price} (-${gameData.discount_percent}%)`
-                            : "",
-                    url: "https://isthereanydeal.com/game/",
-                    icon: "https://isthereanydeal.com/public/assets/logo-GBHE6XF2.svg"
-                };
 
+
+                const itadSite = {
+                name:
+                    gameData.discounted_price && gameData.discount_percent
+                        ? `${gameData.discounted_price} (-${gameData.discount_percent}%)`
+                        : "",
+                url: "https://isthereanydeal.com/game/",
+                icon: "https://isthereanydeal.com/public/assets/logo-GBHE6XF2.svg"
+                };
 
                 const slug = gameName.toLowerCase()
                     .replace(/[^a-z0-9 ]/g, '')
@@ -1093,13 +1103,13 @@ METADATA_CODE = r"""
                 itadLink.style.padding = "6px 12px";
                 itadLink.style.borderRadius = "12px";
                 itadLink.style.textDecoration = "none";
-                itadLink.style.width = "max-content"; // ← keeps button snug
+                itadLink.style.width = "max-content";
+
                 rightColumn.style.display = "flex";
                 rightColumn.style.flexDirection = "column";
-                rightColumn.style.alignItems = "flex-end"; // ← aligns all children (including ITAD) to the right
+                rightColumn.style.alignItems = "flex-end";
 
-
-                itadLink.style.marginTop = "0px"; // spacing below description
+                itadLink.style.marginTop = "0px";
 
                 itadLink.onmouseover = () => itadLink.style.background = "rgba(80,80,80,0.9)";
                 itadLink.onmouseout = () => itadLink.style.background = "rgba(36,40,47,0.7)";
@@ -1108,27 +1118,81 @@ METADATA_CODE = r"""
                 itadIcon.src = itadSite.icon;
                 itadIcon.style.width = "16px";
                 itadIcon.style.height = "16px";
-                itadIcon.style.marginLeft = "3px"; // spacing between text and icon
+                itadIcon.style.marginLeft = "3px";
 
-                itadIcon.style.marginRight = "0px";
-
-
-
-
-                // --- ORDER: TEXT LEFT, ICON RIGHT ---
                 if (itadSite.name) {
                     itadLink.appendChild(document.createTextNode(itadSite.name));
                 }
                 itadLink.appendChild(itadIcon);
 
-                // append it **directly under description** in right column
                 rightColumn.appendChild(itadLink);
 
 
 
+                const scrollAmount = 140;
+
+                const leftArrow = document.createElement('div');
+                leftArrow.innerHTML = "❮";
+                leftArrow.style.position = "absolute";
+                leftArrow.style.left = "10px";
+                leftArrow.style.bottom = "34px";
+
+                leftArrow.style.width = "22px";
+                leftArrow.style.height = "24px";
+
+                leftArrow.style.display = "flex";
+                leftArrow.style.alignItems = "center";
+                leftArrow.style.justifyContent = "center";
+
+                leftArrow.style.cursor = "pointer";
+                leftArrow.style.color = "white";
+                leftArrow.style.fontSize = "14px";
+
+                leftArrow.style.background = "rgba(36,40,47,0.7)";
+                leftArrow.style.borderRadius = "6px";
+                leftArrow.style.zIndex = "10";
+
+                leftArrow.onmouseover = () => leftArrow.style.background = "rgba(80,80,80,0.9)";
+                leftArrow.onmouseout = () => leftArrow.style.background = "rgba(36,40,47,0.7)";
+
+                leftArrow.onclick = () => {
+                    bottomLinks.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                };
 
 
+                const rightArrow = document.createElement('div');
+                rightArrow.innerHTML = "❯";
+                rightArrow.style.position = "absolute";
+                rightArrow.style.right = "18px";
+                rightArrow.style.bottom = "34px";
+
+                rightArrow.style.width = "22px";
+                rightArrow.style.height = "24px";
+
+                rightArrow.style.display = "flex";
+                rightArrow.style.alignItems = "center";
+                rightArrow.style.justifyContent = "center";
+
+                rightArrow.style.cursor = "pointer";
+                rightArrow.style.color = "white";
+                rightArrow.style.fontSize = "14px";
+
+                rightArrow.style.background = "rgba(36,40,47,0.7)";
+                rightArrow.style.borderRadius = "6px";
+                rightArrow.style.zIndex = "10";
+
+                rightArrow.onmouseover = () => rightArrow.style.background = "rgba(80,80,80,0.9)";
+                rightArrow.onmouseout = () => rightArrow.style.background = "rgba(36,40,47,0.7)";
+
+                rightArrow.onclick = () => {
+                    bottomLinks.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                };
+
+
+                overlay.appendChild(leftArrow);
+                overlay.appendChild(rightArrow);
                 overlay.appendChild(bottomLinks);
+
                 div.appendChild(img);
                 div.appendChild(overlay);
             });
