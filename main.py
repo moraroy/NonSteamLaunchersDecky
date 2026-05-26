@@ -248,6 +248,7 @@ class Plugin:
                     try:
                         import desktopTM
                         decky_plugin.logger.info("desktopTM imported successfully")
+                        desktopTM.start()
                     except ImportError:
                         decky_plugin.logger.warning(
                             "desktopTM module not found, skipping import"

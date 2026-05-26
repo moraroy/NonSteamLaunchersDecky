@@ -411,53 +411,6 @@ def recv_ws_message_for_id(sock, expected_id):
 
 eval_id_counter = itertools.count(1000)
 
-def inject_thememusic_code(ws_socket, code):
-    inject_id = next(eval_id_counter)
-    wrapped_code = f"(async () => {{ {code}; return 'Injection done'; }})()"
-
-    send_ws_text(ws_socket, json.dumps({
-        "id": inject_id,
-        "method": "Runtime.evaluate",
-        "params": {
-            "expression": wrapped_code,
-            "awaitPromise": True
-        }
-    }))
-
-    response = recv_ws_message_for_id(ws_socket, inject_id)
-    print("Injection response:", response)
-    return response
-
-
-### THEMEMUSIC ONLY
-def inject_thememusic_code(ws_socket):
-    inject_id = next(eval_id_counter)
-    wrapped_code = f"(async () => {{ {THEMEMUSIC_CODE}; return 'ThemeMusic injection done'; }})()"
-
-    send_ws_text(ws_socket, json.dumps({
-        "id": inject_id,
-        "method": "Runtime.evaluate",
-        "params": {
-            "expression": wrapped_code,
-            "awaitPromise": True
-        }
-    }))
-
-    response = recv_ws_message_for_id(ws_socket, inject_id)
-    print("ThemeMusic injection response:", response)
-    return response
-
-
-# Usage for main ThemeMusic target
-ws_url = get_ws_url_by_title(WS_HOST, WS_PORT, TARGET_TITLE)
-ws_socket = create_websocket_connection(ws_url)
-
-send_ws_text(ws_socket, json.dumps({"id": 1, "method": "Runtime.enable"}))
-recv_ws_message_for_id(ws_socket, 1)
-
-inject_thememusic_code(ws_socket)
-# END OF THEMEMUSIC
-
 
 
 
@@ -1384,6 +1337,65 @@ METADATA_CODE = r"""
 })();
 """
 
+def inject_thememusic_code(ws_socket):
+    inject_id = next(eval_id_counter)
+
+    wrapped_code = f"""
+    (async () => {{
+        {THEMEMUSIC_CODE}
+        return 'ThemeMusic injection done';
+    }})()
+    """
+
+    send_ws_text(ws_socket, json.dumps({
+        "id": inject_id,
+        "method": "Runtime.evaluate",
+        "params": {
+            "expression": wrapped_code,
+            "awaitPromise": True
+        }
+    }))
+
+    response = recv_ws_message_for_id(
+        ws_socket,
+        inject_id
+    )
+
+    print(
+        "ThemeMusic injection response:",
+        response
+    )
+
+    return response
+
+
+def run_thememusic():
+    try:
+        ws_url = get_ws_url_by_title(
+            WS_HOST,
+            WS_PORT,
+            TARGET_TITLE
+        )
+
+        ws_socket = create_websocket_connection(
+            ws_url
+        )
+
+        send_ws_text(ws_socket, json.dumps({
+            "id": 1,
+            "method": "Runtime.enable"
+        }))
+
+        recv_ws_message_for_id(ws_socket, 1)
+
+        inject_thememusic_code(ws_socket)
+
+    except Exception as e:
+        print(
+            f"ThemeMusic injection failed: {e}"
+        )
+
+
 def inject_metadata_code(ws_socket):
     inject_id = next(eval_id_counter)
 
@@ -1405,19 +1417,39 @@ def inject_metadata_code(ws_socket):
     recv_ws_message(ws_socket)
 
 
-for target in (TARGET_TITLE2, TARGET_TITLE3):
-    try:
-        ws_url = get_ws_url_by_title(WS_HOST, WS_PORT, target)
-        ws_socket = create_websocket_connection(ws_url)
+def run_metadata():
+    for target in (
+        TARGET_TITLE2,
+        TARGET_TITLE3
+    ):
+        try:
+            ws_url = get_ws_url_by_title(
+                WS_HOST,
+                WS_PORT,
+                target
+            )
 
-        send_ws_text(ws_socket, json.dumps({
-            "id": 1,
-            "method": "Runtime.enable"
-        }))
-        recv_ws_message(ws_socket)
+            ws_socket = create_websocket_connection(
+                ws_url
+            )
 
-        inject_metadata_code(ws_socket)
+            send_ws_text(ws_socket, json.dumps({
+                "id": 1,
+                "method": "Runtime.enable"
+            }))
 
-    except Exception as e:
-        print(f"Metadata injection failed for {target}: {e}")
+            recv_ws_message(ws_socket)
 
+            inject_metadata_code(ws_socket)
+
+        except Exception as e:
+            print(
+                f"Metadata injection failed for "
+                f"{target}: {e}"
+            )
+
+
+def start():
+
+    run_thememusic()
+    run_metadata()
