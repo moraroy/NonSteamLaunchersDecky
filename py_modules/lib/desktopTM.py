@@ -497,13 +497,13 @@ METADATA_CODE = r"""
                             .filter(([k,v]) => v)
                             .map(([k]) => k)
                             .join(", ")
-                        : "Unknown";
+                        : null;
 
                     const gameData = {
                         appid: appid,
                         about_the_game: info.short_description || null,
-                        developer: info.developers?.join(", ") || "Unknown",
-                        publisher: info.publishers?.join(", ") || "Unknown",
+                        developer: info.developers?.join(", ") || null,
+                        publisher: info.publishers?.join(", ") || null,
                         release_date: info.release_date?.date || null,
                         genres: info.genres?.map(g => g.description).join(", ") || null,
                         platforms: platformsStr,
@@ -562,11 +562,11 @@ METADATA_CODE = r"""
                     appid: null,
                     displayTitle,
                     about_the_game: description || data.extract || null,
-                    developer: "Unknown",
-                    publisher: "Unknown",
+                    developer: null,
+                    publisher: null,
                     release_date: null,
                     genres: null,
-                    platforms: "Unknown",
+                    platforms: null,
                     metacritic_score: null,
                     metacritic_url: null,
                     image_url: data.originalimage?.source || null
@@ -599,22 +599,23 @@ METADATA_CODE = r"""
                         labelsData = labelsJson.entities || {};
                     }
 
-                    game.developer = developerId ? labelsData[developerId]?.labels?.en?.value ?? "Unknown" : "Unknown";
-                    game.publisher = publisherId ? labelsData[publisherId]?.labels?.en?.value ?? "Unknown" : "Unknown";
+                    game.developer = developerId ? labelsData[developerId]?.labels?.en?.value ?? null : null;
+                    game.publisher = publisherId ? labelsData[publisherId]?.labels?.en?.value ?? null : null;
                     game.release_date = releaseTime ? releaseTime.match(/\d{4}/)[0] : null;
 
                     if (genreIds.length) {
-                        const genreLabel = labelsData[genreIds[0]]?.labels?.en?.value ?? "Unknown";
+                        const genreLabel = labelsData[genreIds[0]]?.labels?.en?.value;
                         game.genres = genreLabel.replace(/\s*\(.*?\)\s*/g, "").trim();
                     }
 
-                    const platformsClean = platformIds.map(id => {
-                        const label = labelsData[id]?.labels?.en?.value ?? "Unknown";
-                        return label.replace(/\s*\(.*?\)\s*/g, "").trim();
-                    });
+                    const platformsClean = platformIds
+                        .map(id => labelsData[id]?.labels?.en?.value)
+                        .filter(Boolean)
+                        .map(label => label.replace(/\s*\(.*?\)\s*/g, "").trim());
+
                     game.platforms = platformsClean.length
                         ? platformsClean.join(", ")
-                        : "Unknown"; // <- Always string
+                        : null;
                 }
 
                 gameCache[gameName] = game;
@@ -1012,12 +1013,20 @@ METADATA_CODE = r"""
                 return row;
                 }
 
+                if (gameData.platforms)
+                    leftColumn.appendChild(createTagRow(gameData.platforms.split(",").map(p => p.trim())));
 
-                leftColumn.appendChild(createTagRow((gameData.platforms || "Unknown").split(",").map(p => p.trim())));
-                leftColumn.appendChild(createTagRow((gameData.developer || "Unknown").split(",").map(d => d.trim())));
-                leftColumn.appendChild(createTagRow((gameData.publisher || "Unknown").split(",").map(p => p.trim())));
-                leftColumn.appendChild(createTagRow([gameData.release_date || "Unknown"]));
-                leftColumn.appendChild(createTagRow((gameData.genres || "Unknown").split(",").map(g => g.trim())));
+                if (gameData.developer)
+                    leftColumn.appendChild(createTagRow(gameData.developer.split(",").map(d => d.trim())));
+
+                if (gameData.publisher)
+                    leftColumn.appendChild(createTagRow(gameData.publisher.split(",").map(p => p.trim())));
+
+                if (gameData.release_date)
+                    leftColumn.appendChild(createTagRow([gameData.release_date]));
+
+                if (gameData.genres)
+                    leftColumn.appendChild(createTagRow(gameData.genres.split(",").map(g => g.trim())));
 
                 // Right column (description + Metacritic tab)
                 const rightColumn = document.createElement('div');
