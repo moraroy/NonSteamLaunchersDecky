@@ -798,7 +798,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
 
     if steam_store_appid:
         decky_plugin.logger.info(f"Found Steam App ID for {appname}: {steam_store_appid}")
-        create_steam_store_app_manifest_file(steam_store_appid, appname)
+        #create_steam_store_app_manifest_file(steam_store_appid, appname)
 
         if needs_fallback:
             decky_plugin.logger.info(f"Some artwork missing for {appname}. Checking fallback sources...")
