@@ -13,6 +13,8 @@ def chrome_scanner(logged_in_home, create_new_entry):
     geforce_now_urls = []
     xbox_urls = []
     luna_urls = []
+    boosteroid_urls = []
+
     seen_urls = set()
 
     def process_bookmark_item(item):
@@ -59,6 +61,29 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 luna_urls.append(("Amazon Luna", game_name, url))
                 seen_urls.add(url)
 
+
+
+
+
+        # Boosteroid
+        elif "cloud.boosteroid.com/application/" in url:
+            if not name or url in seen_urls:
+                return
+
+            game_name = name.strip()
+            boosteroid_urls.append(("Boosteroid", game_name, url))
+            seen_urls.add(url)
+
+        # Boosteroid (Session format)
+        elif "cloud.boosteroid.com/static/streaming/streaming.html" in url and "sessionId=" in url:
+            if not name or url in seen_urls:
+                return
+
+            game_name = name.strip()
+            boosteroid_urls.append(("Boosteroid", game_name, url))
+            seen_urls.add(url)
+
+
     def scan_children(children):
         for item in children:
             if item['type'] == "folder":
@@ -81,7 +106,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
         scan_children(roots.get('synced', {}).get('children', []))
 
         # Merge and process
-        all_urls = geforce_now_urls + xbox_urls + luna_urls
+        all_urls = geforce_now_urls + xbox_urls + luna_urls + boosteroid_urls
 
         for platform_name, game_name, url in all_urls:
             time.sleep(0.1)
