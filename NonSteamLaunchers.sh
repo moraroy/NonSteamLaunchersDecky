@@ -379,8 +379,8 @@ uplay_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamL
 uplay_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/UplayLauncher/pfx/drive_c/Program Files (x86)/Ubisoft/Ubisoft Game Launcher/upc.exe"
 battlenet_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Battle.net/Battle.net Launcher.exe"
 battlenet_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/Battle.netLauncher/pfx/drive_c/Program Files (x86)/Battle.net/Battle.net Launcher.exe"
-eaapp_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/13.720.0.6233/EA Desktop/EALauncher.exe"
-eaapp_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/13.720.0.6233/EA Desktop/EALauncher.exe"
+eaapp_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/13.725.0.6238/EA Desktop/EALauncher.exe"
+eaapp_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/Program Files/Electronic Arts/EA Desktop/13.725.0.6238/EA Desktop/EALauncher.exe"
 amazongames_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/Amazon Games/App/Amazon Games.exe"
 amazongames_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AmazonGamesLauncher/pfx/drive_c/users/steamuser/AppData/Local/Amazon Games/App/Amazon Games.exe"
 itchio_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/itch/app-26.13.0/itch.exe"
@@ -1217,12 +1217,12 @@ msi_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/EpicGamesLaun
 
 
 # Set the URL to download the second file from
-exe_url=https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.74.352/setup_galaxy_2.0.74.352.exe
-#exe_url=https://webinstallers.gog-statics.com/download/GOG_Galaxy_2.0.exe
+#exe_url=https://content-system.gog.com/open_link/download?path=/open/galaxy/client/2.0.74.352/setup_galaxy_2.0.74.352.exe
+exe_url=https://webinstallers.gog-statics.com/download/GOG_Galaxy_2.0.exe
 
 # Set the path to save the second file to
-exe_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/setup_galaxy_2.0.74.352.exe
-#exe_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/GOG_Galaxy_2.0.exe
+#exe_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/setup_galaxy_2.0.74.352.exe
+exe_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/GOG_Galaxy_2.0.exe
 
 # Set the URL to download the third file from
 ubi_url=https://ubi.li/4vxt9
@@ -2701,9 +2701,8 @@ function install_launcher {
 
 
 
-        if [[ "$launcher_name" == "Ubisoft Connect" ]]; then
-            shopt -s nullglob
-
+        #temp ubi fix
+        if [[ "$launcher_name" == "Ubisoft Connect" || "$launcher_name" == "GOG Galaxy" ]]; then
             for root in \
                 "$HOME/.local/share/Steam" \
                 "$HOME/.steam/steam" \
@@ -2711,6 +2710,7 @@ function install_launcher {
                 /mnt/* \
                 /media/*
             do
+                # skip if glob didn't expand to real dirs
                 [[ -d "$root" ]] || continue
 
                 if [[ -x "$root/steamapps/common/Proton - Experimental/proton" ]]; then
@@ -2747,7 +2747,7 @@ function install_launcher {
         if [ "$run_in_background" = true ]; then
             if [ "$launcher_name" = "GOG Galaxy" ]; then
                 "$STEAM_RUNTIME" "$proton_dir/proton" run "$exe_file" /silent &
-                install_gog2
+                install_gog
             elif [ "$launcher_name" = "Battle.net" ]; then
 
                 install_battlenet
