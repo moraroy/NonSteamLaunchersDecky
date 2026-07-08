@@ -1,5 +1,6 @@
 export function initGameWatcher(): void {
-  const GRACE_PERIOD_MS = 90_000;
+
+  const GRACE_PERIOD_MS = 300_000;
 
   const state = {
     gameId: null as string | null,
@@ -21,13 +22,24 @@ export function initGameWatcher(): void {
       (_actionId: any, gameId: string, action: string) => {
         if (action !== "LaunchApp") return;
 
+        const nonSteamGameIds = new Set(
+          appStore.allApps
+            .filter(app => app.app_type === 1073741824)
+            .map(app => String(app.m_gameid))
+        );
+
+        if (!nonSteamGameIds.has(String(gameId))) {
+          log("IgnoredSteamGame", { gameId });
+          return;
+        }
+
         state.gameId = gameId;
         state.launchTime = Date.now();
         state.inferredRunning = true;
         state.terminateScheduled = false;
         state.watchersEnabled = false;
 
-        log("Launch", { gameId, gracePeriod: "90s" });
+        log("Launch", { gameId, gracePeriod: "5 Min" });
 
         setTimeout(() => {
           state.watchersEnabled = true;
@@ -125,7 +137,7 @@ export function initGameWatcher(): void {
   }
 
   console.log(
-    "%c[SteamDetect] Initialized (90s hard grace after launch)",
+    "%c[SteamDetect] Initialized (5 Min hard grace after launch)",
     "color:#4caf50"
   );
 }

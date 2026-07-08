@@ -2,7 +2,6 @@ import os
 import json
 import time
 import decky_plugin
-from urllib.parse import quote
 from scanners.game_tracker import track_game
 
 def chrome_scanner(logged_in_home, create_new_entry):
@@ -14,6 +13,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
     xbox_urls = []
     luna_urls = []
     boosteroid_urls = []
+    webrcade_urls = []
 
     seen_urls = set()
 
@@ -84,6 +84,21 @@ def chrome_scanner(logged_in_home, create_new_entry):
             seen_urls.add(url)
 
 
+
+
+        # WebRcade
+        elif "play.webrcade.com/app/" in url:
+            if not name or url in seen_urls:
+                return
+
+            game_name = name.strip()
+
+            webrcade_urls.append(("WebRcade", game_name, url))
+            seen_urls.add(url)
+
+
+
+
     def scan_children(children):
         for item in children:
             if item['type'] == "folder":
@@ -106,19 +121,19 @@ def chrome_scanner(logged_in_home, create_new_entry):
         scan_children(roots.get('synced', {}).get('children', []))
 
         # Merge and process
-        all_urls = geforce_now_urls + xbox_urls + luna_urls + boosteroid_urls
+        all_urls = geforce_now_urls + xbox_urls + luna_urls + boosteroid_urls + webrcade_urls
 
         for platform_name, game_name, url in all_urls:
             time.sleep(0.1)
             decky_plugin.logger.info(f"{platform_name}: {game_name} - {url}")
 
             # Encode URL safely
-            encoded_url = quote(url, safe=":/?=&")
+            encoded_url = url
 
             chromelaunch_options = (
                 f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome --file-forwarding com.google.Chrome @@u @@ '
                 f'--window-size=1280,800 --force-device-scale-factor=1.00 --device-scale-factor=1.00 '
-                f'--start-fullscreen {encoded_url} --no-first-run --enable-features=OverlayScrollbar'
+                f'--start-fullscreen "{encoded_url}" --no-first-run --enable-features=OverlayScrollbar'
             )
 
             chromedirectory = f'"{os.environ.get("chromedirectory", "/usr/bin/flatpak")}"'
