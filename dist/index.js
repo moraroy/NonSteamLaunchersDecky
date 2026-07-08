@@ -2085,18 +2085,56 @@
   };
 
   function initGameWatcher() {
-      const GRACE_PERIOD_MS = 300000;
+      const GRACE_PERIOD_MS = 90000;
       const state = {
           gameId: null,
           launchTime: 0,
           inferredRunning: false,
+          watchersEnabled: false,
+          terminateScheduled: false,
+          overlaySequence: [],
           lastOverlayActive: null,
           lastOverlayChange: 0,
-          overlaySequence: [],
-          terminateScheduled: false,
-          watchersEnabled: false
+          graceTimer: null,
+          terminateTimer: null
       };
       const log = (label, data) => console.log(`%c[SteamDetect:${label}]`, "color:#00bcd4", data);
+      function resetState(gameId) {
+          if (state.graceTimer) {
+              clearTimeout(state.graceTimer);
+          }
+          if (state.terminateTimer) {
+              clearTimeout(state.terminateTimer);
+          }
+          state.gameId = gameId;
+          state.launchTime = Date.now();
+          state.inferredRunning = true;
+          state.watchersEnabled = false;
+          state.terminateScheduled = false;
+          state.overlaySequence = [];
+          state.lastOverlayActive = null;
+          state.lastOverlayChange = 0;
+      }
+      function scheduleTermination() {
+          if (!state.watchersEnabled)
+              return;
+          if (!state.gameId || state.terminateScheduled)
+              return;
+          state.terminateScheduled = true;
+          const gameToTerminate = state.gameId;
+          state.terminateTimer = setTimeout(() => {
+              // Ignore stale termination
+              if (state.gameId !== gameToTerminate)
+                  return;
+              log("TerminateApp", { gameId: gameToTerminate });
+              try {
+                  SteamClient.Apps.TerminateApp(gameToTerminate, false);
+              }
+              catch (e) {
+                  console.error("TerminateApp failed:", e);
+              }
+          }, 10000);
+      }
       try {
           SteamClient.Apps.RegisterForGameActionStart((_actionId, gameId, action) => {
               if (action !== "LaunchApp")
@@ -2108,13 +2146,15 @@
                   log("IgnoredSteamGame", { gameId });
                   return;
               }
-              state.gameId = gameId;
-              state.launchTime = Date.now();
-              state.inferredRunning = true;
-              state.terminateScheduled = false;
-              state.watchersEnabled = false;
-              log("Launch", { gameId, gracePeriod: "5 Min" });
-              setTimeout(() => {
+              resetState(gameId);
+              log("Launch", {
+                  gameId,
+                  gracePeriod: "5 minutes"
+              });
+              state.graceTimer = setTimeout(() => {
+                  // Ignore old launches
+                  if (state.gameId !== gameId)
+                      return;
                   state.watchersEnabled = true;
                   log("GracePeriodEnded", { gameId });
               }, GRACE_PERIOD_MS);
@@ -2128,7 +2168,8 @@
               if (!state.watchersEnabled)
                   return;
               log("Lifetime", evt);
-              if (evt.bRunning === false && state.inferredRunning) {
+              if (evt.bRunning === false &&
+                  state.inferredRunning) {
                   state.inferredRunning = false;
                   scheduleTermination();
                   log("SteamEnded", evt.unAppID);
@@ -2144,24 +2185,29 @@
               if (!state.watchersEnabled) {
                   return origSet.apply(this, arguments);
               }
+              // Ignore other apps
+              if (gameId !== state.gameId) {
+                  return origSet.apply(this, arguments);
+              }
               const now = Date.now();
-              const delta = now - state.lastOverlayChange;
-              log("SetOverlayState", arguments);
-              state.overlaySequence.push({ time: now, active: stateNum });
-              if (state.overlaySequence.length > 5)
+              log("Overlay", {
+                  gameId,
+                  stateNum
+              });
+              state.overlaySequence.push({
+                  time: now,
+                  active: stateNum
+              });
+              if (state.overlaySequence.length > 5) {
                   state.overlaySequence.shift();
+              }
+              // More flexible exit detection
               if (state.inferredRunning &&
-                  state.overlaySequence.length >= 2 &&
+                  stateNum === 3 &&
+                  now - state.launchTime > 30000 &&
                   !state.terminateScheduled) {
-                  const last = state.overlaySequence[state.overlaySequence.length - 1];
-                  const prev = state.overlaySequence[state.overlaySequence.length - 2];
-                  if (last.active === 3 &&
-                      prev.active === 0 &&
-                      now - state.launchTime > 15000 &&
-                      delta > 3000) {
-                      log("Inference", "Overlay indicates game likely exited → scheduling termination");
-                      scheduleTermination();
-                  }
+                  log("Inference", "Overlay indicates possible exit");
+                  scheduleTermination();
               }
               state.lastOverlayActive = stateNum;
               state.lastOverlayChange = now;
@@ -2171,23 +2217,7 @@
       catch (e) {
           console.error(e);
       }
-      function scheduleTermination() {
-          if (!state.watchersEnabled)
-              return;
-          if (!state.gameId || state.terminateScheduled)
-              return;
-          state.terminateScheduled = true;
-          setTimeout(() => {
-              log("TerminateApp", { gameId: state.gameId });
-              try {
-                  SteamClient.Apps.TerminateApp(state.gameId, false);
-              }
-              catch (e) {
-                  console.error("TerminateApp failed:", e);
-              }
-          }, 10000);
-      }
-      console.log("%c[SteamDetect] Initialized (5 Min hard grace after launch)", "color:#4caf50");
+      console.log("%c[SteamDetect] Initialized", "color:#4caf50");
   }
 
   const initialOptions = sitesList;
