@@ -2149,7 +2149,7 @@
               resetState(gameId);
               log("Launch", {
                   gameId,
-                  gracePeriod: "5 minutes"
+                  gracePeriod: "90 Seconds"
               });
               state.graceTimer = setTimeout(() => {
                   // Ignore old launches

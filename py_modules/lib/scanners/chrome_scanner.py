@@ -144,7 +144,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
                 game_name,
                 chromelaunch_options,
                 chrome_startdir,
-                "Google Chrome"
+                platform_name
             )
 
             track_game(game_name, "Google Chrome")

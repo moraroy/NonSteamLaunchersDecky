@@ -88,7 +88,7 @@ export function initGameWatcher(): void {
 
         log("Launch", {
           gameId,
-          gracePeriod: "5 minutes"
+          gracePeriod: "90 Seconds"
         });
 
 
