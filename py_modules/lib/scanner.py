@@ -378,7 +378,7 @@ def add_compat_tool(launchoptions):
 steam_applist_cache = None
 
 def get_steam_store_appid(steam_store_game_name):
-    search_url = f"{proxy_url}/search/{steam_store_game_name}"
+    search_url = f"{proxy_url}/search/{urllib.parse.quote(steam_store_game_name)}"
     try:
         response = requests.get(search_url, timeout=10)
         response.raise_for_status()
@@ -398,6 +398,7 @@ def get_steam_store_appid(steam_store_game_name):
     def normalize_name(name):
         name = name.lower()
         name = re.sub(r'[®™]', '', name)
+        name = re.sub(r'[-–—:]', ' ', name)
         name = ' '.join(name.split())
         return name
 
@@ -407,12 +408,32 @@ def get_steam_store_appid(steam_store_game_name):
 
     if steam_store_game_name not in steam_applist_cache:
         time.sleep(0.5)  # Small delay to avoid spamming Steam
+
         query = urllib.parse.quote(steam_store_game_name)
         url = f"https://store.steampowered.com/api/storesearch/?term={query}&l=english&cc=US"
+
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             data = response.json()
+
+            # Relaxed search fallback if exact title returns no results
+            if not data.get("items"):
+                relaxed_name = steam_store_game_name.replace(" - ", " ")
+                relaxed_query = urllib.parse.quote(relaxed_name)
+                relaxed_url = (
+                    f"https://store.steampowered.com/api/storesearch/"
+                    f"?term={relaxed_query}&l=english&cc=US"
+                )
+
+                decky_plugin.logger.info(
+                    f"No exact Steam results. Trying relaxed search: {relaxed_name}"
+                )
+
+                response = requests.get(relaxed_url, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+
         except requests.exceptions.RequestException as e:
             decky_plugin.logger.error(
                 f"Fallback Steam lookup failed for {steam_store_game_name}: {e}"
@@ -421,9 +442,20 @@ def get_steam_store_appid(steam_store_game_name):
 
         target = normalize_name(steam_store_game_name)
         fallback_appid = None
+
         for item in data.get("items", []):
-            if normalize_name(item.get("name", "")) == target:
+            item_name = normalize_name(item.get("name", ""))
+
+            if item_name == target:
                 fallback_appid = str(item.get("id"))
+                break
+
+            # Partial match fallback
+            if target in item_name or item_name in target:
+                fallback_appid = str(item.get("id"))
+                decky_plugin.logger.info(
+                    f"Using partial Steam match: {item.get('name')} ({fallback_appid})"
+                )
                 break
 
         steam_applist_cache[steam_store_game_name] = fallback_appid
