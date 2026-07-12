@@ -137,7 +137,19 @@ def battle_net_scanner(logged_in_home, bnet_launcher, create_new_entry):
             elif game_key == "wow_classic_era":
                 game_key = "WoWC"
 
+
+
+
             game_name = flavor_mapping.get(game_key)
+
+            if not game_name:
+                game_name = flavor_mapping.get(game_key.upper())
+
+            if not game_name:
+                game_name = flavor_mapping.get(game_key.lower())
+
+            if not game_name:
+                game_name = flavor_mapping.get(game_key.title())
 
             if not game_name:
                 decky_plugin.logger.info(f"Unknown game mapping: {game_key}, skipping")
