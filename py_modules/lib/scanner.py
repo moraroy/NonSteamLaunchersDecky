@@ -10,9 +10,12 @@ import platform
 import time
 import urllib
 import urllib.parse
+import urllib.request
+import urllib.error
 import subprocess
 import base64
 from base64 import b64encode
+from concurrent.futures import ThreadPoolExecutor
 import externals.requests as requests
 import externals.vdf as vdf
 from externals.steamgrid import SteamGridDB
@@ -1058,114 +1061,826 @@ def add_launchers():
 
 
 
+
+
+
+
+api_cache = {}
+
+BASE_URL = "https://www.steamgriddb.com"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json",
+}
+
+
+def sgdb_log(message):
+    try:
+        decky_plugin.logger.info(message)
+    except Exception:
+        pass
+
+
+def sgdb_warning(message):
+    try:
+        decky_plugin.logger.warning(message)
+    except Exception:
+        pass
+
+
+def sgdb_error(message):
+    try:
+        decky_plugin.logger.error(message)
+    except Exception:
+        pass
+
+
+def get_json(url, method="GET", data=None):
+    headers = HEADERS.copy()
+
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+        data = json.dumps(data).encode("utf-8")
+
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers=headers,
+        method=method,
+    )
+
+    with urllib.request.urlopen(
+        request,
+        timeout=15,
+    ) as response:
+        return json.loads(
+            response.read().decode("utf-8")
+        )
+
+
+def normalize(name):
+    if not name:
+        return ""
+
+    name = re.sub(
+        r"[™®©]",
+        "",
+        name.lower().strip(),
+    )
+
+    name = re.sub(
+        r"[^\w\s]",
+        "",
+        name,
+    )
+
+    return re.sub(
+        r"\s+",
+        " ",
+        name,
+    ).strip()
+
+
+def sanitize(name):
+    if not name:
+        return ""
+
+    name = name.strip()
+
+    for suffix in (
+        ".com",
+        ".net",
+        ".org",
+        ".io",
+        ".co",
+        ".tv",
+        ".app",
+        ".edu",
+        ".gov",
+    ):
+        if name.lower().endswith(suffix):
+            name = name[:-len(suffix)]
+            break
+
+    return re.sub(
+        r"[^\w\s]",
+        "",
+        name,
+    )
+
+
+def search_games(name):
+    params = urllib.parse.urlencode({
+        "term": sanitize(name)
+    })
+
+    url = (
+        f"{BASE_URL}/api/public/search/autocomplete?"
+        f"{params}"
+    )
+
+    sgdb_log(
+        f"Searching SteamGridDB for: {name}"
+    )
+
+    result = get_json(url)
+
+    return result.get("data", [])
+
+
+def find_game(name):
+    games = search_games(name)
+
+    target = normalize(name)
+
+    for game in games:
+        if normalize(
+            game.get("name", "")
+        ) == target:
+
+            sgdb_log(
+                f"Exact SteamGridDB match: "
+                f"{game.get('name')} "
+                f"(ID: {game.get('id')})"
+            )
+
+            return game
+
+    if games:
+        game = games[0]
+
+        sgdb_log(
+            f"Using first SteamGridDB result: "
+            f"{game.get('name')} "
+            f"(ID: {game.get('id')})"
+        )
+
+        return game
+
+    return None
+
+
+def get_assets(
+    game_id,
+    asset_type,
+    dimensions="all",
+):
+    cache_key = (
+        "assets",
+        game_id,
+        asset_type,
+        dimensions,
+    )
+
+    if cache_key in api_cache:
+        sgdb_log(
+            f"Using cached {asset_type} artwork "
+            f"for game ID {game_id}"
+        )
+
+        return api_cache[cache_key]
+
+    payload = {
+        "styles": ["all"],
+        "languages": ["en"],
+        "dimensions": (
+            [dimensions]
+            if dimensions != "all"
+            else ["all"]
+        ),
+        "formats": ["all"],
+        "order": "score_desc",
+        "game_id": [game_id],
+        "static": True,
+        "animated": False,
+        "nsfw": False,
+        "epilepsy": False,
+        "humor": False,
+        "untagged": True,
+        "asset_type": asset_type,
+        "page": 0,
+        "limit": 1,
+        "user_steam64": None,
+        "user_steam64_likes": None,
+    }
+
+    try:
+        sgdb_log(
+            f"Searching SteamGridDB for "
+            f"{asset_type} artwork "
+            f"(game ID: {game_id}, "
+            f"dimensions: {dimensions})"
+        )
+
+        result = get_json(
+            f"{BASE_URL}/api/public/search/assets",
+            method="POST",
+            data=payload,
+        )
+
+        assets = result.get(
+            "data",
+            {},
+        ).get(
+            "assets",
+            [],
+        )
+
+        api_cache[cache_key] = assets
+
+        return assets
+
+    except Exception as e:
+        sgdb_error(
+            f"Error getting {asset_type} artwork: {e}"
+        )
+
+        api_cache[cache_key] = []
+
+        return []
+
+
+def first_asset(
+    game_id,
+    asset_type,
+    dimensions="all",
+):
+    try:
+        assets = get_assets(
+            game_id,
+            asset_type,
+            dimensions,
+        )
+
+        return assets[0] if assets else None
+
+    except Exception as e:
+        sgdb_error(
+            f"Error getting first "
+            f"{asset_type} asset: {e}"
+        )
+
+        return None
+
+
+def get_grid(game_id):
+    return first_asset(
+        game_id,
+        "grid",
+        "600x900",
+    )
+
+
+def get_horizontal_grid(game_id):
+    return first_asset(
+        game_id,
+        "grid",
+        "920x430",
+    )
+
+
+def get_game_assets(game_id):
+    with ThreadPoolExecutor(
+        max_workers=5
+    ) as executor:
+
+        futures = {
+            "grid": executor.submit(
+                get_grid,
+                game_id,
+            ),
+            "grid_horizontal": executor.submit(
+                get_horizontal_grid,
+                game_id,
+            ),
+            "hero": executor.submit(
+                first_asset,
+                game_id,
+                "hero",
+            ),
+            "logo": executor.submit(
+                first_asset,
+                game_id,
+                "logo",
+            ),
+            "icon": executor.submit(
+                first_asset,
+                game_id,
+                "icon",
+            ),
+        }
+
+        assets = {}
+
+        for name, future in futures.items():
+            try:
+                assets[name] = future.result()
+
+            except Exception as e:
+                sgdb_error(
+                    f"Error getting {name} artwork: {e}"
+                )
+
+                assets[name] = None
+
+        return assets
+
+
 def get_sgdb_art(game_id, launcher):
-    decky_plugin.logger.info("Downloading icon artwork...")
-    icon, icon_path = download_artwork(game_id, "icons")
+    global grid64
+    global gridp64
+    global logo64
+    global hero64
 
-    decky_plugin.logger.info("Downloading logo artwork...")
-    logo64 = download_artwork(game_id, "logos")
+    sgdb_log(
+        "Finding SteamGridDB artwork..."
+    )
 
-    decky_plugin.logger.info("Downloading hero artwork...")
-    hero64 = download_artwork(game_id, "heroes")
+    assets = get_game_assets(game_id)
 
-    decky_plugin.logger.info("Downloading grids artwork of size 600x900...")
-    gridp64 = download_artwork(game_id, "grids", "600x900")
+    sgdb_log(
+        "Downloading icon artwork..."
+    )
 
-    decky_plugin.logger.info("Downloading grids artwork of size 920x430...")
-    grid64 = download_artwork(game_id, "grids", "920x430")
+    icon_asset = assets.get("icon")
 
-    launcher_icon, _ = download_artwork(launcher_icons.get(launcher, ""), "icons")
+    icon = None
+    icon_path = None
+
+    if icon_asset:
+        icon, icon_path = download_artwork(
+            icon_asset,
+            "icons",
+            game_id,
+        )
+    else:
+        sgdb_log(
+            "No icon artwork found."
+        )
+
+    launcher_icon = None
+
+    launcher_game_id = launcher_icons.get(
+        launcher,
+        "",
+    )
+
+    if launcher_game_id:
+        sgdb_log(
+            f"Downloading launcher icon for: "
+            f"{launcher}"
+        )
+
+        launcher_asset = first_asset(
+            launcher_game_id,
+            "icon",
+        )
+
+        if launcher_asset:
+            launcher_icon, _ = download_artwork(
+                launcher_asset,
+                "icons",
+                launcher_game_id,
+            )
+        else:
+            sgdb_log(
+                f"No launcher icon artwork found "
+                f"for {launcher}"
+            )
 
     if not icon:
         icon = launcher_icon
 
-    return icon, logo64, hero64, gridp64, grid64, launcher_icon
+    sgdb_log(
+        "Downloading logo artwork..."
+    )
+
+    logo_asset = assets.get("logo")
+
+    if logo_asset:
+        logo64 = download_artwork(
+            logo_asset,
+            "logos",
+            game_id,
+        )
+    else:
+        sgdb_log(
+            "No logo artwork found."
+        )
+
+        logo64 = None
+
+    sgdb_log(
+        "Downloading hero artwork..."
+    )
+
+    hero_asset = assets.get("hero")
+
+    if hero_asset:
+        hero64 = download_artwork(
+            hero_asset,
+            "heroes",
+            game_id,
+        )
+    else:
+        sgdb_log(
+            "No hero artwork found."
+        )
+
+        hero64 = None
+
+    sgdb_log(
+        "Downloading grids artwork of size 600x900..."
+    )
+
+    gridp_asset = assets.get("grid")
+
+    if gridp_asset:
+        gridp64 = download_artwork(
+            gridp_asset,
+            "grids",
+            game_id,
+            "600x900",
+        )
+    else:
+        sgdb_log(
+            "No 600x900 grid artwork found."
+        )
+
+        gridp64 = None
+
+    sgdb_log(
+        "Downloading grids artwork of size 920x430..."
+    )
+
+    grid_asset = assets.get(
+        "grid_horizontal"
+    )
+
+    if grid_asset:
+        grid64 = download_artwork(
+            grid_asset,
+            "grids",
+            game_id,
+            "920x430",
+        )
+    else:
+        sgdb_log(
+            "No 920x430 grid artwork found."
+        )
+
+        grid64 = None
+
+    return (
+        icon,
+        logo64,
+        hero64,
+        gridp64,
+        grid64,
+        launcher_icon,
+    )
 
 
-def download_artwork(game_id, art_type, dimensions=None):
-    if not game_id:
-        decky_plugin.logger.info(f"Skipping download for {art_type} artwork. Game ID is empty.")
-        return (None, None) if art_type == "icons" else None
+def download_artwork(
+    artwork,
+    art_type,
+    shortcut_id,
+    dimensions=None,
+):
+    if artwork is None:
+        sgdb_log(
+            f"No artwork supplied for "
+            f"{art_type}. Skipping download."
+        )
 
-    decky_plugin.logger.info(f"Game ID: {game_id}")
-    url = f"{proxy_url}/{art_type}/game/{game_id}"
-    if dimensions:
-        url += f"?dimensions={dimensions}"
-    decky_plugin.logger.info(f"Sending request to: {url}")
+        if art_type == "icons":
+            return None, None
+
+        return None
+
+    filename = get_file_name(
+        art_type,
+        shortcut_id,
+        dimensions,
+    )
+
+    file_path = (
+        f"{logged_in_home}/.steam/root/userdata/"
+        f"{steamid3}/config/grid/{filename}"
+    )
+
+    grid_folder_path = os.path.dirname(
+        file_path
+    )
+
+    if not os.path.exists(
+        grid_folder_path
+    ):
+        os.makedirs(
+            grid_folder_path,
+            exist_ok=True,
+        )
+
+        sgdb_log(
+            f"Created grid folder at: "
+            f"{grid_folder_path}"
+        )
+
+    if file_exists_with_any_ext(
+        file_path
+    ):
+        sgdb_log(
+            f"Artwork for {art_type} already exists. "
+            f"Skipping download."
+        )
+
+        existing_path = file_path
+
+        if not os.path.exists(
+            existing_path
+        ):
+            base_path, _ = os.path.splitext(
+                file_path
+            )
+
+            for extension in (
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".ico",
+                ".webp",
+            ):
+                candidate = (
+                    base_path + extension
+                )
+
+                if os.path.exists(
+                    candidate
+                ):
+                    existing_path = candidate
+                    break
+
+        try:
+            with open(
+                existing_path,
+                "rb",
+            ) as image_file:
+                image_data = image_file.read()
+
+            encoded = b64encode(
+                image_data
+            ).decode("utf-8")
+
+            if art_type == "icons":
+                return encoded, existing_path
+
+            return encoded
+
+        except Exception as e:
+            sgdb_warning(
+                f"Failed to read existing "
+                f"{art_type} artwork: {e}"
+            )
+
+    image_url = artwork.get(
+        "thumb"
+    )
+
+    if not image_url:
+        sgdb_log(
+            f"No artwork URL available "
+            f"for {art_type}."
+        )
+
+        if art_type == "icons":
+            return None, None
+
+        return None
+
+    sgdb_log(
+        f"Downloading {art_type} artwork from: "
+        f"{image_url}"
+    )
 
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-    except requests.exceptions.RequestException as e:
-        decky_plugin.logger.info(f"Error making API call: {e}")
-        return (None, None) if art_type == "icons" else None
+        request = urllib.request.Request(
+            image_url
+        )
 
-    for artwork in data.get("data", []):
-        if game_id == 5297303 and dimensions == "600x900":
-            image_url = "https://cdn2.steamgriddb.com/thumb/eea5656d3244578f512f32cb4043792a.jpg"
+        request.add_header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64)",
+        )
+
+        request.add_header(
+            "Referer",
+            "https://www.steamgriddb.com/",
+        )
+
+        with urllib.request.urlopen(
+            request,
+            timeout=15,
+        ) as response:
+
+            if response.status != 200:
+                raise Exception(
+                    f"Failed to download artwork, "
+                    f"status code {response.status}"
+                )
+
+            image_data = response.read()
+
+        mime = artwork.get(
+            "mime",
+            "",
+        ).lower()
+
+        if art_type == "icons":
+            if "ico" in mime:
+                extension = "ico"
+            else:
+                extension = "png"
         else:
-            image_url = artwork['thumb']
+            extension = "png"
 
-        decky_plugin.logger.info(f"Downloading image from: {image_url}")
-        try:
-            response = requests.get(image_url, stream=True)
-            response.raise_for_status()
-            if response.status_code == 200:
-                image_bytes = response.content
+        base_path, _ = os.path.splitext(
+            file_path
+        )
 
-                if art_type == "icons":
-                    output_dir = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/grid"
-                    os.makedirs(output_dir, exist_ok=True)
-                    output_path = os.path.join(output_dir, f"{game_id}_icon.ico")
-                    try:
-                        with open(output_path, "wb") as f:
-                            f.write(image_bytes)
-                        decky_plugin.logger.info(f"Icon saved to disk at: {output_path}")
-                    except Exception as e:
-                        decky_plugin.logger.warning(f"Failed to save icon to disk: {e}")
-                        output_path = None
+        final_file_path = (
+            f"{base_path}.{extension}"
+        )
 
-                    return b64encode(image_bytes).decode("utf-8"), output_path
+        with open(
+            final_file_path,
+            "wb",
+        ) as file:
+            file.write(image_data)
 
-                return b64encode(image_bytes).decode("utf-8")
-        except requests.exceptions.RequestException as e:
-            decky_plugin.logger.info(f"Error downloading image: {e}")
-            if art_type == "icons":
-                return download_artwork(game_id, "icons_ico", dimensions)
+        sgdb_log(
+            f"Downloaded and saved {art_type} "
+            f"to: {final_file_path}"
+        )
 
-    return (None, None) if art_type == "icons" else None
+        encoded = b64encode(
+            image_data
+        ).decode("utf-8")
 
+        if art_type == "icons":
+            return (
+                encoded,
+                final_file_path,
+            )
+
+        return encoded
+
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        Exception,
+    ) as e:
+
+        sgdb_error(
+            f"Error downloading {art_type} "
+            f"artwork: {e}"
+        )
+
+        if art_type == "icons":
+            return None, None
+
+        return None
 
 
 def get_game_id(game_name):
+    sgdb_log(
+        f"Searching for game ID for: "
+        f"{game_name}"
+    )
 
-    decky_plugin.logger.info(f"Searching for game ID for: {game_name}")
+    try:
+        game = find_game(
+            game_name
+        )
 
-    retry_attempts = 1  # Retry only once
-    for attempt in range(retry_attempts + 1):  # Try once initially, then retry if it fails
-        try:
-            url = f"{proxy_url}/search/{game_name}"
-            response = requests.get(url)
-            response.raise_for_status()
-            data = response.json()
-            if data['data']:
-                game_id = data['data'][0]['id']
-                decky_plugin.logger.info(f"Found game ID: {game_id}")
-                return game_id
-            decky_plugin.logger.info("No game ID found")
-            return "default_game_id"  # Return a default value when no games are found
-        except requests.exceptions.RequestException as e:
-            decky_plugin.logger.error(f"Error searching for game ID (attempt {attempt + 1}): {e}")
-            if "502 Server Error: Bad Gateway" in str(e) and attempt < retry_attempts:
-                # Retry after a short delay
-                delay_time = 2  # 2 seconds delay for retry
-                decky_plugin.logger.info(f"Retrying search for game ID after {delay_time}s...")
-                time.sleep(delay_time)  # Retry after 2 seconds
-            else:
-                decky_plugin.logger.error(f"Error searching for game ID: {e}")
-                return "default_game_id"  # Return default game ID if the error is not related to server issues
+        if game:
+            game_id = game["id"]
 
-    # If all retry attempts fail, return the default game ID
-    decky_plugin.logger.info("Max retry attempts reached. Returning default game ID.")
-    return "default_game_id"
+            sgdb_log(
+                f"Found game ID: {game_id}"
+            )
+
+            return game_id
+
+        sgdb_log(
+            f"No game ID found for game name: "
+            f"{game_name}"
+        )
+
+        return None
+
+    except Exception as e:
+        sgdb_error(
+            f"Error searching for game ID: {e}"
+        )
+
+        return None
+
+
+def get_file_name(
+    art_type,
+    shortcut_id,
+    dimensions=None,
+):
+    singular_art_type = (
+        art_type.rstrip("s")
+    )
+
+    if art_type == "icons":
+        png_path = (
+            f"{logged_in_home}/.steam/root/userdata/"
+            f"{steamid3}/config/grid/"
+            f"{shortcut_id}_{singular_art_type}.png"
+        )
+
+        ico_path = (
+            f"{logged_in_home}/.steam/root/userdata/"
+            f"{steamid3}/config/grid/"
+            f"{shortcut_id}_{singular_art_type}.ico"
+        )
+
+        if os.path.exists(
+            png_path
+        ):
+            return (
+                f"{shortcut_id}_"
+                f"{singular_art_type}.png"
+            )
+
+        if os.path.exists(
+            ico_path
+        ):
+            return (
+                f"{shortcut_id}_"
+                f"{singular_art_type}.ico"
+            )
+
+        return (
+            f"{shortcut_id}_"
+            f"{singular_art_type}.ico"
+        )
+
+    elif art_type == "grids":
+        if dimensions == "600x900":
+            return f"{shortcut_id}p.png"
+
+        return f"{shortcut_id}.png"
+
+    elif art_type == "heroes":
+        return f"{shortcut_id}_hero.png"
+
+    elif art_type == "logos":
+        return f"{shortcut_id}_logo.png"
+
+    return f"{shortcut_id}.png"
+
+
+def file_exists_with_any_ext(
+    file_path,
+):
+    if os.path.exists(
+        file_path
+    ):
+        return True
+
+    base_path, _ = os.path.splitext(
+        file_path
+    )
+
+    for extension in (
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".ico",
+        ".webp",
+    ):
+        if os.path.exists(
+            base_path + extension
+        ):
+            return True
+
+    return False
+
+
+def is_match(
+    name1,
+    name2,
+):
+    if name1 and name2:
+        return (
+            name1.lower() in name2.lower()
+            or name2.lower() in name1.lower()
+        )
+
+    return False
+
