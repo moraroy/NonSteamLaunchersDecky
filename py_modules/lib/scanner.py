@@ -378,22 +378,7 @@ def add_compat_tool(launchoptions):
 steam_applist_cache = None
 
 def get_steam_store_appid(steam_store_game_name):
-    search_url = f"{proxy_url}/search/{urllib.parse.quote(steam_store_game_name)}"
-    try:
-        response = requests.get(search_url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        if 'data' in data and data['data']:
-            steam_store_appid = data['data'][0].get('steam_store_appid')
-            if steam_store_appid:
-                decky_plugin.logger.info(
-                    f"Found App ID for {steam_store_game_name} via primary source: {steam_store_appid}"
-                )
-                return steam_store_appid
-    except requests.exceptions.RequestException as e:
-        decky_plugin.logger.warning(
-            f"Primary store App ID lookup failed for {steam_store_game_name}: {e}"
-        )
+ 
 
     def normalize_name(name):
         name = name.lower()
@@ -651,7 +636,6 @@ def get_movies(game_name):
 
 #Fallback Artwork
 def get_steam_fallback_artwork(steam_store_appid, art_type):
-    # Map logical art types to possible Steam CDN files
     art_type_map = {
         "icon": ["icon.png", "icon.ico"],
         "logo": ["logo_2x.png", "logo.png"],
@@ -661,27 +645,164 @@ def get_steam_fallback_artwork(steam_store_appid, art_type):
     }
 
     file_candidates = art_type_map.get(art_type)
+
     if not file_candidates:
-        decky_plugin.logger.warning(f"No file candidates found for art type '{art_type}'")
+        decky_plugin.logger.warning(
+            f"No file candidates found for art type '{art_type}'"
+        )
         return None
 
-    base_url = f"https://shared.steamstatic.com/store_item_assets/steam/apps/{steam_store_appid}/"
+    base_url = (
+        f"https://shared.steamstatic.com/"
+        f"store_item_assets/steam/apps/{steam_store_appid}/"
+    )
+
+    if art_type == "icon":
+        try:
+            community_url = (
+                f"https://steamcommunity.com/app/{steam_store_appid}"
+            )
+
+            decky_plugin.logger.info(
+                f"Fetching Steam Community page for icon: "
+                f"{community_url}"
+            )
+
+            response = requests.get(
+                community_url,
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                decky_plugin.logger.warning(
+                    f"Failed to fetch Steam Community page for "
+                    f"App ID {steam_store_appid}: "
+                    f"HTTP {response.status_code}"
+                )
+                return None
+
+            html = response.text
+
+            match = re.search(
+                rf"/apps/{steam_store_appid}/([a-f0-9]{{40}})"
+                rf"(?:_full)?\.jpg",
+                html,
+                re.IGNORECASE,
+            )
+
+            if not match:
+                decky_plugin.logger.warning(
+                    f"Could not find Steam artwork hash for "
+                    f"App ID {steam_store_appid}"
+                )
+                return None
+
+            hash_value = match.group(1)
+
+            icon_candidates = [
+                (
+                    f"https://shared.fastly.steamstatic.com/"
+                    f"community_assets/images/apps/"
+                    f"{steam_store_appid}/"
+                    f"{hash_value}_full.jpg"
+                ),
+                (
+                    f"https://shared.fastly.steamstatic.com/"
+                    f"community_assets/images/apps/"
+                    f"{steam_store_appid}/"
+                    f"{hash_value}.jpg"
+                ),
+            ]
+
+            for url in icon_candidates:
+                decky_plugin.logger.info(
+                    f"Trying to fetch icon from {url}"
+                )
+
+                try:
+                    icon_response = requests.get(
+                        url,
+                        stream=True,
+                        timeout=10
+                    )
+
+                    if icon_response.status_code == 200:
+                        decky_plugin.logger.info(
+                            f"Successfully fetched icon from {url}"
+                        )
+
+                        return b64encode(
+                            icon_response.content
+                        ).decode("utf-8")
+
+                    decky_plugin.logger.info(
+                        f"Received status "
+                        f"{icon_response.status_code} for {url}"
+                    )
+
+                except requests.RequestException as e:
+                    decky_plugin.logger.warning(
+                        f"Exception while fetching icon from "
+                        f"{url}: {e}"
+                    )
+
+            decky_plugin.logger.warning(
+                f"All Steam Community icon URLs failed for "
+                f"App ID {steam_store_appid}"
+            )
+
+            return None
+
+        except requests.RequestException as e:
+            decky_plugin.logger.warning(
+                f"Error getting Steam icon for App ID "
+                f"{steam_store_appid}: {e}"
+            )
+            return None
 
     for file in file_candidates:
         url = base_url + file
-        decky_plugin.logger.info(f"Trying to fetch {art_type} from {url}")
-        try:
-            response = requests.get(url, stream=True)
-            if response.status_code == 200:
-                decky_plugin.logger.info(f"Successfully fetched {art_type} from {url}")
-                return b64encode(response.content).decode("utf-8")
-            else:
-                decky_plugin.logger.info(f"Received status {response.status_code} for {art_type} from {url}")
-        except requests.RequestException as e:
-            decky_plugin.logger.warning(f"Exception while fetching {art_type} from {url}: {e}")
 
-    decky_plugin.logger.warning(f"All attempts to fetch {art_type} for app ID {steam_store_appid} failed.")
+        decky_plugin.logger.info(
+            f"Trying to fetch {art_type} from {url}"
+        )
+
+        try:
+            response = requests.get(
+                url,
+                stream=True,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                decky_plugin.logger.info(
+                    f"Successfully fetched {art_type} from {url}"
+                )
+
+                return b64encode(
+                    response.content
+                ).decode("utf-8")
+
+            else:
+                decky_plugin.logger.info(
+                    f"Received status "
+                    f"{response.status_code} for {art_type} "
+                    f"from {url}"
+                )
+
+        except requests.RequestException as e:
+            decky_plugin.logger.warning(
+                f"Exception while fetching {art_type} "
+                f"from {url}: {e}"
+            )
+
+    decky_plugin.logger.warning(
+        f"All attempts to fetch {art_type} for "
+        f"App ID {steam_store_appid} failed."
+    )
+
     return None
+
 #End of fallback artwork
 
 

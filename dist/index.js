@@ -2254,6 +2254,9 @@
                   b: b / 255
               }));
               const devices = await getDevices();
+              console.log(devices.length
+                  ? `LEDs found: ${devices.length}`
+                  : "No LEDs found");
               if (!devices.length) {
                   return;
               }

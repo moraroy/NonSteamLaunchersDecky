@@ -455,6 +455,12 @@ export function initGameWatcher(): void {
 
             const devices =
                 await getDevices();
+                
+            console.log(
+                devices.length
+                    ? `LEDs found: ${devices.length}`
+                    : "No LEDs found"
+            );
 
             if (!devices.length) {
                 return;
