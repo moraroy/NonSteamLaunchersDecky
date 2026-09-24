@@ -53,7 +53,7 @@ from umu_processor import modify_shortcut_for_umu
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 #Vars
-proxy_url = 'https://nonsteamlaunchers.onrender.com/api'
+
 decky_shortcuts = {}
 
 
@@ -1067,6 +1067,17 @@ def add_launchers():
 
 api_cache = {}
 
+try:
+    import certifi
+
+    SSL_CONTEXT = ssl.create_default_context(
+        cafile=certifi.where()
+    )
+except ImportError:
+    SSL_CONTEXT = ssl.create_default_context()
+
+
+
 BASE_URL = "https://www.steamgriddb.com"
 
 HEADERS = {
@@ -1113,10 +1124,13 @@ def get_json(url, method="GET", data=None):
     with urllib.request.urlopen(
         request,
         timeout=15,
+        context=SSL_CONTEXT,
     ) as response:
         return json.loads(
             response.read().decode("utf-8")
         )
+
+
 
 
 def normalize(name):
@@ -1543,15 +1557,51 @@ def get_sgdb_art(game_id, launcher):
 
 
 def download_artwork(
-    artwork,
+    game_id,
     art_type,
-    shortcut_id,
     dimensions=None,
 ):
-    if artwork is None:
+    if not game_id:
         sgdb_log(
-            f"No artwork supplied for "
-            f"{art_type}. Skipping download."
+            f"Skipping download for {art_type} artwork. "
+            f"Game ID is empty."
+        )
+
+        if art_type == "icons":
+            return None, None
+
+        return None
+
+    # Convert the old artwork type names to the new SGDB asset types.
+    asset_type_map = {
+        "icons": "icon",
+        "logos": "logo",
+        "heroes": "hero",
+        "grids": "grid",
+    }
+
+    asset_type = asset_type_map.get(
+        art_type,
+        art_type,
+    )
+
+    # Preserve the old behavior where the dimensions are optional.
+    if art_type == "grids" and dimensions:
+        artwork = first_asset(
+            game_id,
+            asset_type,
+            dimensions,
+        )
+    else:
+        artwork = first_asset(
+            game_id,
+            asset_type,
+        )
+
+    if not artwork:
+        sgdb_log(
+            f"No {art_type} artwork found for "
+            f"game ID {game_id}."
         )
 
         if art_type == "icons":
@@ -1561,7 +1611,7 @@ def download_artwork(
 
     filename = get_file_name(
         art_type,
-        shortcut_id,
+        game_id,
         dimensions,
     )
 
@@ -1681,6 +1731,7 @@ def download_artwork(
         with urllib.request.urlopen(
             request,
             timeout=15,
+            context=SSL_CONTEXT,
         ) as response:
 
             if response.status != 200:
@@ -1750,6 +1801,7 @@ def download_artwork(
             return None, None
 
         return None
+
 
 
 def get_game_id(game_name):
@@ -1883,4 +1935,3 @@ def is_match(
         )
 
     return False
-
