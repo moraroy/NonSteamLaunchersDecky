@@ -3065,13 +3065,26 @@ echo "99.1"
 echo "# Installing NVIDIA GeForce NOW (Native Linux) ...please wait..."
 
 if [[ $options == *"NVIDIA GeForce NOW"* ]]; then
-    if flatpak info --user com.nvidia.geforcenow &>/dev/null || flatpak info --system com.nvidia.geforcenow &>/dev/null; then
+    if flatpak info --user com.nvidia.geforcenow &>/dev/null || \
+       flatpak info --system com.nvidia.geforcenow &>/dev/null; then
+
         echo "NVIDIA GeForce NOW is already installed (user or system)."
+
     else
+        echo "Adding Flathub repository..."
+
+        flatpak remote-add --user --if-not-exists \
+            flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+
         echo "Adding NVIDIA GeForce NOW Flatpak repository..."
-        flatpak remote-add --user --if-not-exists GeForceNOW https://international.download.nvidia.com/GFNLinux/flatpak/geforcenow.flatpakrepo
+
+        flatpak remote-add --user --if-not-exists \
+            GeForceNOW \
+            https://international.download.nvidia.com/GFNLinux/flatpak/geforcenow.flatpakrepo
 
         echo "Installing NVIDIA GeForce NOW Flatpak app (user scope)..."
+
         if flatpak install -y --user GeForceNOW com.nvidia.geforcenow; then
             echo "NVIDIA GeForce NOW installed successfully."
         else
@@ -3082,15 +3095,23 @@ fi
 
 
 
-
 echo "99.2"
 echo "# Installing Moonlight Game Streaming...please wait..."
 
 if [[ $options == *"Moonlight Game Streaming"* ]]; then
-    if flatpak info --user com.moonlight_stream.Moonlight &>/dev/null || flatpak info --system com.moonlight_stream.Moonlight &>/dev/null; then
+    if ! command -v flatpak &>/dev/null; then
+        echo "Flatpak is not installed. Please install Flatpak first."
+        exit 1
+    fi
+
+    if flatpak info --user com.moonlight_stream.Moonlight &>/dev/null || \
+       flatpak info --system com.moonlight_stream.Moonlight &>/dev/null; then
+
         echo "Moonlight Game Streaming is already installed (user or system)."
+
     else
         echo "Installing Moonlight Flatpak app (user scope)..."
+
         if flatpak install -y --user flathub com.moonlight_stream.Moonlight; then
             echo "Moonlight installed successfully."
         else
@@ -3098,7 +3119,6 @@ if [[ $options == *"Moonlight Game Streaming"* ]]; then
         fi
     fi
 fi
-
 
 
 echo "99.3"
