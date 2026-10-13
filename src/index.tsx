@@ -24,7 +24,6 @@ import { sitesList } from "./hooks/siteList";
 import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
-import { initThemeMusic, setThemeMusicEnabled } from "./hooks/themeMusic";
 import { initGameWatcher } from './hooks/gamewatcher';
  
 
@@ -39,7 +38,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
-  const { settings, setAutoScan, setPlaytimeEnabled, setThemeMusicEnabled } = useSettings(serverAPI);
+  const { settings, setAutoScan, setPlaytimeEnabled, } = useSettings(serverAPI);
 
   // Random Greetings
   const greetings = [
@@ -259,16 +258,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
             if (value) initRealPlaytime(true);
           }}
         />
-        <ToggleField
-          label="Game Theme Music"
-          checked={settings.thememusicEnabled}
-          onChange={(value) => {
-            setThemeMusicEnabled(value);
-            if (value) {
-              initThemeMusic();
-            }
-          }}
-        />
+
       </PanelSection>
 
       <PanelSection title="For Support and Donations">
@@ -320,7 +310,7 @@ export default definePlugin((serverApi: ServerAPI) => {
   notify.setServer(serverApi);
   initGameWatcher();
 
-  // Fetch saved settings first, then decide whether to start Playtime or Theme Music
+  // Fetch saved settings first, then decide whether to start Playtime
   (async () => {
     const savedSettings = (
       await serverApi.callPluginMethod('get_setting', {
@@ -329,19 +319,14 @@ export default definePlugin((serverApi: ServerAPI) => {
           autoscan: false,
           customSites: "",
           playtimeEnabled: true,
-          thememusicEnabled: true,
         },
       })
-    ).result as { playtimeEnabled: boolean; thememusicEnabled: boolean };
+    ).result as { playtimeEnabled: boolean };
 
     if (savedSettings.playtimeEnabled) {
       initRealPlaytime();
     } else {
       setPlaytimeEnabled(false);
-    }
-
-    if (savedSettings.thememusicEnabled) {
-      initThemeMusic();
     }
   })();
 

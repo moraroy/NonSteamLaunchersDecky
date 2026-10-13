@@ -5,7 +5,7 @@ export type Settings = {
   autoscan: boolean;
   customSites: string;
   playtimeEnabled: boolean;
-  thememusicEnabled: boolean;
+  
 };
 
 export const useSettings = (serverApi: ServerAPI) => {
@@ -13,7 +13,7 @@ export const useSettings = (serverApi: ServerAPI) => {
     autoscan: false,
     customSites: "",
     playtimeEnabled: true,
-    thememusicEnabled: true,
+    
   });
 
   // Load saved settings on mount
@@ -58,15 +58,10 @@ export const useSettings = (serverApi: ServerAPI) => {
     updateSettings('playtimeEnabled', value);
   }
 
-  function setThemeMusicEnabled(value: Settings['thememusicEnabled']) {
-    updateSettings('thememusicEnabled', value);
-  }
-
   return {
     settings,
     setAutoScan,
     setCustomSites,
     setPlaytimeEnabled,
-    setThemeMusicEnabled,
   };
 };
