@@ -716,14 +716,14 @@ class Plugin:
             if file_path:
                 decky_plugin.logger.info(f"Found loginusers.vdf: {file_path}")
                 try:
-                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                    with open(file_path, "r", encoding="utf-8-sig", errors="replace") as f:
                         content = f.read()
-                    users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+                    users = re.findall(r'"(\d{17})"\s*\{([^{}]*)\}', content, re.DOTALL)
 
                     max_timestamp = 0
                     for steamid, block in users:
-                        account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
-                        timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+                        account_match = re.search(r'"AccountName"\s+"([^"]*)"', block)
+                        timestamp_match = re.search(r'"timestamp"\s+"(\d+)"', block, re.IGNORECASE)
                         if account_match and timestamp_match:
                             account = account_match.group(1)
                             timestamp = int(timestamp_match.group(1))
@@ -758,14 +758,14 @@ class Plugin:
             if file_path:
                 decky_plugin.logger.info(f"Found loginusers.vdf: {file_path}")
                 try:
-                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                    with open(file_path, "r", encoding="utf-8-sig", errors="replace") as f:
                         content = f.read()
-                    users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+                    users = re.findall(r'"(\d{17})"\s*\{([^{}]*)\}', content, re.DOTALL)
 
                     max_timestamp = 0
                     for steamid, block in users:
-                        account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
-                        timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+                        account_match = re.search(r'"AccountName"\s+"([^"]*)"', block)
+                        timestamp_match = re.search(r'"timestamp"\s+"(\d+)"', block, re.IGNORECASE)
                         if account_match and timestamp_match:
                             account = account_match.group(1)
                             timestamp = int(timestamp_match.group(1))

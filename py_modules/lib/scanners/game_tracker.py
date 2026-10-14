@@ -29,44 +29,88 @@ def get_steamid3(DECKY_USER_HOME, decky_plugin):
         return None
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, "r", encoding="utf-8-sig") as f:
             content = f.read()
 
-        # Regex to find steamid blocks (steamID 17-digit followed by {...})
-        users = re.findall(r'"(\d{17})"\s*{([^}]+)}', content, re.DOTALL)
+        users = re.findall(
+            r'"(\d{17})"\s*\{([^{}]*)\}',
+            content,
+            re.DOTALL
+        )
+
+        decky_plugin.logger.info(
+            f"Reading loginusers.vdf from: {file_path}"
+        )
+        decky_plugin.logger.info(
+            f"Found {len(users)} SteamID blocks in loginusers.vdf."
+        )
 
         max_timestamp = 0
         current_steamid = None
 
         for steamid, block in users:
-            account_match = re.search(r'"AccountName"\s+"([^"]+)"', block)
-            timestamp_match = re.search(r'"Timestamp"\s+"(\d+)"', block)
+            timestamp_match = re.search(
+                r'"[Tt]imestamp"\s+"(\d+)"',
+                block
+            )
 
-            if account_match and timestamp_match:
-                timestamp = int(timestamp_match.group(1))
+            account_match = re.search(
+                r'"AccountName"\s+"([^"]*)"',
+                block
+            )
 
-                if timestamp > max_timestamp:
-                    max_timestamp = timestamp
-                    current_steamid = steamid
+            if not timestamp_match:
+                decky_plugin.logger.warning(
+                    f"No timestamp found for SteamID {steamid}; skipping."
+                )
+                continue
+
+            timestamp = int(timestamp_match.group(1))
+
+            if timestamp > max_timestamp:
+                max_timestamp = timestamp
+                current_steamid = steamid
+
+                decky_plugin.logger.info(
+                    f"New most recent Steam account found: "
+                    f"SteamID64={steamid}, Timestamp={timestamp}"
+                )
 
         if current_steamid:
-            decky_plugin.logger.info(f"SteamID64 found: {current_steamid}")
+            decky_plugin.logger.info(
+                f"SteamID64 found: {current_steamid}"
+            )
+
             # Convert SteamID64 to SteamID3 (as int)
             steamid3 = int(current_steamid) - 76561197960265728
-            userdata_path = f"{DECKY_USER_HOME}/.steam/root/userdata/{steamid3}"
+
+            userdata_path = (
+                f"{DECKY_USER_HOME}/.steam/root/userdata/{steamid3}"
+            )
 
             if os.path.isdir(userdata_path):
-                decky_plugin.logger.info(f"Found userdata folder for SteamID3 {steamid3}: {userdata_path}")
+                decky_plugin.logger.info(
+                    f"Found userdata folder for SteamID3 "
+                    f"{steamid3}: {userdata_path}"
+                )
             else:
-                decky_plugin.logger.warning(f"Userdata folder does not exist for SteamID3 {steamid3}: {userdata_path}")
+                decky_plugin.logger.warning(
+                    f"Userdata folder does not exist for SteamID3 "
+                    f"{steamid3}: {userdata_path}"
+                )
 
             return steamid3
 
-        decky_plugin.logger.error("No valid SteamID found in loginusers.vdf.")
+        decky_plugin.logger.error(
+            "No valid SteamID found in loginusers.vdf. "
+            "No user block with a valid timestamp was found."
+        )
         return None
 
     except Exception as e:
-        decky_plugin.logger.error(f"Failed to process SteamID: {e}")
+        decky_plugin.logger.exception(
+            f"Failed to process SteamID: {e}"
+        )
         return None
 
 
