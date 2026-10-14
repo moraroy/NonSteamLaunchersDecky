@@ -179,13 +179,15 @@
       SteamClient.Apps.SetAppLaunchOptions(appId, launchOptions);
       SteamClient.Apps.SetShortcutExe(appId, formattedExe);
       SteamClient.Apps.SetShortcutStartDir(appId, formattedStartDir);
-      const AvailableCompatTools = await SteamClient.Apps.GetAvailableCompatTools(appId);
-      const CompatToolExists = AvailableCompatTools.some((e) => e.strToolName === CompatTool);
-      if (CompatTool && CompatToolExists) {
-          SteamClient.Apps.SpecifyCompatTool(appId, CompatTool);
-      }
-      else if (CompatTool) {
-          SteamClient.Apps.SpecifyCompatTool(appId, 'proton_experimental');
+      if (CompatTool) {
+          try {
+              SteamClient.Apps.SpecifyCompatTool(appId, CompatTool);
+              console.log(`Successfully set compatibility tool to: ${CompatTool}`);
+          }
+          catch (err) {
+              console.warn("Failed to set specified compat tool, falling back to proton_experimental:", err);
+              SteamClient.Apps.SpecifyCompatTool(appId, 'proton_experimental');
+          }
       }
       SteamClient.Apps.SetCustomArtworkForApp(appId, Hero, 'png', 1);
       SteamClient.Apps.SetCustomArtworkForApp(appId, Logo, 'png', 2);
