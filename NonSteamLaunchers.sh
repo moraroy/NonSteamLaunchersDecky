@@ -2902,6 +2902,9 @@ function install_launcher {
             elif [ "$launcher_name" = "Battle.net" ]; then
 
                 install_battlenet
+        
+            elif [ "$launcher_name" = "itch.io" ]; then
+                "$proton_dir/proton" run "$itchio_file" --silent &
             elif [ "$launcher_name" = "Amazon Games" ]; then
                 "$STEAM_RUNTIME" "$proton_dir/proton" run "$amazon_file" &
                 install_amazon
@@ -2956,7 +2959,7 @@ install_launcher "Amazon Games" "AmazonGamesLauncher" "$amazon_file" "$amazon_ur
 install_launcher "EA App" "TheEAappLauncher" "$eaapp_file" "$eaapp_url" "$eaapp_file /quiet" "75" "" "install_eaapp" true
 
 # Install itch.io
-install_launcher "itch.io" "itchioLauncher" "$itchio_file" "$itchio_url" "$itchio_file --silent" "76" "" "install_itchio" true
+install_launcher "itch.io" "itchioLauncher" "$itchio_file" "$itchio_url" "$itchio_file" "76" "" "install_itchio" true
 
 # Install Legacy Games
 install_launcher "Legacy Games" "LegacyGamesLauncher" "$legacygames_file" "$legacygames_url" "$legacygames_file /S" "77" "" ""

@@ -1694,7 +1694,7 @@ def download_artwork(
             )
 
     image_url = artwork.get(
-        "thumb"
+        "url"
     )
 
     if not image_url:
