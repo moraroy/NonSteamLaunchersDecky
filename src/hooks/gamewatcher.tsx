@@ -83,11 +83,36 @@ export function initGameWatcher(): void {
         __watcherLedGeneration?: number;
         __steam_require?: SteamWebpackRequire;
         __watcherLedSnapshot?: WatcherLedSnapshot | null;
+        __originalOpen?: typeof window.open;
+        __isScreensaverActive?: boolean;
         webpackChunksteamui?: {
             push: (chunk: any[]) => void;
         };
     };
 
+
+
+    if (!steamWindow.__originalOpen) {
+        steamWindow.__originalOpen = window.open;
+        steamWindow.__isScreensaverActive = false;
+
+        window.open = function(...args: Parameters<typeof window.open>) {
+            const popup = steamWindow.__originalOpen!.apply(this, args);
+            try {
+                const target = args[1];
+                if (target && typeof target === 'string' && target.toLowerCase().includes('screensaver')) {
+                    steamWindow.__isScreensaverActive = true;
+                    const checkClosed = setInterval(() => {
+                        if (popup && popup.closed) {
+                            steamWindow.__isScreensaverActive = false;
+                            clearInterval(checkClosed);
+                        }
+                    }, 1000);
+                }
+            } catch (e) {}
+            return popup;
+        };
+    }
 
 
     const steamAppStore = appStore as {
@@ -930,7 +955,8 @@ export function initGameWatcher(): void {
                 !s.gameId ||
                 s.terminateScheduled ||
                 s.possibleExit ||
-                s.qamActive
+                s.qamActive ||
+                steamWindow.__isScreensaverActive
             ) {
                 return;
             }
@@ -953,7 +979,8 @@ export function initGameWatcher(): void {
                         !s.watchersEnabled ||
                         !s.possibleExit ||
                         s.exitCandidateTime !==
-                            time
+                            time ||
+                        steamWindow.__isScreensaverActive
                     ) {
                         return;
                     }
@@ -1074,7 +1101,8 @@ export function initGameWatcher(): void {
                         String(gameId) !==
                             String(
                                 s.gameId
-                            )
+                            ) ||
+                            steamWindow.__isScreensaverActive
                     ) {
                         return original.apply(
                             this,

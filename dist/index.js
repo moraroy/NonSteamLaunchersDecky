@@ -1882,6 +1882,27 @@
 
   function initGameWatcher() {
       const steamWindow = window;
+      if (!steamWindow.__originalOpen) {
+          steamWindow.__originalOpen = window.open;
+          steamWindow.__isScreensaverActive = false;
+          window.open = function (...args) {
+              const popup = steamWindow.__originalOpen.apply(this, args);
+              try {
+                  const target = args[1];
+                  if (target && typeof target === 'string' && target.toLowerCase().includes('screensaver')) {
+                      steamWindow.__isScreensaverActive = true;
+                      const checkClosed = setInterval(() => {
+                          if (popup && popup.closed) {
+                              steamWindow.__isScreensaverActive = false;
+                              clearInterval(checkClosed);
+                          }
+                      }, 1000);
+                  }
+              }
+              catch (e) { }
+              return popup;
+          };
+      }
       const steamAppStore = appStore;
       const runGameLEDPalette = async (gameId, gameName) => {
           const generation = (steamWindow.__watcherLedGeneration ?? 0) + 1;
@@ -2287,7 +2308,8 @@
                   !s.gameId ||
                   s.terminateScheduled ||
                   s.possibleExit ||
-                  s.qamActive) {
+                  s.qamActive ||
+                  steamWindow.__isScreensaverActive) {
                   return;
               }
               s.possibleExit = true;
@@ -2303,7 +2325,8 @@
                           !s.watchersEnabled ||
                           !s.possibleExit ||
                           s.exitCandidateTime !==
-                              time) {
+                              time ||
+                          steamWindow.__isScreensaverActive) {
                           return;
                       }
                       if (s.qamActive ||
@@ -2365,7 +2388,8 @@
                   function (gameId, stateNum) {
                       if (!s.watchersEnabled ||
                           String(gameId) !==
-                              String(s.gameId)) {
+                              String(s.gameId) ||
+                          steamWindow.__isScreensaverActive) {
                           return original.apply(this, arguments);
                       }
                       const now = Date.now();
