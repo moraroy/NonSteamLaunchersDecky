@@ -1421,6 +1421,21 @@ METADATA_CODE = r"""
     const playerCache = {};
     const hltbCache = {};
 
+
+    const customGameOverrides = {
+        "Xodus Nexus": {
+            about_the_game: "Xodus Nexus is an open-source, independent game launcher that allows users to run Microsoft Store and PC Game Pass games locally on Linux systems and the Steam Deck without a Windows installation.",
+            developer: "domsvoboda",
+            publisher: "",
+            release_date: "2026",
+            genres: "",
+            platforms: "",
+            image_url: "",
+            metacritic_score: null,
+            metacritic_url: null
+        }
+    };
+
     async function getSteamPlayerCount(appId) {
         const now = Date.now();
         if (playerCache[appId] && now - playerCache[appId].timestamp < 30000) {
@@ -1439,6 +1454,16 @@ METADATA_CODE = r"""
     }
 
     async function getSteamGameDetails(gameName) {
+
+        if (customGameOverrides[gameName]) {
+                return {
+                    appid: null,
+                    current_players: null,
+                    ...customGameOverrides[gameName]
+                };
+            }
+
+
         if (gameCache[gameName]) return gameCache[gameName];
         try {
             const searchRes = await fetch(`https://store.steampowered.com/search/?term=${encodeURIComponent(gameName)}`, { credentials: "omit" });
@@ -1681,6 +1706,7 @@ METADATA_CODE = r"""
                         "Nintendo Wii": "https://cdn2.steamgriddb.com/icon_thumb/4c220c393016798aed81f9350e68f61c.png",
                         "Nintendo Wii U": "https://cdn2.steamgriddb.com/icon_thumb/c6c02ef92aa0dcb6c333a27cfb22d47c.png",
                         "Nintendo Switch": "https://cdn2.steamgriddb.com/icon_thumb/3b05af2c48dbaf6656fdf2d2f905b3b6.png",
+                        "Sega": "https://cdn2.steamgriddb.com/icon_thumb/bdb4e8e60ca2bd614a1710438b37c08b.png",
                         "PlayStation": "https://cdn2.steamgriddb.com/icon_thumb/f6a81f703854985705a0cc479d221282.png",
                         "PlayStation 2": "https://cdn2.steamgriddb.com/icon/5e3600417e9ac9abf5a6fea026f9b05a/32/256x256.png",
                         "NonSteamLaunchers": "https://raw.githubusercontent.com/moraroy/NonSteamLaunchers-On-Steam-Deck/refs/heads/main/logo.png"
@@ -1690,13 +1716,14 @@ METADATA_CODE = r"""
                         "Super Nintendo": ["SNES", "Super NES", "SuperNintendo", "Super Nintendo Entertainment System"],
                         "Nintendo 64": ["N64", "Nintendo64"],
                         "Epic Games": ["Epic Game Store", "Epic Store", "EGS"],
-                        "PlayStation": ["PS", "PS1", "Sony PlayStation", "PSX", "PS one", "PSOne", "playstation"],
+                        "PlayStation": ["PS", "PS1", "Sony PlayStation", "PSX", "PS one", "PSOne", "playstation", "PSP", "PlayStation Portable", "Sony PSP"],
                         "Nintendo GameCube": ["GC", "NGC", "Gamecube", "NintendoGameCube"],
                         "Nintendo Wii": ["Wii", "NintendoWii", "RVL"],
+                        "Sega": ["Genesis", "Mega Drive", "Dreamcast", "Saturn", "Game Gear", "Master System", "Sega Genesis", "Sega Dreamcast"],
                         "Nintendo Wii U": ["WiiU", "NintendoWiiU", "Wii U", "Cafe"],
                         "Nintendo Switch": ["Switch", "NintendoSwitch", "NS", "NSW", "HAC"],
                         "NVIDIA GeForce NOW": ["GeForce NOW", "Geforce Now"],
-                        "Xbox Game Pass": ["Xbox Game Streaming", "Xbox", "Xbox Cloud Gaming", "Microsoft Xbox"],
+                        "Xbox Game Pass": ["Xbox Game Streaming", "Xbox", "Xbox Cloud Gaming", "Microsoft Xbox", "Windows", "Microsoft Windows"],
                         "Boosteroid Cloud Gaming": ["Boosteroid"]
                     };
 
