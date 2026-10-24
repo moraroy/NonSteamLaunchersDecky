@@ -1655,210 +1655,155 @@
               window.SP_REACT.createElement(deckyFrontendLib.ProgressBarWithInfo, { layout: "inline", bottomSeparator: "none", sOperationText: progress.status, description: progress.description, nProgress: progress.percent, indeterminate: true })))) : showRestartModal ? (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Restart Steam", strDescription: "Your notes have been sent successfully! To see the notes in the community, Steam must be restarted. Would you like to restart Steam now?", strOKButtonText: "Restart Steam", strCancelButtonText: "Back", onOK: handleRestartSteam, onCancel: () => setShowRestartModal(false) })) : (window.SP_REACT.createElement(deckyFrontendLib.ConfirmModal, { strTitle: "Send Your Note!", strDescription: `Welcome to #noteSteamLaunchers! By creating a note for your non-Steam game and using the "#nsl" tag at the start of your note, you can share it with the community. All notes from participants will be visible in the "NSL Community Notes" for that specific game. Feel free to give this experimental feature a try! Would you like to send your #nsl note to the community and receive some notes back in return?`, strOKButtonText: "Send Notes", strCancelButtonText: "Cancel", onOK: handleSendNotesClick, onCancel: closeModal }))));
   };
 
-  const STORAGE_KEY = "realPlaytimeData";
-  let memoryCache = null;
-  const appliedSessions = {};
+  const pending = new Set();
+  const playtimeCache = new Map();
+  const runningStates = new Map();
   let playtimeEnabled = true;
-  // --- Utility functions ---
-  function isValidPlaytimeDataEntry(entry) {
-      return (typeof entry === "object" &&
-          entry !== null &&
-          typeof entry.total === "number" &&
-          typeof entry.lastSessionEnd === "number");
-  }
-  function sanitizePlaytimeData(data) {
-      if (typeof data !== "object" || data === null)
-          return {};
-      const cleaned = {};
-      for (const [key, value] of Object.entries(data)) {
-          if (isValidPlaytimeDataEntry(value))
-              cleaned[key] = value;
+  try {
+      if (localStorage.getItem("realPlaytimeData") !== null) {
+          localStorage.removeItem("realPlaytimeData");
+          console.log("Removed deprecated 'realPlaytimeData' from localStorage.");
       }
-      return cleaned;
   }
-  function loadPlaytimeData() {
+  catch { }
+  async function fetchAndCachePlaytime(appId) {
+      if (pending.has(appId))
+          return;
+      pending.add(appId);
       try {
-          if (memoryCache)
-              return memoryCache;
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) {
-              memoryCache = {};
-              return memoryCache;
+          const steamClient = window.SteamClient;
+          const playtime = await steamClient?.Apps?.GetPlaytime?.(appId);
+          if (playtime) {
+              playtimeCache.set(appId, {
+                  forever: Number(playtime.nPlaytimeForever) || 0,
+                  twoWeeks: Number(playtime.nPlaytimeLastTwoWeeks) || 0,
+                  lastPlayed: Number(playtime.rtLastTimePlayed) || 0,
+              });
           }
-          const parsed = JSON.parse(raw);
-          const cleaned = sanitizePlaytimeData(parsed);
-          if (Object.keys(cleaned).length !== Object.keys(parsed || {}).length) {
-              savePlaytimeData(cleaned);
-          }
-          memoryCache = cleaned;
-          return memoryCache;
       }
-      catch {
-          memoryCache = {};
-          return memoryCache;
+      catch (err) {
+          console.warn("Steam playtime fetch failed:", err);
+      }
+      finally {
+          pending.delete(appId);
       }
   }
-  function savePlaytimeData(data) {
-      try {
-          const latestFromStorage = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-          const merged = { ...latestFromStorage, ...data };
-          memoryCache = merged;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  function applyPlaytime(appOverview) {
+      if (!playtimeEnabled || !appOverview || appOverview.app_type !== 1073741824)
+          return;
+      const rawId = typeof appOverview.appid === "function"
+          ? appOverview.appid()
+          : appOverview.appid ?? appOverview.appId;
+      const appId = Number(rawId);
+      if (!Number.isFinite(appId) || appId <= 0)
+          return;
+      const isRunning = !!appOverview.bIsRunning;
+      const wasRunning = runningStates.get(appId) || false;
+      if (wasRunning && !isRunning) {
+          playtimeCache.delete(appId);
       }
-      catch {
-          memoryCache = data;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      runningStates.set(appId, isRunning);
+      if (!playtimeCache.has(appId)) {
+          fetchAndCachePlaytime(appId).then(() => {
+              appOverview.TriggerChange?.();
+          });
+      }
+      const cached = playtimeCache.get(appId);
+      if (cached) {
+          appOverview.minutes_playtime_forever = cached.forever;
+          appOverview.nPlaytimeForever = cached.forever;
+          appOverview.minutes_playtime_last_two_weeks = cached.twoWeeks;
+          appOverview.nPlaytimeLastTwoWeeks = cached.twoWeeks;
+          if (cached.lastPlayed > 0) {
+              appOverview.rt_last_time_played = cached.lastPlayed;
+          }
+          appOverview.TriggerChange?.();
+      }
+  }
+  function patchAppStore() {
+      const store = window.appStore;
+      if (!store)
+          return;
+      if (typeof store.GetAppOverviewByAppID === "function" && !store._originalGetAppOverviewByAppID) {
+          store._originalGetAppOverviewByAppID = store.GetAppOverviewByAppID;
+          store.GetAppOverviewByAppID = function (appId) {
+              const overview = store._originalGetAppOverviewByAppID.call(this, appId);
+              applyPlaytime(overview);
+              return overview;
+          };
+      }
+      if (store.m_mapApps && !store.m_mapApps._originalSet) {
+          store.m_mapApps._originalSet = store.m_mapApps.set;
+          store.m_mapApps.set = function (appId, overview) {
+              applyPlaytime(overview);
+              return store.m_mapApps._originalSet.call(this, appId, overview);
+          };
+      }
+  }
+  function unpatchAppStore() {
+      const store = window.appStore;
+      if (!store)
+          return;
+      if (store._originalGetAppOverviewByAppID) {
+          store.GetAppOverviewByAppID = store._originalGetAppOverviewByAppID;
+          delete store._originalGetAppOverviewByAppID;
+      }
+      if (store.m_mapApps?._originalSet) {
+          store.m_mapApps.set = store.m_mapApps._originalSet;
+          delete store.m_mapApps._originalSet;
+      }
+  }
+  function patchAppInfoStore() {
+      const info = window.appInfoStore;
+      if (!info || typeof info.OnAppOverviewChange !== "function" || info._originalOnAppOverviewChange)
+          return;
+      info._originalOnAppOverviewChange = info.OnAppOverviewChange;
+      info.OnAppOverviewChange = function (apps) {
+          for (const app of apps || []) {
+              const rawId = typeof app?.appid === "function" ? app.appid() : app?.appid;
+              const overview = rawId != null
+                  ? window.appStore?.GetAppOverviewByAppID?.(Number(rawId)) || app
+                  : app;
+              applyPlaytime(overview);
+          }
+          return info._originalOnAppOverviewChange.apply(this, arguments);
+      };
+  }
+  function unpatchAppInfoStore() {
+      const info = window.appInfoStore;
+      if (info?._originalOnAppOverviewChange) {
+          info.OnAppOverviewChange = info._originalOnAppOverviewChange;
+          delete info._originalOnAppOverviewChange;
       }
   }
   function isEnvironmentReady() {
       try {
-          localStorage.setItem("__rp_test__", "1");
-          localStorage.removeItem("__rp_test__");
           if (!window.appStore || typeof window.appStore.GetAppOverviewByAppID !== "function")
               return false;
           if (!window.appInfoStore)
               return false;
+          if (!window.SteamClient?.Apps?.GetPlaytime)
+              return false;
           return true;
       }
       catch {
           return false;
       }
   }
-  // --- Playtime logic ---
-  function restoreSavedPlaytimes() {
-      if (!playtimeEnabled)
-          return;
-      const data = loadPlaytimeData();
-      if (!window.appStore?.GetAppOverviewByAppID)
-          return;
-      let removedCount = 0;
-      for (const [id, entry] of Object.entries(data)) {
-          const ov = appStore.GetAppOverviewByAppID(Number(id));
-          if (ov) {
-              ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
-              ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
-              ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
-              ov.TriggerChange?.();
-          }
-          else {
-              delete data[id];
-              removedCount++;
-          }
-      }
-      if (removedCount > 0)
-          savePlaytimeData(data);
-  }
-  function applyRealSessionToOverview(appOverview) {
-      if (!playtimeEnabled)
-          return false;
-      try {
-          if (!appOverview || appOverview.app_type !== 1073741824)
-              return false;
-          const start = appOverview.rt_last_time_played;
-          const end = appOverview.rt_last_time_locally_played;
-          if (!start || !end || end <= start)
-              return false;
-          const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-          const sessionSeconds = end - start;
-          const sessionMinutes = Math.floor(sessionSeconds / 60);
-          if (sessionMinutes <= 0)
-              return false;
-          const data = loadPlaytimeData();
-          const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-          const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
-          const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
-          const newTotal = prevEntry.total + addedMinutes;
-          if (newTotal === prevEntry.total)
-              return false;
-          data[appId] = { total: newTotal, lastSessionEnd: effectiveEnd };
-          savePlaytimeData(data);
-          appliedSessions[appId] = effectiveEnd;
-          appOverview.minutes_playtime_forever = newTotal;
-          appOverview.minutes_playtime_last_two_weeks = newTotal;
-          appOverview.nPlaytimeForever = newTotal;
-          appOverview.TriggerChange?.();
-          return true;
-      }
-      catch {
-          return false;
-      }
-  }
-  // --- Patch/unpatch functions ---
-  function patchAppStore() {
-      if (!window.appStore?.m_mapApps)
-          return;
-      if (appStore.m_mapApps._originalSet)
-          return;
-      appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
-      appStore.m_mapApps.set = function (appId, appOverview) {
-          const result = appStore.m_mapApps._originalSet.call(this, appId, appOverview);
-          restoreSavedPlaytimes();
-          applyRealSessionToOverview(appOverview);
-          return result;
-      };
-  }
-  function unpatchAppStore() {
-      if (window.appStore?.m_mapApps?._originalSet) {
-          appStore.m_mapApps.set = appStore.m_mapApps._originalSet;
-          delete appStore.m_mapApps._originalSet;
-      }
-  }
-  function patchAppInfoStore() {
-      if (!window.appInfoStore)
-          return;
-      if (appInfoStore._originalOnAppOverviewChange)
-          return;
-      appInfoStore._originalOnAppOverviewChange = appInfoStore.OnAppOverviewChange;
-      appInfoStore.OnAppOverviewChange = function (apps) {
-          for (const a of apps || []) {
-              const id = typeof a?.appid === "function" ? a.appid() : a?.appid;
-              const overview = id && appStore?.GetAppOverviewByAppID
-                  ? appStore.GetAppOverviewByAppID(Number(id))
-                  : a;
-              if (overview) {
-                  restoreSavedPlaytimes();
-                  applyRealSessionToOverview(overview);
-              }
-          }
-          return appInfoStore._originalOnAppOverviewChange.call(this, apps);
-      };
-  }
-  function unpatchAppInfoStore() {
-      if (window.appInfoStore?._originalOnAppOverviewChange) {
-          appInfoStore.OnAppOverviewChange = appInfoStore._originalOnAppOverviewChange;
-          delete appInfoStore._originalOnAppOverviewChange;
-      }
-  }
-  function manualPatch() {
-      if (!playtimeEnabled)
-          return;
-      try {
-          const m = location.pathname.match(/\/library\/app\/(\d+)/);
-          if (m) {
-              const id = Number(m[1]);
-              const ov = appStore.GetAppOverviewByAppID(id);
-              if (ov) {
-                  restoreSavedPlaytimes();
-                  applyRealSessionToOverview(ov);
-                  appInfoStore?.OnAppOverviewChange?.([ov]);
-              }
-          }
-      }
-      catch { }
-  }
-  // --- Public API ---
   function setPlaytimeEnabled(enabled) {
       playtimeEnabled = enabled;
       if (!enabled) {
-          // unpatch if disabled
           unpatchAppStore();
           unpatchAppInfoStore();
       }
       else {
-          // re-patch if enabled
           patchAppStore();
           patchAppInfoStore();
-          manualPatch();
+          if (window.appStore?.m_mapApps) {
+              for (const overview of window.appStore.m_mapApps.values()) {
+                  applyPlaytime(overview);
+              }
+          }
       }
   }
   function initRealPlaytime(enabled = true, retryCount = 0) {
@@ -1871,10 +1816,13 @@
       }
       try {
           setTimeout(() => {
-              restoreSavedPlaytimes();
               patchAppStore();
               patchAppInfoStore();
-              manualPatch();
+              if (window.appStore?.m_mapApps) {
+                  for (const overview of window.appStore.m_mapApps.values()) {
+                      applyPlaytime(overview);
+                  }
+              }
           }, 100);
       }
       catch { }

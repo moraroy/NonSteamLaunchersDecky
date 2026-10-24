@@ -1,224 +1,169 @@
 import { useEffect } from "react";
 
-const STORAGE_KEY = "realPlaytimeData";
-
-interface PlaytimeDataEntry {
-  total: number;
-  lastSessionEnd: number;
+interface PlaytimeCacheEntry {
+  forever: number;
+  twoWeeks: number;
+  lastPlayed: number;
 }
 
-let memoryCache: Record<string, PlaytimeDataEntry> | null = null;
-const appliedSessions: Record<string, number> = {};
+const pending = new Set<number>();
+const playtimeCache = new Map<number, PlaytimeCacheEntry>();
+const runningStates = new Map<number, boolean>();
 let playtimeEnabled = true;
 
-// --- Utility functions ---
-function isValidPlaytimeDataEntry(entry: any): entry is PlaytimeDataEntry {
-  return (
-    typeof entry === "object" &&
-    entry !== null &&
-    typeof entry.total === "number" &&
-    typeof entry.lastSessionEnd === "number"
-  );
-}
-
-function sanitizePlaytimeData(data: any): Record<string, PlaytimeDataEntry> {
-  if (typeof data !== "object" || data === null) return {};
-  const cleaned: Record<string, PlaytimeDataEntry> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (isValidPlaytimeDataEntry(value)) cleaned[key] = value;
+try {
+  if (localStorage.getItem("realPlaytimeData") !== null) {
+    localStorage.removeItem("realPlaytimeData");
+    console.log("Removed deprecated 'realPlaytimeData' from localStorage.");
   }
-  return cleaned;
-}
+} catch {}
 
-function loadPlaytimeData(): Record<string, PlaytimeDataEntry> {
+async function fetchAndCachePlaytime(appId: number) {
+  if (pending.has(appId)) return;
+  pending.add(appId);
   try {
-    if (memoryCache) return memoryCache;
-
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      memoryCache = {};
-      return memoryCache;
+    const steamClient = (window as any).SteamClient;
+    const playtime = await steamClient?.Apps?.GetPlaytime?.(appId);
+    if (playtime) {
+      playtimeCache.set(appId, {
+        forever: Number(playtime.nPlaytimeForever) || 0,
+        twoWeeks: Number(playtime.nPlaytimeLastTwoWeeks) || 0,
+        lastPlayed: Number(playtime.rtLastTimePlayed) || 0,
+      });
     }
-
-    const parsed = JSON.parse(raw);
-    const cleaned = sanitizePlaytimeData(parsed);
-
-    if (Object.keys(cleaned).length !== Object.keys(parsed || {}).length) {
-      savePlaytimeData(cleaned);
-    }
-
-    memoryCache = cleaned;
-    return memoryCache;
-  } catch {
-    memoryCache = {};
-    return memoryCache;
+  } catch (err) {
+    console.warn("Steam playtime fetch failed:", err);
+  } finally {
+    pending.delete(appId);
   }
 }
 
-function savePlaytimeData(data: Record<string, PlaytimeDataEntry>) {
-  try {
-    const latestFromStorage: Record<string, PlaytimeDataEntry> =
-      JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    const merged: Record<string, PlaytimeDataEntry> = { ...latestFromStorage, ...data };
-    memoryCache = merged;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-  } catch {
-    memoryCache = data;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function applyPlaytime(appOverview: any) {
+  if (!playtimeEnabled || !appOverview || appOverview.app_type !== 1073741824) return;
+
+  const rawId = typeof appOverview.appid === "function"
+    ? appOverview.appid()
+    : appOverview.appid ?? appOverview.appId;
+
+  const appId = Number(rawId);
+  if (!Number.isFinite(appId) || appId <= 0) return;
+
+  const isRunning = !!appOverview.bIsRunning;
+  const wasRunning = runningStates.get(appId) || false;
+
+  if (wasRunning && !isRunning) {
+    playtimeCache.delete(appId);
+  }
+  runningStates.set(appId, isRunning);
+
+  if (!playtimeCache.has(appId)) {
+    fetchAndCachePlaytime(appId).then(() => {
+      appOverview.TriggerChange?.();
+    });
+  }
+
+  const cached = playtimeCache.get(appId);
+  if (cached) {
+    appOverview.minutes_playtime_forever = cached.forever;
+    appOverview.nPlaytimeForever = cached.forever;
+
+    appOverview.minutes_playtime_last_two_weeks = cached.twoWeeks;
+    appOverview.nPlaytimeLastTwoWeeks = cached.twoWeeks;
+
+    if (cached.lastPlayed > 0) {
+      appOverview.rt_last_time_played = cached.lastPlayed;
+    }
+
+    appOverview.TriggerChange?.();
+  }
+}
+
+function patchAppStore() {
+  const store = (window as any).appStore;
+  if (!store) return;
+
+  if (typeof store.GetAppOverviewByAppID === "function" && !store._originalGetAppOverviewByAppID) {
+    store._originalGetAppOverviewByAppID = store.GetAppOverviewByAppID;
+    store.GetAppOverviewByAppID = function (appId: number) {
+      const overview = store._originalGetAppOverviewByAppID.call(this, appId);
+      applyPlaytime(overview);
+      return overview;
+    };
+  }
+
+  if (store.m_mapApps && !store.m_mapApps._originalSet) {
+    store.m_mapApps._originalSet = store.m_mapApps.set;
+    store.m_mapApps.set = function (appId: any, overview: any) {
+      applyPlaytime(overview);
+      return store.m_mapApps._originalSet.call(this, appId, overview);
+    };
+  }
+}
+
+function unpatchAppStore() {
+  const store = (window as any).appStore;
+  if (!store) return;
+
+  if (store._originalGetAppOverviewByAppID) {
+    store.GetAppOverviewByAppID = store._originalGetAppOverviewByAppID;
+    delete store._originalGetAppOverviewByAppID;
+  }
+
+  if (store.m_mapApps?._originalSet) {
+    store.m_mapApps.set = store.m_mapApps._originalSet;
+    delete store.m_mapApps._originalSet;
+  }
+}
+
+function patchAppInfoStore() {
+  const info = (window as any).appInfoStore;
+  if (!info || typeof info.OnAppOverviewChange !== "function" || info._originalOnAppOverviewChange) return;
+
+  info._originalOnAppOverviewChange = info.OnAppOverviewChange;
+  info.OnAppOverviewChange = function (apps: any[]) {
+    for (const app of apps || []) {
+      const rawId = typeof app?.appid === "function" ? app.appid() : app?.appid;
+      const overview = rawId != null
+        ? (window as any).appStore?.GetAppOverviewByAppID?.(Number(rawId)) || app
+        : app;
+      applyPlaytime(overview);
+    }
+    return info._originalOnAppOverviewChange.apply(this, arguments as any);
+  };
+}
+
+function unpatchAppInfoStore() {
+  const info = (window as any).appInfoStore;
+  if (info?._originalOnAppOverviewChange) {
+    info.OnAppOverviewChange = info._originalOnAppOverviewChange;
+    delete info._originalOnAppOverviewChange;
   }
 }
 
 function isEnvironmentReady() {
   try {
-    localStorage.setItem("__rp_test__", "1");
-    localStorage.removeItem("__rp_test__");
-    if (!window.appStore || typeof window.appStore.GetAppOverviewByAppID !== "function") return false;
-    if (!window.appInfoStore) return false;
+    if (!(window as any).appStore || typeof (window as any).appStore.GetAppOverviewByAppID !== "function") return false;
+    if (!(window as any).appInfoStore) return false;
+    if (!(window as any).SteamClient?.Apps?.GetPlaytime) return false;
     return true;
   } catch {
     return false;
   }
 }
 
-// --- Playtime logic ---
-function restoreSavedPlaytimes() {
-  if (!playtimeEnabled) return;
-  const data = loadPlaytimeData();
-  if (!window.appStore?.GetAppOverviewByAppID) return;
-
-  let removedCount = 0;
-
-  for (const [id, entry] of Object.entries(data)) {
-    const ov = appStore.GetAppOverviewByAppID(Number(id));
-    if (ov) {
-      ov.minutes_playtime_forever = Math.max(ov.minutes_playtime_forever || 0, entry.total);
-      ov.minutes_playtime_last_two_weeks = Math.max(ov.minutes_playtime_last_two_weeks || 0, entry.total);
-      ov.nPlaytimeForever = Math.max(ov.nPlaytimeForever || 0, entry.total);
-      ov.TriggerChange?.();
-    } else {
-      delete data[id];
-      removedCount++;
-    }
-  }
-
-  if (removedCount > 0) savePlaytimeData(data);
-}
-
-function applyRealSessionToOverview(appOverview: any): boolean {
-  if (!playtimeEnabled) return false;
-  try {
-    if (!appOverview || appOverview.app_type !== 1073741824) return false;
-
-    const start = appOverview.rt_last_time_played;
-    const end = appOverview.rt_last_time_locally_played;
-    if (!start || !end || end <= start) return false;
-
-    const appId = String(appOverview.appid || appOverview.appid?.() || appOverview.appId);
-    const sessionSeconds = end - start;
-    const sessionMinutes = Math.floor(sessionSeconds / 60);
-    if (sessionMinutes <= 0) return false;
-
-    const data = loadPlaytimeData();
-    const prevEntry = data[appId] || { total: 0, lastSessionEnd: 0 };
-
-    const effectiveEnd = Math.max(prevEntry.lastSessionEnd, end);
-    const addedMinutes = effectiveEnd > prevEntry.lastSessionEnd ? sessionMinutes : 0;
-    const newTotal = prevEntry.total + addedMinutes;
-
-    if (newTotal === prevEntry.total) return false;
-
-    data[appId] = { total: newTotal, lastSessionEnd: effectiveEnd };
-    savePlaytimeData(data);
-    appliedSessions[appId] = effectiveEnd;
-
-    appOverview.minutes_playtime_forever = newTotal;
-    appOverview.minutes_playtime_last_two_weeks = newTotal;
-    appOverview.nPlaytimeForever = newTotal;
-    appOverview.TriggerChange?.();
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// --- Patch/unpatch functions ---
-function patchAppStore() {
-  if (!window.appStore?.m_mapApps) return;
-  if (appStore.m_mapApps._originalSet) return;
-
-  appStore.m_mapApps._originalSet = appStore.m_mapApps.set;
-  appStore.m_mapApps.set = function (appId, appOverview) {
-    const result = appStore.m_mapApps._originalSet.call(this, appId, appOverview);
-    restoreSavedPlaytimes();
-    applyRealSessionToOverview(appOverview);
-    return result;
-  };
-}
-
-function unpatchAppStore() {
-  if (window.appStore?.m_mapApps?._originalSet) {
-    appStore.m_mapApps.set = appStore.m_mapApps._originalSet;
-    delete appStore.m_mapApps._originalSet;
-  }
-}
-
-function patchAppInfoStore() {
-  if (!window.appInfoStore) return;
-  if (appInfoStore._originalOnAppOverviewChange) return;
-
-  appInfoStore._originalOnAppOverviewChange = appInfoStore.OnAppOverviewChange;
-  appInfoStore.OnAppOverviewChange = function (apps) {
-    for (const a of apps || []) {
-      const id = typeof a?.appid === "function" ? a.appid() : a?.appid;
-      const overview =
-        id && appStore?.GetAppOverviewByAppID
-          ? appStore.GetAppOverviewByAppID(Number(id))
-          : a;
-      if (overview) {
-        restoreSavedPlaytimes();
-        applyRealSessionToOverview(overview);
-      }
-    }
-    return appInfoStore._originalOnAppOverviewChange.call(this, apps);
-  };
-}
-
-function unpatchAppInfoStore() {
-  if (window.appInfoStore?._originalOnAppOverviewChange) {
-    appInfoStore.OnAppOverviewChange = appInfoStore._originalOnAppOverviewChange;
-    delete appInfoStore._originalOnAppOverviewChange;
-  }
-}
-
-function manualPatch() {
-  if (!playtimeEnabled) return;
-  try {
-    const m = location.pathname.match(/\/library\/app\/(\d+)/);
-    if (m) {
-      const id = Number(m[1]);
-      const ov = appStore.GetAppOverviewByAppID(id);
-      if (ov) {
-        restoreSavedPlaytimes();
-        applyRealSessionToOverview(ov);
-        appInfoStore?.OnAppOverviewChange?.([ov]);
-      }
-    }
-  } catch {}
-}
-
-// --- Public API ---
 export function setPlaytimeEnabled(enabled: boolean) {
   playtimeEnabled = enabled;
   if (!enabled) {
-    // unpatch if disabled
     unpatchAppStore();
     unpatchAppInfoStore();
   } else {
-    // re-patch if enabled
     patchAppStore();
     patchAppInfoStore();
-    manualPatch();
+    if ((window as any).appStore?.m_mapApps) {
+      for (const overview of (window as any).appStore.m_mapApps.values()) {
+        applyPlaytime(overview);
+      }
+    }
   }
 }
 
@@ -234,10 +179,13 @@ export function initRealPlaytime(enabled = true, retryCount = 0) {
 
   try {
     setTimeout(() => {
-      restoreSavedPlaytimes();
       patchAppStore();
       patchAppInfoStore();
-      manualPatch();
+      if ((window as any).appStore?.m_mapApps) {
+        for (const overview of (window as any).appStore.m_mapApps.values()) {
+          applyPlaytime(overview);
+        }
+      }
     }, 100);
   } catch {}
 }
