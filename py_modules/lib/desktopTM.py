@@ -1422,6 +1422,8 @@ eval_id_counter = itertools.count(1000)
 
 
 ### METADATA ONLY
+
+### METADATA ONLY
 METADATA_CODE = r"""
 (function () {
     if (window.__MY_METADATA_SCRIPT_LOADED__) return;
@@ -1589,14 +1591,18 @@ METADATA_CODE = r"""
     }
 
     async function hltbSearch(query) {
-        const r = await fetch("https://search.tiago.zip/api", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query, type: "web", page: 0 })
-        });
-        if (!r.ok) throw new Error();
-        const data = await r.json();
-        return data.results?.web?.results || [];
+        try {
+            const r = await fetch("https://search.tiago.zip/api", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query, type: "web", page: 0 })
+            });
+            if (!r.ok) return [];
+            const data = await r.json();
+            return data.results?.web?.results || [];
+        } catch {
+            return [];
+        }
     }
 
     function getMainStory(result) {
