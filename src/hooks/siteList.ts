@@ -48,6 +48,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/6458ed5e1bb03b8da47c065c2f647b26.jpg'
   },
   {
+    name: 'xodusNexus',
+    label: 'Xodus Nexus',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFBrjnf8RbCh_HKlbSS0ZbM8cXb4STnruLcHVOBSfIa-ZogdRHyo1glAs&s=10'
+  },
+  {
     name: 'legacyGames',
     label: 'Legacy Games',
     URL: '',
@@ -62,6 +70,14 @@ export const sitesList = [
     streaming: false,
     enabled: false,
     urlimage: 'https://i.pcmag.com/imagery/reviews/044PXMK6FlED1dNwOXkecXV-4.fit_scale.size_1028x578.v1597354669.jpg'
+  },
+  {
+    name: 'purpleLauncher',
+    label: 'PURPLE Launcher',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://media.mmorpg.com/images/heroes/posts/130366.jpg?cb=F126C2B6FD7D56BCC663A19906276745'
   },
   {
     name: 'humbleGames',
@@ -226,7 +242,7 @@ export const sitesList = [
   },
   {
     name: 'fortnite',
-    label: 'Fortnite (xCloud)',
+    label: 'Fortnite',
     URL: 'https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2',
     streaming: true,
     enabled: false,

@@ -35,6 +35,7 @@ from scanners.indie_scanner import indie_scanner
 from scanners.humble_scanner import humble_scanner
 from scanners.stove_scanner import stove_scanner
 from scanners.gryphlink_scanner import gryphlink_scanner
+from scanners.rockstar_scanner import rockstar_scanner
 
 from scanners.geforcenow_scanner import geforcenow_scanner
 from scanners.rpw_scanner import rpw_scanner
@@ -42,6 +43,7 @@ from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
 from scanners.flatpak_scanner import flatpak_scanner
 from scanners.microsoftxbox_scanner import microsoftxbox_scanner
+from scanners.xodusnexus_scanner import xodusnexus_scanner
 
 
 
@@ -90,7 +92,7 @@ def initialiseVariables(env_vars):
     global steamid3, logged_in_home, compat_tool_name, controller_config_path
     global epic_games_launcher, ubisoft_connect_launcher, ea_app_launcher
     global gog_galaxy_launcher, bnet_launcher, amazon_launcher, itchio_launcher
-    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher, gryphlink_launcher
+    global legacy_launcher, vkplay_launcher, hoyoplay_launcher, gamejolt_launcher, gryphlink_launcher, rockstar_launcher
     global humble_launcher, stove_launcher, geforcenow_launcher, microsoftxbox_launcher, bigfish_launcher
     global minecraft_launcher, indie_launcher, epicshortcutdirectory, gogshortcutdirectory, uplayshortcutdirectory
     global battlenetshortcutdirectory, eaappshortcutdirectory, amazonshortcutdirectory, gryphlinkshortcutdirectory
@@ -100,8 +102,8 @@ def initialiseVariables(env_vars):
     global hoyoplayshortcutdirectory, gamejoltshortcutdirectory, artixgameshortcutdirectory
     global arcshortcutdirectory, poketcgshortcutdirectory, antstreamshortcutdirectory
     global vfunshortcutdirectory, temposhortcutdirectory, repaireaappshortcutdirectory, chromedirectory
-    global stoveshortcutdirectory, bigfishshortcutdirectory
-    global microsoftxbox_launcher
+    global stoveshortcutdirectory, bigfishshortcutdirectory, purpleshortcutdirectory
+    global microsoftxbox_launcher, xodusnexshortcutdirectory
 
     
     steamid3 = env_vars.get('steamid3')
@@ -127,6 +129,8 @@ def initialiseVariables(env_vars):
     stove_launcher = env_vars.get('stove_launcher', '')
     bigfish_launcher = env_vars.get('bigfish_launcher', '')
     gryphlink_launcher = env_vars.get('gryphlink_launcher', '')
+    rockstar_launcher = env_vars.get('rockstar_launcher', '')
+
 
     microsoftxbox_launcher = env_vars.get('microsoftxbox_launcher', '')
 
@@ -156,10 +160,12 @@ def initialiseVariables(env_vars):
     stoveshortcutdirectory = env_vars.get('stoveshortcutdirectory')
     bigfishshortcutdirectory = env_vars.get('bigfishshortcutdirectory')
     gryphlinkshortcutdirectory = env_vars.get('gryphlinkshortcutdirectory')
+    purpleshortcutdirectory = env_vars.get('purpleshortcutdirectory')
 
     repaireaappshortcutdirectory = env_vars.get('repaireaappshortcutdirectory')
     chromedirectory = env_vars.get('chromedirectory')
     geforcenow_launcher = "com.nvidia.geforcenow"
+    xodusnexusshortcutdirectory = env_vars.get('xodusnexusshortcutdirectory')
 
 
 
@@ -198,7 +204,9 @@ def scan():
             (humble_scanner, logged_in_home, humble_launcher, create_new_entry),
             (stove_scanner, logged_in_home, stove_launcher, create_new_entry),
             (gryphlink_scanner, logged_in_home, gryphlink_launcher, create_new_entry),
+            (rockstar_scanner, logged_in_home, rockstar_launcher, create_new_entry),
 
+            (xodusnexus_scanner, logged_in_home, create_new_entry),
             (rpw_scanner, logged_in_home, create_new_entry),
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
@@ -363,8 +371,13 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
 
 # Add or update the proton compatibility settings
-def add_compat_tool(launchoptions):
+def add_compat_tool(exe_path, launchoptions, startingdir):
     steam_compat_marker = 'STEAM_COMPAT_DATA_PATH'
+
+
+    if 'xodus' in exe_path.lower():
+        print("Exclusion: 'xodus' detected in target or start directory.")
+        return None
 
     if 'chrome' in launchoptions or 'edge' in launchoptions or 'firefox' in launchoptions or 'brave' in launchoptions or 'vivaldi' in launchoptions or 'librewolf' in launchoptions or '--appid 0' in launchoptions:
         return False
@@ -979,7 +992,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
                 else:
                     decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
 
-    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_launch_options)
+    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_exe, formatted_launch_options, startingdir)
 
     decky_entry = {
         'appname': appname,
@@ -1043,6 +1056,12 @@ def add_launchers():
         ('Big Fish Games Manager', 'bigfishshortcutdirectory', 'bigfishlaunchoptions', 'bigfishstartingdir'),
 
         ('Gryphlink', 'gryphlinkshortcutdirectory', 'gryphlinklaunchoptions', 'gryphlinkstartingdir'),
+        ('PURPLE Launcher', 'purpleshortcutdirectory', 'purplelaunchoptions', 'purplestartingdir'),
+        ('Xodus Nexus', 'xodusnexusshortcutdirectory', 'xodusnexuslaunchoptions', 'xodusnexusstartingdir'),
+
+
+
+
 
 
 

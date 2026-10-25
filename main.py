@@ -556,6 +556,10 @@ class Plugin:
 
                 {"name": 'antstreamArcade', "env_var": 'antstream_launcher', "label": 'Antstream Arcade'},
                 {"name": 'gryphlink', "env_var": 'gryphlink_launcher', "label": 'Gryphlink'},
+                {"name": 'purpleLauncher', "env_var": 'purple_launcher', "label": 'PURPLE Launcher'},
+                {"name": 'xodusNexus', "env_var": 'xodusnexuslaunchoptions', "label": 'Xodus Nexus'},
+
+
 
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"},
