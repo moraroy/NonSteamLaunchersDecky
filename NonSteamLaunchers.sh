@@ -425,8 +425,8 @@ poketcg_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonStea
 poketcg_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PokeTCGLauncher/pfx/drive_c/users/steamuser/The Pokémon Company International/Pokémon Trading Card Game Live/Pokemon TCG Live.exe"
 antstream_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/Antstream Ltd/Antstream/AntstreamArcade.exe"
 antstream_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/AntstreamLauncher/pfx/drive_c/Program Files (x86)/Antstream Ltd/Antstream/AntstreamArcade.exe"
-purple_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/PurpleLauncher.exe"
-purple_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/PurpleLauncher.exe"
+purple_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NC/Purple/PurpleLauncher.exe"
+purple_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NC/Purple/PurpleLauncher.exe"
 plarium_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay/PlariumPlay.exe"
 plarium_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/PlariumLauncher/pfx/drive_c/users/steamuser/AppData/Local/PlariumPlay/PlariumPlay.exe"
 vfun_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/VFUN/VLauncher/VFUNLauncher.exe"
@@ -911,6 +911,7 @@ launcher_entries=(
   "$bigfish_value|$bigfish_text"
   "$gryphlink_value|$gryphlink_text"
   "FALSE|Hytale"
+  "FALSE|Xodus Nexus"
   "FALSE|RemotePlayWhatever"
   "FALSE|NVIDIA GeForce NOW"
   "FALSE|Moonlight Game Streaming"
@@ -1307,12 +1308,48 @@ StartFreshFunction() {
 
     delete_path "${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
     delete_path "${logged_in_home}/.config/systemd/user/Modules"
-    delete_path "${logged_in_home}/.config/systemd/user/env_vars"
+
+
+    env_vars_file="${logged_in_home}/.config/systemd/user/env_vars"
+
+    if [ -f "$env_vars_file" ] && [ ! -L "$env_vars_file" ]; then
+        temp_file=$(mktemp) || return 1
+
+        if grep -E '^(export (separate_appids|steamid3|logged_in_home|compat_tool_name|python_version|chromedirectory|chrome_startdir)=|NSL_SCAN_STATE=)' \
+            "$env_vars_file" > "$temp_file"; then
+            chmod --reference="$env_vars_file" "$temp_file" || {
+                rm -f "$temp_file"
+                return 1
+            }
+
+            cat "$temp_file" > "$env_vars_file" || {
+                rm -f "$temp_file"
+                return 1
+            }
+        else
+            if [ $? -eq 1 ]; then
+                : > "$temp_file"
+                cat "$temp_file" > "$env_vars_file" || {
+                    rm -f "$temp_file"
+                    return 1
+                }
+            else
+                rm -f "$temp_file"
+                return 1
+            fi
+        fi
+
+        rm -f "$temp_file"
+        echo "Preserved essential environment variables in env_vars."
+    fi
+
     delete_path "${logged_in_home}/.config/systemd/user/NSLGameScanner.py"
     delete_path "${logged_in_home}/.config/systemd/user/shortcuts"
     delete_path "${logged_in_home}/.config/systemd/user/descriptions.json"
     delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever"
     delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever.desktop"
+    delete_path "${logged_in_home}/.local/share/applications/Xodus Nexus.AppImage"
+
     delete_path "${logged_in_home}/Downloads/NonSteamLaunchers-install.log"
 
     delete_path "${logged_in_home}/.config/systemd/user/nslgamescanner.service"
@@ -1504,8 +1541,8 @@ antstream_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/antstre
 
 
 #PURPLE Launcher
-purple_url=https://gs-purple-inst.download.ncupdate.com/Purple/PurpleInstaller_2_25_325_23.exe
-purple_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/PurpleInstaller_2_25_325_23.exe
+purple_url=https://gs-purple-inst.download.ncupdate.com/Purple/PURPLE_Installer_2_26_1019_7.exe
+purple_file=${logged_in_home}/Downloads/NonSteamLaunchersInstallation/PURPLE_Installer_2_26_1019_7.exe
 
 #Plarium Launcher
 plarium_url="https://installer.plarium.com/desktop?lid=1&arc=64&os=windows"
@@ -1734,7 +1771,7 @@ fi
 # Function to handle PURPLE uninstallation
 handle_uninstall_purple() {
     # Define the path to the Purple uninstaller
-    purpleun_file="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files (x86)/NCSOFT/Purple/Uninstall.exe"
+    purpleun_file="${logged_in_home}/.local/share/Steam/steamapps/compatdata/${1}/pfx/drive_c/Program Files (x86)/NC/Purple/Uninstall.exe"
 
     # Call the common uninstallation handler with necessary parameters
     handle_uninstall_common "$1" "$purpleun_file" "/S" "PURPLE Launcher"
@@ -1951,13 +1988,13 @@ process_uninstall_options() {
         fi
         # Uninstall PURPLE Launcher
         if [[ $uninstall_options == *"Uninstall PURPLE Launcher"* ]]; then
-            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT" ]]; then
+            if [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NC" ]]; then
                 handle_uninstall_purple "NonSteamLaunchers"
-                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NCSOFT" "" "purple"
+                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamLaunchers/pfx/drive_c/Program Files (x86)/NC" "" "purple"
                 sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
-            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT" ]]; then
+            elif [[ -d "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NC" ]]; then
                 handle_uninstall_purple "PURPLELauncher"
-                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NCSOFT" "" "purple"
+                uninstall_launcher "$uninstall_options" "PURPLE Launcher" "$purple_path1" "$purple_path2" "${logged_in_home}/.local/share/Steam/steamapps/compatdata/PURPLELauncher/pfx/drive_c/Program Files (x86)/NC" "" "purple"
                 sed -i '' "${logged_in_home}/.config/systemd/user/env_vars"
             fi
         fi
@@ -1997,6 +2034,20 @@ process_uninstall_options() {
             fi
         fi
 
+
+
+        if [[ $uninstall_options == *"Uninstall Xodus Nexus"* ]]; then
+            rm -rf "${logged_in_home}/.local/share/applications/Xodus Nexus.AppImage"
+
+            # Clean up/delete its variables from the env_vars file instead of deleting the whole file
+            if [[ -f "${logged_in_home}/.config/systemd/user/env_vars" ]]; then
+                sed -i '/xodusnexus/d' "${logged_in_home}/.config/systemd/user/env_vars"
+            fi
+
+            zenity --info --text="Xodus Nexus has been uninstalled." --width=200 --height=150 &
+            sleep 3
+            killall zenity
+        fi
 
 
 
@@ -2129,6 +2180,7 @@ else
             FALSE "Pokémon Trading Card Game Live" \
             FALSE "Antstream Arcade" \
             FALSE "Big Fish Games Manager" \
+            FALSE "Xodus Nexus" \
             FALSE "RemotePlayWhatever" \
             FALSE "NVIDIA GeForce NOW" \
             FALSE "STOVE Client" \
@@ -3491,6 +3543,19 @@ eaapp_path1="${logged_in_home}/.local/share/Steam/steamapps/compatdata/NonSteamL
 eaapp_path2="${logged_in_home}/.local/share/Steam/steamapps/compatdata/TheEAappLauncher/pfx/drive_c/users/steamuser/Downloads/EAappInstaller.exe"
 check_and_write "repaireaapp" "$eaapp_path1" "$eaapp_path2" "NonSteamLaunchers" "TheEAappLauncher" "" "repaireaapp"
 
+
+
+# Xodus Nexus (Native AppImage - No Steam Compatdata needed)
+xoduspath1="${logged_in_home}/.local/share/applications/Xodus Nexus.AppImage"
+if [[ -f "$xoduspath1" ]]; then
+    echo "export xodusnexusshortcutdirectory=\"${xoduspath1}\"" >> "${logged_in_home}/.config/systemd/user/env_vars"
+    echo "export xodusnexuslaunchoptions=" >> "${logged_in_home}/.config/systemd/user/env_vars"
+    echo "export xodusnexusstartingdir=\"$(dirname "${xoduspath1}")\"" >> "${logged_in_home}/.config/systemd/user/env_vars"
+    echo "Xodusnexus Launcher found at ${xoduspath1}"
+else
+    echo "Xodusnexus Launcher not found"
+fi
+
 # End of writing to env_vars
 
 # Set the env_vars variable
@@ -3542,6 +3607,42 @@ if [[ $options == *"RemotePlayWhatever"* ]]; then
     sleep 5
     echo "added RemotePlayWhatever to steamos"
 fi
+
+
+
+
+# Xodus Nexus
+if [[ $options == *"Xodus Nexus"* ]]; then
+    DIRECTORY="${logged_in_home}/.local/share/applications"
+    mkdir -p "$DIRECTORY"
+
+    # Get the latest Xodus Nexus AppImage URL
+    RELEASE_URL=$(curl -fsSL \
+        https://api.github.com/repos/domsvoboda/xodus-nexus/releases/latest |
+        grep -oE 'https://[^"]*Xodus-Nexus-[^"]*x86_64\.AppImage' |
+        head -n 1)
+
+    if [[ -z "$RELEASE_URL" ]]; then
+        echo "Failed to find the Xodus Nexus AppImage release."
+    fi
+
+    # Set the clean, unified filename
+    TARGET_FILE="$DIRECTORY/Xodus Nexus.AppImage"
+
+    # Remove any existing older version to ensure it always replaces with the latest
+    if [[ -f "$TARGET_FILE" ]]; then
+        rm -f "$TARGET_FILE"
+    fi
+
+    # Download and save it directly under the clean new name
+    wget -O "$TARGET_FILE" "$RELEASE_URL"
+
+    # Make it executable
+    chmod +x "$TARGET_FILE"
+
+    echo "Xodus Nexus updated and downloaded to $TARGET_FILE"
+fi
+
 
 
 # Set Chrome options based on user's selection
