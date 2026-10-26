@@ -1315,7 +1315,7 @@ StartFreshFunction() {
     if [ -f "$env_vars_file" ] && [ ! -L "$env_vars_file" ]; then
         temp_file=$(mktemp) || return 1
 
-        if grep -E '^(export (separate_appids|steamid3|logged_in_home|compat_tool_name|python_version|chromedirectory|chrome_startdir)=|NSL_SCAN_STATE=)' \
+        if grep -E '^(export (steamid3|logged_in_home|python_version|chromedirectory|chrome_startdir)=|NSL_SCAN_STATE=)' \
             "$env_vars_file" > "$temp_file"; then
             chmod --reference="$env_vars_file" "$temp_file" || {
                 rm -f "$temp_file"
@@ -2592,6 +2592,12 @@ function install_battlenet {
 }
 
 
+function install_purple {
+    terminate_processes "Setup.exe"
+    sleep 10
+    pkill "PURPLE_Installe"
+}
+
 # Amazon Games specific installation steps
 function install_amazon {
     terminate_processes "Amazon Games.exe"
@@ -3059,7 +3065,7 @@ install_launcher "Pokémon Trading Card Game Live" "PokeTCGLauncher" "$poketcg_f
 install_launcher "Antstream Arcade" "AntstreamLauncher" "$antstream_file" "$antstream_url" "$antstream_file /quiet" "91" "" ""
 
 # Install Purple Launcher
-install_launcher "PURPLE Launcher" "PURPLELauncher" "$purple_file" "$purple_url" "$purple_file /S" "92" "" ""
+install_launcher "PURPLE Launcher" "PURPLELauncher" "$purple_file" "$purple_url" "$purple_file /S" "92" "" "install_purple" true
 
 # Install Plarium Launcher
 install_launcher "Plarium Play" "PlariumLauncher" "$plarium_file" "$plarium_url" "$plarium_file /S" "93" "" ""
