@@ -168,6 +168,22 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
   },
   {
+    name: 'heroicGamesLauncher',
+    label: 'Heroic Games Launcher',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://raw.githubusercontent.com/Heroic-Games-Launcher/HeroicGamesLauncher/main/public/icon.png'
+  },
+  {
+    name: 'prismLauncher',
+    label: 'Prism Launcher',
+    URL: '',
+    streaming: false,
+    enabled: false,
+    urlimage: 'https://raw.githubusercontent.com/PrismLauncher/PrismLauncher/develop/program_info/org.prismlauncher.PrismLauncher.svg'
+  },
+  {
     name: 'gryphlink',
     label: 'Gryphlink',
     URL: '',
@@ -196,6 +212,7 @@ export const sitesList = [
     label: 'Hytale',
     URL: '',
     streaming: false,
+    x86Only: true,
     enabled: false,
     urlimage: 'https://cdn2.steamgriddb.com/thumb/8474b278f3d751b0a743e97ff395d23a.jpg'
   },
@@ -204,6 +221,7 @@ export const sitesList = [
     label: 'NVIDIA GeForce NOW',
     URL: '',
     streaming: false,
+    x86Only: true,
     enabled: false,
     urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/b2619bbe281deeefea3675dfed719fd7.jpg'
   },

@@ -35,7 +35,14 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   console.log('Content rendered');
 
-  const launcherOptions = initialOptions.filter((option) => option.streaming === false);
+  // Hide launchers that only ship x86_64 Linux builds when the backend runs on arm64
+  const [isArm64, setIsArm64] = useState(false);
+  useEffect(() => {
+    serverAPI.callPluginMethod('is_arm64', {}).then((res) => setIsArm64(res.success && res.result === true));
+  }, []);
+  const launcherOptions = initialOptions.filter(
+    (option) => option.streaming === false && !(isArm64 && 'x86Only' in option && option.x86Only)
+  );
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
   const { settings, setAutoScan, setPlaytimeEnabled, } = useSettings(serverAPI);

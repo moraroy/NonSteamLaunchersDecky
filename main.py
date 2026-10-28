@@ -35,6 +35,10 @@ from subprocess import Popen, run
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 
+# aarch64 hosts (SteamOS arm64, ArmadaOS) run the arm64 installer
+from scanners.host_arch import IS_ARM64, FLATPAK_ARCH
+NSL_SCRIPT = "NonSteamLaunchers-arm64.sh" if IS_ARM64 else "NonSteamLaunchers.sh"
+
 def camel_to_snake(s):
     """Convert camelCase to snake_case."""
     return re.sub(r'([a-z])([A-Z])', r'\1_\2', s).lower()
@@ -564,8 +568,19 @@ class Plugin:
                 # exception
                 {"name": 'remotePlayWhatever', "env_var": None, "label": 'RemotePlayWhatever', "file_check": f"{decky_user_home}/.local/share/applications/RemotePlayWhatever"},
                 {"name": 'nvidiaGeForcenow', "env_var": None, "label": 'NVIDIA GeForce NOW', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.nvidia.geforcenow/x86_64/master/active/files/bin/GeForceNOW"},
-                {"name": 'moonlightGameStreaming', "env_var": None, "label": 'Moonlight', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.moonlight_stream.Moonlight/x86_64/stable/active/files/bin/moonlight"},
+                {"name": 'moonlightGameStreaming', "env_var": None, "label": 'Moonlight', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.moonlight_stream.Moonlight/{FLATPAK_ARCH}/stable/active/files/bin/moonlight"},
                 {"name": 'hytale', "env_var": None, "label": 'Hytale', "file_check": f"{decky_user_home}/.local/share/flatpak/app/com.hypixel.HytaleLauncher/current/active/files/bin/hytale-launcher-wrapper"},
+                # Native launchers: a distro-provided install (ArmadaOS ships Heroic) counts too
+                {"name": 'heroicGamesLauncher', "env_var": None, "label": 'Heroic Games Launcher', "file_check": [
+                    "/usr/bin/heroic",
+                    f"{decky_user_home}/.local/share/applications/Heroic.AppImage",
+                    f"{decky_user_home}/.local/share/flatpak/app/com.heroicgameslauncher.hgl/current",
+                    "/var/lib/flatpak/app/com.heroicgameslauncher.hgl/current",
+                ]},
+                {"name": 'prismLauncher', "env_var": None, "label": 'Prism Launcher', "file_check": [
+                    f"{decky_user_home}/.local/share/flatpak/app/org.prismlauncher.PrismLauncher/current",
+                    "/var/lib/flatpak/app/org.prismlauncher.PrismLauncher/current",
+                ]},
             ]
 
             installed_launchers = []
@@ -575,16 +590,11 @@ class Plugin:
             env_vars = {}
 
             try:
-                # Check if the env_vars file exists
-                if not os.path.exists(env_vars_path):
-                    await ws.send_json({"installedLaunchers": []})
-                    await ws.close()
-                    return
-
-
-                # Read the env_vars file
-                with open(env_vars_path, 'r') as f:
-                    lines = f.readlines()
+                # Read the env_vars file; without one, only the file checks below can match
+                lines = []
+                if os.path.exists(env_vars_path):
+                    with open(env_vars_path, 'r') as f:
+                        lines = f.readlines()
 
                 # Parse the lines and extract launcher-related environment variables
                 for line in lines:
@@ -603,7 +613,8 @@ class Plugin:
 
                     # Check if the launcher has a file check (like 'remotePlayWhatever')
                     if launcher_file_check:
-                        if os.path.exists(launcher_file_check):
+                        paths = launcher_file_check if isinstance(launcher_file_check, list) else [launcher_file_check]
+                        if any(os.path.exists(p) for p in paths):
                             installed_launchers.append(launcher_name)
 
                     # Otherwise, check the environment variable (standard launchers)
@@ -870,6 +881,9 @@ class Plugin:
     async def get_setting(self, key, default):
         return self.settings.getSetting(key, default)
 
+    async def is_arm64(self):
+        return IS_ARM64
+
     async def install(self, selected_options, install_chrome, separate_app_ids, start_fresh, nslgamesaves, update_proton_ge, note, up, operation="Install"):
         decky_plugin.logger.info('install was called')
 
@@ -899,7 +913,7 @@ class Plugin:
 
 
         # Make the script executable
-        script_path = os.path.join(DECKY_PLUGIN_DIR, 'NonSteamLaunchers.sh')
+        script_path = os.path.join(DECKY_PLUGIN_DIR, NSL_SCRIPT)
         os.chmod(script_path, 0o755)
 
         # Temporarily disable access control for the X server
