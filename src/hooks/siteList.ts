@@ -291,6 +291,14 @@ export const sitesList = [
     urlimage: 'https://cdn2.steamgriddb.com/thumb/a2ef91e05d923e48e5f1ad1826cb77de.jpg'
   },
   {
+    name: 'pokebonk',
+    label: 'Pokébonk',
+    URL: 'https://www.pokebonk.com',
+    streaming: true,
+    enabled: false,
+    urlimage: 'https://retrogems.fr/wp-content/uploads/2026/10/pokebonk-1024x576.jpg'
+  },
+  {
     name: 'geforceNow',
     label: 'GeForce Now',
     URL: 'https://play.geforcenow.com',

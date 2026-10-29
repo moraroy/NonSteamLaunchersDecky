@@ -261,7 +261,7 @@ fi
 exec > >(tee -a "$log_file") 2>&1
 
 # Version number (major.minor)
-version=v4.2.86
+version=v4.2.94
 #NSL DECKY VERSION (NO RCE)
 
 
@@ -933,6 +933,7 @@ chrome_entries=(
   "FALSE|Venge"
   "FALSE|Super Monkey Ball Online"
   "FALSE|PokéRogue"
+  "FALSE|Pokébonk"
   "FALSE|Xbox Game Pass"
   "FALSE|Better xCloud"
   "FALSE|GeForce Now"
@@ -3254,7 +3255,7 @@ echo "99"
 echo "# Checking if Chrome is installed...please wait..."
 
 # Check if user selected any of the options
-if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Super Monkey Ball Online"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Better xCloud"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Youtube TV"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
+if [[ $options == *"Apple TV+"* ]] || [[ $options == *"Super Monkey Ball Online"* ]] || [[ $options == *"Plex"* ]] || [[ $options == *"Crunchyroll"* ]] || [[ $options == *"WebRcade"* ]] || [[ $options == *"WebRcade Editor"* ]] || [[ $options == *"Netflix"* ]] || [[ $options == *"Fortnite"* ]] || [[ $options == *"Venge"* ]] || [[ $options == *"Xbox Game Pass"* ]] || [[ $options == *"Better xCloud"* ]] || [[ $options == *"Geforce Now"* ]] || [[ $options == *"Boosteroid Cloud Gaming"* ]] || [[ $options == *"Amazon Luna"* ]] || [[ $options == *"Hulu"* ]] || [[ $options == *"Tubi"* ]] || [[ $options == *"Disney+"* ]] || [[ $options == *"Amazon Prime Video"* ]] || [[ $options == *"Youtube"* ]] || [[ $options == *"Youtube TV"* ]] || [[ $options == *"Twitch"* ]] || [[ $options == *"Stim.io"* ]] || [[ $options == *"WatchParty"* ]] || [[ $options == *"PokéRogue"* ]] || [[ $options == *"Pokébonk"* ]] || [[ $options == *"Afterplay.io"* ]] || [[ $options == *"OnePlay"* ]] || [[ $options == *"AirGPU"* ]] || [[ $options == *"CloudDeck"* ]] || [[ $options == *"JioGamesCloud"* ]]; then
 
     # User selected one of the options
     echo "User selected one of the options"
@@ -3411,6 +3412,86 @@ if [[ $options == *"Hytale"* ]]; then
     fi
 fi
 
+
+
+
+
+#Other Applications
+if [[ $options == *"RemotePlayWhatever"* ]]; then
+    # Set the directory path
+    DIRECTORY="${logged_in_home}/.local/share/applications"
+
+    # Check if the directory exists
+    if [ ! -d "$DIRECTORY" ]; then
+        mkdir -p "$DIRECTORY"
+    fi
+
+    # Get the latest release URL for RemotePlayWhatever
+    RELEASE_URL=$(curl -s https://api.github.com/repos/m4dEngi/RemotePlayWhatever/releases/latest | grep -o 'https://github.com/m4dEngi/RemotePlayWhatever/releases/download/.*RemotePlayWhatever.*\.AppImage')
+
+    # Download the latest RemotePlayWhatever AppImage
+    wget -P "$DIRECTORY" "$RELEASE_URL"
+
+    # Get the downloaded file name
+    DOWNLOADED_FILE=$(basename "$RELEASE_URL")
+
+    # Rename the downloaded file
+    mv "$DIRECTORY/$DOWNLOADED_FILE" "$DIRECTORY/RemotePlayWhatever"
+
+    # Make the file executable
+    chmod +x "$DIRECTORY/RemotePlayWhatever"
+
+    echo "RemotePlayWhatever downloaded, renamed to Remote Play Whatever, made executable, created in $DIRECTORY"
+
+    # Create a new .desktop file
+    echo "[Desktop Entry]
+    Type=Application
+    Exec=$DIRECTORY/RemotePlayWhatever \"--appid 0\"
+    Name=RemotePlayWhatever
+    Icon=$DIRECTORY/RemotePlayWhatever" > "$DIRECTORY/RemotePlayWhatever.desktop"
+
+    # Make the .desktop file executable
+    chmod +x "$DIRECTORY/RemotePlayWhatever.desktop"
+
+    steamos-add-to-steam "$DIRECTORY/RemotePlayWhatever.desktop"
+    sleep 5
+    echo "added RemotePlayWhatever to steamos"
+fi
+
+
+
+
+# Xodus Nexus
+if [[ $options == *"Xodus Nexus"* ]]; then
+    DIRECTORY="${logged_in_home}/.local/share/applications"
+    mkdir -p "$DIRECTORY"
+
+    # Get the latest Xodus Nexus AppImage URL
+    RELEASE_URL=$(curl -fsSL \
+        https://api.github.com/repos/domsvoboda/xodus-nexus/releases/latest |
+        grep -oE 'https://[^"]*Xodus-Nexus-[^"]*x86_64\.AppImage' |
+        head -n 1)
+
+    if [[ -z "$RELEASE_URL" ]]; then
+        echo "Failed to find the Xodus Nexus AppImage release."
+    fi
+
+    # Set the clean, unified filename
+    TARGET_FILE="$DIRECTORY/Xodus Nexus.AppImage"
+
+    # Remove any existing older version to ensure it always replaces with the latest
+    if [[ -f "$TARGET_FILE" ]]; then
+        rm -f "$TARGET_FILE"
+    fi
+
+    # Download and save it directly under the clean new name
+    wget -O "$TARGET_FILE" "$RELEASE_URL"
+
+    # Make it executable
+    chmod +x "$TARGET_FILE"
+
+    echo "Xodus Nexus updated and downloaded to $TARGET_FILE"
+fi
 
 
 
@@ -3830,86 +3911,6 @@ fi
 
 
 
-
-#Other Applications
-if [[ $options == *"RemotePlayWhatever"* ]]; then
-    # Set the directory path
-    DIRECTORY="${logged_in_home}/.local/share/applications"
-
-    # Check if the directory exists
-    if [ ! -d "$DIRECTORY" ]; then
-        mkdir -p "$DIRECTORY"
-    fi
-
-    # Get the latest release URL for RemotePlayWhatever
-    RELEASE_URL=$(curl -s https://api.github.com/repos/m4dEngi/RemotePlayWhatever/releases/latest | grep -o 'https://github.com/m4dEngi/RemotePlayWhatever/releases/download/.*RemotePlayWhatever.*\.AppImage')
-
-    # Download the latest RemotePlayWhatever AppImage
-    wget -P "$DIRECTORY" "$RELEASE_URL"
-
-    # Get the downloaded file name
-    DOWNLOADED_FILE=$(basename "$RELEASE_URL")
-
-    # Rename the downloaded file
-    mv "$DIRECTORY/$DOWNLOADED_FILE" "$DIRECTORY/RemotePlayWhatever"
-
-    # Make the file executable
-    chmod +x "$DIRECTORY/RemotePlayWhatever"
-
-    echo "RemotePlayWhatever downloaded, renamed to Remote Play Whatever, made executable, created in $DIRECTORY"
-
-    # Create a new .desktop file
-    echo "[Desktop Entry]
-    Type=Application
-    Exec=$DIRECTORY/RemotePlayWhatever \"--appid 0\"
-    Name=RemotePlayWhatever
-    Icon=$DIRECTORY/RemotePlayWhatever" > "$DIRECTORY/RemotePlayWhatever.desktop"
-
-    # Make the .desktop file executable
-    chmod +x "$DIRECTORY/RemotePlayWhatever.desktop"
-
-    steamos-add-to-steam "$DIRECTORY/RemotePlayWhatever.desktop"
-    sleep 5
-    echo "added RemotePlayWhatever to steamos"
-fi
-
-
-
-
-# Xodus Nexus
-if [[ $options == *"Xodus Nexus"* ]]; then
-    DIRECTORY="${logged_in_home}/.local/share/applications"
-    mkdir -p "$DIRECTORY"
-
-    # Get the latest Xodus Nexus AppImage URL
-    RELEASE_URL=$(curl -fsSL \
-        https://api.github.com/repos/domsvoboda/xodus-nexus/releases/latest |
-        grep -oE 'https://[^"]*Xodus-Nexus-[^"]*x86_64\.AppImage' |
-        head -n 1)
-
-    if [[ -z "$RELEASE_URL" ]]; then
-        echo "Failed to find the Xodus Nexus AppImage release."
-    fi
-
-    # Set the clean, unified filename
-    TARGET_FILE="$DIRECTORY/Xodus Nexus.AppImage"
-
-    # Remove any existing older version to ensure it always replaces with the latest
-    if [[ -f "$TARGET_FILE" ]]; then
-        rm -f "$TARGET_FILE"
-    fi
-
-    # Download and save it directly under the clean new name
-    wget -O "$TARGET_FILE" "$RELEASE_URL"
-
-    # Make it executable
-    chmod +x "$TARGET_FILE"
-
-    echo "Xodus Nexus updated and downloaded to $TARGET_FILE"
-fi
-
-
-
 # Set Chrome options based on user's selection
 # Function to set Chrome launch options for a given service
 set_chrome_launch_options() {
@@ -3939,6 +3940,7 @@ declare -A services=(
     ["Venge"]="venge|https://venge.io"
     ["Super Monkey Ball Online"]="monkey|https://monkeyball-online.pages.dev"
     ["PokéRogue"]="pokerogue|https://pokerogue.net"
+    ["Pokébonk"]="pokebonk|https://pokebonk.com"
     ["Boosteroid Cloud Gaming"]="boosteroid|https://cloud.boosteroid.com"
     ["WebRcade"]="webrcade|https://play.webrcade.com"
     ["WebRcade Editor"]="webrcadeedit|https://editor.webrcade.com"
