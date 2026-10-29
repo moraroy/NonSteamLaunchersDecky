@@ -48,6 +48,14 @@ export async function createShortcut(game: any) {
   const formattedStartDir = StartDir;
   const launchOptions = LaunchOptions;
 
+  // An NSL fix changed this launcher's target or launch options: update the existing shortcut in place
+  if (game.Update) {
+    SteamClient.Apps.SetShortcutExe(appid, formattedExe);
+    SteamClient.Apps.SetAppLaunchOptions(appid, launchOptions);
+    console.log(`Updated shortcut ${appname} (${appid})`);
+    return true;
+  }
+
   console.log(`Creating shortcut ${appname}`);
   console.log(`Game details: Name= ${appname}, ID=${appid}, exe=${formattedExe}, StartDir=${formattedStartDir}, launchOptions=${launchOptions}`);
 

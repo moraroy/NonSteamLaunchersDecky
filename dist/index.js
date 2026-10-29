@@ -149,6 +149,13 @@
       const formattedExe = exe;
       const formattedStartDir = StartDir;
       const launchOptions = LaunchOptions;
+      // An NSL fix changed this launcher's target or launch options: update the existing shortcut in place
+      if (game.Update) {
+          SteamClient.Apps.SetShortcutExe(appid, formattedExe);
+          SteamClient.Apps.SetAppLaunchOptions(appid, launchOptions);
+          console.log(`Updated shortcut ${appname} (${appid})`);
+          return true;
+      }
       console.log(`Creating shortcut ${appname}`);
       console.log(`Game details: Name= ${appname}, ID=${appid}, exe=${formattedExe}, StartDir=${formattedStartDir}, launchOptions=${launchOptions}`);
       const appId = await SteamClient.Apps.AddShortcut(appname, formattedExe, formattedStartDir, launchOptions);
@@ -1287,6 +1294,22 @@
           urlimage: 'https://cdn2.steamgriddb.com/thumb/99778cb32ccfe54604d7aa2bc412b367.jpg'
       },
       {
+          name: 'heroicGamesLauncher',
+          label: 'Heroic Games Launcher',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://raw.githubusercontent.com/Heroic-Games-Launcher/HeroicGamesLauncher/main/public/icon.png'
+      },
+      {
+          name: 'prismLauncher',
+          label: 'Prism Launcher',
+          URL: '',
+          streaming: false,
+          enabled: false,
+          urlimage: 'https://raw.githubusercontent.com/PrismLauncher/PrismLauncher/develop/program_info/org.prismlauncher.PrismLauncher.svg'
+      },
+      {
           name: 'gryphlink',
           label: 'Gryphlink',
           URL: '',
@@ -1315,6 +1338,7 @@
           label: 'Hytale',
           URL: '',
           streaming: false,
+          x86Only: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/thumb/8474b278f3d751b0a743e97ff395d23a.jpg'
       },
@@ -1323,6 +1347,7 @@
           label: 'NVIDIA GeForce NOW',
           URL: '',
           streaming: false,
+          x86Only: true,
           enabled: false,
           urlimage: 'https://cdn2.steamgriddb.com/hero_thumb/b2619bbe281deeefea3675dfed719fd7.jpg'
       },
@@ -2405,7 +2430,12 @@
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
-      const launcherOptions = initialOptions.filter((option) => option.streaming === false);
+      // Hide launchers that only ship x86_64 Linux builds when the backend runs on arm64
+      const [isArm64, setIsArm64] = React.useState(false);
+      React.useEffect(() => {
+          serverAPI.callPluginMethod('is_arm64', {}).then((res) => setIsArm64(res.success && res.result === true));
+      }, []);
+      const launcherOptions = initialOptions.filter((option) => option.streaming === false && !(isArm64 && 'x86Only' in option && option.x86Only));
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
       const { settings, setAutoScan, setPlaytimeEnabled, } = useSettings(serverAPI);
       // Random Greetings

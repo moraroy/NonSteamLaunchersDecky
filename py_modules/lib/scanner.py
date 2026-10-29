@@ -13,12 +13,14 @@ import urllib.parse
 import urllib.request
 import urllib.error
 import subprocess
+import shlex
 import base64
 from base64 import b64encode
 from concurrent.futures import ThreadPoolExecutor
 import externals.requests as requests
 import externals.vdf as vdf
 from externals.steamgrid import SteamGridDB
+from scanners.host_arch import FLATPAK_ARCH
 from scanners.ea_scanner import ea_scanner
 from scanners.epic_scanner import epic_games_scanner
 from scanners.ubisoft_scanner import ubisoft_scanner
@@ -249,7 +251,7 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
         if "chrome" in browser_lower:
             launch_options = (
-                f'run --branch=stable --arch=x86_64 --command=/app/bin/chrome '
+                f'run --branch=stable --arch={FLATPAK_ARCH} --command=/app/bin/chrome '
                 f'--file-forwarding com.google.Chrome @@u @@ '
                 f'--window-size=1280,800 --force-device-scale-factor=1.00 '
                 f'--device-scale-factor=1.00 --start-fullscreen '
@@ -263,18 +265,18 @@ def addCustomSite(customSiteJSON, selectedBrowser):
             )
         elif "firefox" in browser_lower:
             launch_options = (
-                f'run --branch=stable --arch=x86_64 org.mozilla.firefox --kiosk https://{cleanSiteURL}'
+                f'run --branch=stable --arch={FLATPAK_ARCH} org.mozilla.firefox --kiosk https://{cleanSiteURL}'
             )
         elif "brave" in browser_lower:
             launch_options = (
-                f'run --arch=x86_64 com.brave.Browser --start-fullscreen --window-size=1280,800 '
+                f'run --arch={FLATPAK_ARCH} com.brave.Browser --start-fullscreen --window-size=1280,800 '
                 f'--force-device-scale-factor=1.00 --no-first-run --no-default-browser-check '
                 f'--enable-features=OverlayScrollbar,HardwareMediaKeyHandling '
                 f'https://{cleanSiteURL}'
             )
         elif "vivaldi" in browser_lower:
             launch_options = (
-                f'run --branch=stable --arch=x86_64 '
+                f'run --branch=stable --arch={FLATPAK_ARCH} '
                 f'--command=vivaldi com.vivaldi.Vivaldi '
                 f'--window-size=1280,800 --start-fullscreen '
                 f'--force-device-scale-factor=1.00 '
@@ -282,7 +284,7 @@ def addCustomSite(customSiteJSON, selectedBrowser):
             )
         elif "librewolf" in browser_lower:
             launch_options = (
-                f'run --branch=stable --arch=x86_64 '
+                f'run --branch=stable --arch={FLATPAK_ARCH} '
                 f'io.gitlab.librewolf-community '
                 f'--kiosk https://{cleanSiteURL}'
             )
@@ -361,6 +363,12 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                         decky_plugin.logger.info(f"Existing website shortcut found for {display_name}. Skipping creation.")
                         return True
 
+                    # Same target already added by another tool under its own wrapper/name
+                    # (e.g. ArmadaOS wraps Xodus games and Flatpaks with armada-game-launch)
+                    if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
+                        decky_plugin.logger.info(f"Existing shortcut for the same target found for {display_name}. Skipping creation.")
+                        return True
+
             except Exception as e:
                 decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
     else:
@@ -368,6 +376,78 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
     return False
 
+
+
+ARMADA_LAUNCH_WRAPPER = "/usr/libexec/armada/armada-game-launch"
+
+
+def wrap_for_armada(launch_options):
+    # ArmadaOS applies per-game FEX/driver tweaks through this wrapper, but armada-control only
+    # wraps shortcuts at startup; add it now in the same format so new shortcuts get it too
+    if not os.path.exists(ARMADA_LAUNCH_WRAPPER):
+        return launch_options
+    opts = launch_options or ""
+    if ARMADA_LAUNCH_WRAPPER in opts:
+        return opts
+    wrapped = f"{ARMADA_LAUNCH_WRAPPER} %command%"
+    if "%command%" in opts:
+        return opts.replace("%command%", wrapped, 1)
+    return f"{wrapped} {opts.strip()}" if opts.strip() else wrapped
+
+
+def is_wrapped_duplicate(shortcut, exe_path, launch_options):
+    if not exe_path or not launch_options:
+        return False
+    try:
+        key = shlex.split(launch_options)[-1]  # game id / Flatpak app id
+    except ValueError:
+        return False
+    if len(key) < 8 or key.startswith(("%", "-")):
+        return False
+    target = os.path.basename(exe_path.rstrip("/"))
+    combined = f"{shortcut.get('exe') or shortcut.get('Exe') or ''} {shortcut.get('LaunchOptions') or ''}"
+    return key in combined and target in combined
+
+
+def strip_nsl_additions(launch_options):
+    """Launch options without what NSL or ArmadaOS add around them, to tell NSL defaults from user edits"""
+    return " ".join(
+        token
+        for token in (launch_options or "").split()
+        if token not in (ARMADA_LAUNCH_WRAPPER, "LD_PRELOAD=", "/usr/bin/env", "%command%")
+        and not token.startswith("FEX_APP_CONFIG=")
+    )
+
+
+def shortcut_target(exe):
+    quoted = re.match(r'"([^"]*)"', exe or "")
+    return os.path.basename(quoted.group(1) if quoted else (exe or "").strip())
+
+
+def find_outdated_nsl_shortcut(appname, exe, launch_options):
+    """The existing shortcut for appname if it still has an earlier NSL target or launch options, else None.
+
+    NSL fixes change some launchers' targets (ARC's virtual desktop) or launch options (no Steam overlay for
+    Heroic and Amazon, Amazon's FEX profile), but existing shortcuts are never touched again, so move the ones
+    still on NSL's earlier values over. Anything the user edited is left alone.
+    """
+    vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
+    try:
+        with open(vdf_path, 'rb') as file:
+            existing = vdf.binary_loads(file.read()).get('shortcuts', {}).values()
+    except Exception:
+        return None
+    for s in existing:
+        if (s.get('appname') or s.get('AppName')) != appname:
+            continue
+        current_exe = s.get('exe') or s.get('Exe') or ''
+        current_options = s.get('LaunchOptions') or ''
+        if current_exe == exe and current_options == launch_options:
+            return None
+        target = shortcut_target(current_exe)
+        if target and target in exe and strip_nsl_additions(current_options) == strip_nsl_additions(launch_options):
+            return s
+    return None
 
 
 # Add or update the proton compatibility settings
@@ -384,6 +464,10 @@ def add_compat_tool(exe_path, launchoptions, startingdir):
     elif any(x in launchoptions for x in ['jp.', 'com.', 'online.']):
         if steam_compat_marker not in launchoptions:
             return False
+    # Native Linux targets (e.g. /usr/bin/heroic, Flatpaks) must not be forced through Proton
+    if steam_compat_marker not in launchoptions and \
+       not exe_path.strip('"').lower().endswith(('.exe', '.msi', '.bat')):
+        return False
     return compat_tool_name
 
 
@@ -850,16 +934,12 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
     for filename in files:
         file_path = os.path.join(grid_dir, filename)
         try:
-            result = subprocess.run(
-                ["getfattr", "-n", "user.xdg.tags", "--only-values", file_path],
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
+            # Read the xattr in-process: spawning getfattr per file is ~1s each under FEX (minutes per launcher)
+            try:
+                tag = os.getxattr(file_path, "user.xdg.tags").decode("utf-8", "replace").strip()
+            except OSError:
                 continue
 
-            tag = result.stdout.strip()
             if tag == appname:
                 decky_plugin.logger.info(f"Found tagged file for {appname}: {file_path}")
                 with open(file_path, 'rb') as f:
@@ -895,6 +975,20 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     if launchoptions is None:
         launchoptions = ''
 
+    if platform.system() != "Windows":
+        outdated = find_outdated_nsl_shortcut(appname, exe, wrap_for_armada(launchoptions))
+        if outdated is not None:
+            # The frontend updates the existing shortcut in place instead of adding one
+            decky_shortcuts[appname] = {
+                'appname': appname,
+                'appid': int(outdated.get('appid', 0)) & 0xFFFFFFFF,
+                'exe': exe,
+                'LaunchOptions': wrap_for_armada(launchoptions),
+                'Update': True,
+            }
+            decky_plugin.logger.info(f"Updating {appname} to NSL's current target and launch options.")
+            return
+
     if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
         return
 
@@ -908,7 +1002,7 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
 
     formatted_exe = f'"{exe}"' if platform.system() == "Windows" else exe
     formatted_start_dir = f'"{startingdir}"' if platform.system() == "Windows" else startingdir
-    formatted_launch_options = launchoptions
+    formatted_launch_options = launchoptions if platform.system() == "Windows" else wrap_for_armada(launchoptions)
 
     icon, logo64, hero64, gridp64, grid64, launcher_icon = None, None, None, None, None, None
     icon_path = None
@@ -1044,6 +1138,8 @@ def add_launchers():
         ('Playstation Plus', 'psplusshortcutdirectory', 'pspluslaunchoptions', 'psplusstartingdir'),
         ('VK Play', 'vkplayshortcutdirectory', 'vkplaylaunchoptions', 'vkplaystartingdir'),
         ('HoYoPlay', 'hoyoplayshortcutdirectory', 'hoyoplaylaunchoptions', 'hoyoplaystartingdir'),
+        ('Nexon Launcher', 'nexonshortcutdirectory', 'nexonlaunchoptions', 'nexonstartingdir'),
+        ('Plarium Play', 'plariumshortcutdirectory', 'plariumlaunchoptions', 'plariumstartingdir'),
         ('Game Jolt Client', 'gamejoltshortcutdirectory', 'gamejoltlaunchoptions', 'gamejoltstartingdir'),
         ('Artix Game Launcher', 'artixgameshortcutdirectory', 'artixgamelaunchoptions', 'artixgamestartingdir'),
         ('ARC Launcher', 'arcshortcutdirectory', 'arclaunchoptions', 'arcstartingdir'),

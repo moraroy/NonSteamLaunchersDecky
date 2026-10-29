@@ -3,6 +3,7 @@ import json
 import time
 import decky_plugin
 from scanners.game_tracker import track_game
+from scanners.host_arch import FLATPAK_ARCH
 
 
 def chrome_scanner(logged_in_home, create_new_entry):
@@ -155,7 +156,7 @@ def chrome_scanner(logged_in_home, create_new_entry):
             encoded_url = url
 
             chromelaunch_options = (
-                f'run --branch=stable --arch=x86_64 '
+                f'run --branch=stable --arch={FLATPAK_ARCH} '
                 f'--command=/app/bin/chrome --file-forwarding '
                 f'com.google.Chrome @@u @@ '
                 f'--window-size=1280,800 '
