@@ -3003,7 +3003,7 @@ function install_launcher {
 
 
         #temp ubi fix
-        if [[ "$launcher_name" == "Ubisoft Connect" || "$launcher_name" == "GOG Galaxy" ]]; then
+        if [[ "$launcher_name" == "Ubisoft Connect" || "$launcher_name" == "GOG Galaxy" || "$launcher_name" == "EA App" ]]; then
             for root in \
                 "$HOME/.local/share/Steam" \
                 "$HOME/.steam/steam" \
@@ -3014,9 +3014,8 @@ function install_launcher {
                 # skip if glob didn't expand to real dirs
                 [[ -d "$root" ]] || continue
 
-                # arm64 build; the x86 "Proton - Experimental" would run under FEX
-                if [[ -x "$root/steamapps/common/Proton Experimental (ARM64)/proton" ]]; then
-                    proton_dir="$root/steamapps/common/Proton Experimental (ARM64)"
+                if [[ -x "$root/steamapps/common/Proton - Experimental/proton" ]]; then
+                    proton_dir="$root/steamapps/common/Proton - Experimental"
                     break
                 fi
             done
