@@ -44,6 +44,7 @@ from scanners.rpw_scanner import rpw_scanner
 from scanners.chrome_scanner import chrome_scanner
 from scanners.waydroid_scanner import waydroid_scanner
 from scanners.flatpak_scanner import flatpak_scanner
+from scanners.heroic_scanner import heroic_scanner
 from scanners.microsoftxbox_scanner import microsoftxbox_scanner
 from scanners.xodusnexus_scanner import xodusnexus_scanner
 
@@ -213,6 +214,7 @@ def scan():
             (chrome_scanner, logged_in_home, create_new_entry),
             (waydroid_scanner, logged_in_home, create_new_entry),
             (flatpak_scanner, logged_in_home, create_new_entry),
+            (heroic_scanner, logged_in_home, create_new_entry, load_existing_shortcuts(), update_shortcut_launch_options),
             (geforcenow_scanner, logged_in_home, geforcenow_launcher, create_new_entry),
             (microsoftxbox_scanner, logged_in_home, microsoftxbox_launcher, create_new_entry)
         ]
@@ -414,7 +416,7 @@ def strip_nsl_additions(launch_options):
     return " ".join(
         token
         for token in (launch_options or "").split()
-        if token not in (ARMADA_LAUNCH_WRAPPER, "LD_PRELOAD=", "/usr/bin/env", "%command%")
+        if token not in (ARMADA_LAUNCH_WRAPPER, "LD_PRELOAD=", "/usr/bin/env", "%command%", "--console")
         and not token.startswith("FEX_APP_CONFIG=")
     )
 
@@ -422,6 +424,29 @@ def strip_nsl_additions(launch_options):
 def shortcut_target(exe):
     quoted = re.match(r'"([^"]*)"', exe or "")
     return os.path.basename(quoted.group(1) if quoted else (exe or "").strip())
+
+
+def load_existing_shortcuts():
+    if platform.system() == "Windows":
+        return []
+    vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
+    try:
+        with open(vdf_path, 'rb') as file:
+            return list(vdf.binary_loads(file.read()).get('shortcuts', {}).values())
+    except Exception:
+        return []
+
+
+def update_shortcut_launch_options(shortcut, launch_options):
+    # The frontend updates the existing shortcut in place instead of adding one
+    appname = shortcut.get('appname') or shortcut.get('AppName')
+    decky_shortcuts[appname] = {
+        'appname': appname,
+        'appid': int(shortcut.get('appid', 0)) & 0xFFFFFFFF,
+        'exe': shortcut.get('exe') or shortcut.get('Exe'),
+        'LaunchOptions': launch_options,
+        'Update': True,
+    }
 
 
 def find_outdated_nsl_shortcut(appname, exe, launch_options):
