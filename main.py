@@ -963,8 +963,9 @@ class Plugin:
             decky_plugin.logger.info("Error checking xterm, falling back to subprocess.")
             process = Popen(command, shell=True, env=env)
 
-        # Wait for the script to complete and get the exit code
-        exit_code = process.wait()
+        # Wait for the script to complete and get the exit code, off the event loop so the
+        # plugin's other endpoints (launcher status, log updates) keep responding meanwhile
+        exit_code = await asyncio.get_running_loop().run_in_executor(None, process.wait)
 
         # Re-enable access control for the X server
         run(['xhost', '-'])
