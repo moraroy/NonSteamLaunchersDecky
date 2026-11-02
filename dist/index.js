@@ -1878,6 +1878,43 @@
   }
 
   function initGameWatcher() {
+      const TERMINATION_EXCLUDED_GAMES = [
+          'Epic Games',
+          'GOG Galaxy',
+          'Ubisoft Connect',
+          'Battle.net',
+          'EA App',
+          'Amazon Games',
+          'itch.io',
+          'Legacy Games',
+          'Humble Bundle',
+          'IndieGala Client',
+          'Rockstar Games Launcher',
+          'Glyph',
+          'Minecraft Launcher',
+          'Playstation Plus',
+          'VK Play',
+          'HoYoPlay',
+          'Nexon Launcher',
+          'Game Jolt Client',
+          'Artix Game Launcher',
+          'PURPLE Launcher',
+          'Plarium Play',
+          'VFUN Launcher',
+          'Tempo Launcher',
+          'ARC Launcher',
+          'Pokémon Trading Card Game Live',
+          'Antstream Arcade',
+          'STOVE Client',
+          'Big Fish Games Manager',
+          'Xbox Game Pass',
+          'Xodus Nexus',
+          'NonSteamLaunchers',
+          'Repair EA App',
+          'Gryphlink'
+      ];
+      const isTerminationExcluded = (name) => TERMINATION_EXCLUDED_GAMES.some(excluded => excluded.toLowerCase() ===
+          String(name || '').trim().toLowerCase());
       const steamWindow = window;
       if (!steamWindow.__originalOpen) {
           steamWindow.__originalOpen = window.open;
@@ -2171,7 +2208,8 @@
                           desktopGameRunning =
                               false;
                           const id = desktopCurrentAppId;
-                          if (id) {
+                          if (id &&
+                              !isTerminationExcluded(desktopCurrentGameName)) {
                               setTimeout(() => {
                                   try {
                                       SteamClient.Apps.TerminateApp(id, false);
@@ -2283,7 +2321,8 @@
           const terminate = () => {
               if (!s.watchersEnabled ||
                   !s.gameId ||
-                  s.terminateScheduled) {
+                  s.terminateScheduled ||
+                  isTerminationExcluded(s.gameName)) {
                   return;
               }
               s.terminateScheduled = true;

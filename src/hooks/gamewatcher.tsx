@@ -1,4 +1,47 @@
 export function initGameWatcher(): void {
+    const TERMINATION_EXCLUDED_GAMES: string[] = [
+        'Epic Games',
+        'GOG Galaxy',
+        'Ubisoft Connect',
+        'Battle.net',
+        'EA App',
+        'Amazon Games',
+        'itch.io',
+        'Legacy Games',
+        'Humble Bundle',
+        'IndieGala Client',
+        'Rockstar Games Launcher',
+        'Glyph',
+        'Minecraft Launcher',
+        'Playstation Plus',
+        'VK Play',
+        'HoYoPlay',
+        'Nexon Launcher',
+        'Game Jolt Client',
+        'Artix Game Launcher',
+        'PURPLE Launcher',
+        'Plarium Play',
+        'VFUN Launcher',
+        'Tempo Launcher',
+        'ARC Launcher',
+        'Pokémon Trading Card Game Live',
+        'Antstream Arcade',
+        'STOVE Client',
+        'Big Fish Games Manager',
+        'Xbox Game Pass',
+        'Xodus Nexus',
+        'NonSteamLaunchers',
+        'Repair EA App',
+        'Gryphlink'
+    ];
+
+    const isTerminationExcluded = (name?: string | null): boolean =>
+        TERMINATION_EXCLUDED_GAMES.some(
+            excluded =>
+                excluded.toLowerCase() ===
+                String(name || '').trim().toLowerCase()
+        );
+
 
 
     type RGB = {
@@ -715,7 +758,11 @@ export function initGameWatcher(): void {
                             const id =
                                 desktopCurrentAppId;
 
-                            if (id) {
+
+                            if (
+                                id &&
+                                !isTerminationExcluded(desktopCurrentGameName)
+                            ) {
                                 setTimeout(
                                     () => {
                                         try {
@@ -920,7 +967,8 @@ export function initGameWatcher(): void {
             if (
                 !s.watchersEnabled ||
                 !s.gameId ||
-                s.terminateScheduled
+                s.terminateScheduled ||
+                isTerminationExcluded(s.gameName)
             ) {
                 return;
             }
