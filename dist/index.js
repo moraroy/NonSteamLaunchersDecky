@@ -1913,6 +1913,8 @@
           'Repair EA App',
           'Gryphlink'
       ];
+      const GAME_GRACE_PERIOD_MS = 2 * 60 * 1000;
+      let desktopGameLaunchTime = 0;
       const isTerminationExcluded = (name) => TERMINATION_EXCLUDED_GAMES.some(excluded => excluded.toLowerCase() ===
           String(name || '').trim().toLowerCase());
       const steamWindow = window;
@@ -2199,6 +2201,8 @@
                                   desktopCurrentGameName =
                                       app.display_name ||
                                           null;
+                                  desktopGameLaunchTime =
+                                      Date.now();
                               }
                           }
                       }
@@ -2212,9 +2216,10 @@
                               !isTerminationExcluded(desktopCurrentGameName)) {
                               setTimeout(() => {
                                   try {
+                                      if (Date.now() - desktopGameLaunchTime < GAME_GRACE_PERIOD_MS)
+                                          return;
                                       SteamClient.Apps.TerminateApp(id, false);
-                                      if (desktopCurrentAppId ===
-                                          id) {
+                                      if (desktopCurrentAppId === id) {
                                           desktopCurrentAppId =
                                               desktopCurrentGameName =
                                                   null;
@@ -2322,7 +2327,8 @@
               if (!s.watchersEnabled ||
                   !s.gameId ||
                   s.terminateScheduled ||
-                  isTerminationExcluded(s.gameName)) {
+                  isTerminationExcluded(s.gameName) ||
+                  Date.now() - s.launchTime < GAME_GRACE_PERIOD_MS) {
                   return;
               }
               s.terminateScheduled = true;

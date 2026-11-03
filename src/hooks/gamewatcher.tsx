@@ -35,6 +35,10 @@ export function initGameWatcher(): void {
         'Gryphlink'
     ];
 
+    const GAME_GRACE_PERIOD_MS = 2 * 60 * 1000;
+    let desktopGameLaunchTime = 0;
+
+
     const isTerminationExcluded = (name?: string | null): boolean =>
         TERMINATION_EXCLUDED_GAMES.some(
             excluded =>
@@ -737,6 +741,8 @@ export function initGameWatcher(): void {
                                     desktopCurrentGameName =
                                         app.display_name ||
                                         null;
+                                    desktopGameLaunchTime =
+                                        Date.now();
                                 }
                             }
                         }
@@ -758,7 +764,6 @@ export function initGameWatcher(): void {
                             const id =
                                 desktopCurrentAppId;
 
-
                             if (
                                 id &&
                                 !isTerminationExcluded(desktopCurrentGameName)
@@ -766,14 +771,17 @@ export function initGameWatcher(): void {
                                 setTimeout(
                                     () => {
                                         try {
+                                            if (
+                                                Date.now() - desktopGameLaunchTime < GAME_GRACE_PERIOD_MS
+                                            ) return;
+
                                             SteamClient.Apps.TerminateApp(
                                                 id,
                                                 false
                                             );
 
                                             if (
-                                                desktopCurrentAppId ===
-                                                id
+                                                desktopCurrentAppId === id
                                             ) {
                                                 desktopCurrentAppId =
                                                     desktopCurrentGameName =
@@ -783,6 +791,7 @@ export function initGameWatcher(): void {
                                     },
                                     15e3
                                 );
+                            
                             }
                         }
                     } catch {}
@@ -968,7 +977,8 @@ export function initGameWatcher(): void {
                 !s.watchersEnabled ||
                 !s.gameId ||
                 s.terminateScheduled ||
-                isTerminationExcluded(s.gameName)
+                isTerminationExcluded(s.gameName) ||
+                Date.now() - s.launchTime < GAME_GRACE_PERIOD_MS
             ) {
                 return;
             }
