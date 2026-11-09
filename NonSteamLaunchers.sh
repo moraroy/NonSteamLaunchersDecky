@@ -1316,7 +1316,7 @@ StartFreshFunction() {
     if [ -f "$env_vars_file" ] && [ ! -L "$env_vars_file" ]; then
         temp_file=$(mktemp) || return 1
 
-        if grep -E '^(export (steamid3|logged_in_home|python_version|chromedirectory|chrome_startdir)=|NSL_SCAN_STATE=)' \
+        if grep -E '^(export (steamid3|logged_in_home|python_version|chromedirectory|chrome_startdir)=|NSL_SCAN_STATE=|NSL_BOOT_VIDEOS=)' \
             "$env_vars_file" > "$temp_file"; then
             chmod --reference="$env_vars_file" "$temp_file" || {
                 rm -f "$temp_file"
@@ -1356,8 +1356,6 @@ StartFreshFunction() {
     delete_path "${logged_in_home}/.config/systemd/user/nslgamescanner.service"
     unlink "${logged_in_home}/.config/systemd/user/default.target.wants/nslgamescanner.service" 2>/dev/null || true
 
-    systemctl --user daemon-reload
-    systemctl --user reset-failed
 
     show_message "NonSteamLaunchers has been wiped!"
     exit 0
