@@ -512,8 +512,8 @@ get_sd_path() {
         | awk '$1 ~ /^mmcblk.*p[0-9]+$/ && $2 != "" { print $2; exit }')
 
     if [[ -z "$sd_mount" ]]; then
-        zenity --error --text="No SD card detected. Please insert and mount an SD card."
-        exit 1
+        echo ""
+        return 0
     fi
 
     echo "$sd_mount"
@@ -1314,9 +1314,15 @@ StartFreshFunction() {
     done
 
     # Remove folders on SD card dynamically
-    for folder in "${folder_names[@]}"; do
-        delete_path "${sd_path}/${folder}"
-    done
+    if [[ -n "$sd_path" && -d "$sd_path" ]]; then
+        echo "SD card detected at: $sd_path"
+
+        for folder in "${folder_names[@]}"; do
+            delete_path "${sd_path}/${folder}"
+        done
+    else
+        echo "No SD card detected. Skipping SD card cleanup."
+    fi
 
     delete_path "${logged_in_home}/Downloads/NonSteamLaunchersInstallation"
     delete_path "${logged_in_home}/.config/systemd/user/Modules"
