@@ -1367,6 +1367,7 @@ StartFreshFunction() {
     delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever"
     delete_path "${logged_in_home}/.local/share/applications/RemotePlayWhatever.desktop"
     delete_path "${logged_in_home}/.local/share/applications/Xodus Nexus.AppImage"
+    delete_path "${logged_in_home}/.local/share/applications/Heroic.AppImage"
 
     delete_path "${logged_in_home}/Downloads/NonSteamLaunchers-install.log"
 
