@@ -2483,14 +2483,9 @@
   const initialOptions = sitesList;
   const Content = ({ serverAPI }) => {
       console.log('Content rendered');
-      // Hide launchers that only ship x86_64 Linux builds when the backend runs on arm64
-      const [isArm64, setIsArm64] = React.useState(false);
-      React.useEffect(() => {
-          serverAPI.callPluginMethod('is_arm64', {}).then((res) => setIsArm64(res.success && res.result === true));
-      }, []);
-      const launcherOptions = initialOptions.filter((option) => option.streaming === false && !(isArm64 && 'x86Only' in option && option.x86Only));
+      const launcherOptions = initialOptions.filter((option) => option.streaming === false);
       const streamingOptions = initialOptions.filter((option) => option.streaming === true);
-      const { settings, setAutoScan, setPlaytimeEnabled, } = useSettings(serverAPI);
+      const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
       // Random Greetings
       const greetings = [
           "Welcome to NSL!", "Hello, happy gaming!", "Good to see you again!",
@@ -2503,36 +2498,39 @@
       ];
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
-      const { updateInfo } = useUpdateInfo(); // Hook to get update information
+      const { updateInfo } = useUpdateInfo();
+      // Patch Notes visibility
       const [showPatchNotes, setShowPatchNotes] = React.useState(false);
       React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
       const [isAutoScanDisabled, setIsAutoScanDisabled] = React.useState(false);
-      const [isUpdating, setIsUpdating] = React.useState(false); // Track if an update is in progress
+      const [isUpdating, setIsUpdating] = React.useState(false);
       const [progress, setProgress] = React.useState({
           percent: 0,
           status: '',
           description: ''
       });
       const handleScanClick = async () => {
-          setIsLoading(true); // Set loading state to true
-          setIsAutoScanDisabled(true); // Disable the auto-scan toggle
-          await scan(() => setIsManualScanComplete(true)); // Perform the scan action and set completion state
-          setIsLoading(false); // Set loading state to false
-          setIsAutoScanDisabled(false); // Re-enable the auto-scan toggle
+          setIsLoading(true);
+          setIsAutoScanDisabled(true);
+          await scan(() => setIsManualScanComplete(true));
+          setIsLoading(false);
+          setIsAutoScanDisabled(false);
       };
       // Handle update button click
       const handleUpdateClick = async () => {
-          setIsUpdating(true); // Set updating state
-          setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
-          // Set a timeout for 3 seconds to restart Steam
+          setIsUpdating(true);
+          setProgress({
+              percent: 0,
+              status: 'updating...',
+              description: 'Please wait while the plugin updates...'
+          });
           setTimeout(() => {
               console.log("3 seconds passed. Restarting Steam...");
-              handleRestartSteam(); // Restart Steam instead of reloading the page
+              handleRestartSteam();
           }, 5000);
           try {
-              // Notify the user that the update has started
               const result = await serverAPI.callPluginMethod("install", {
                   selected_options: '',
                   install_chrome: false,
@@ -2544,32 +2542,48 @@
                   up: true,
               });
               if (result) {
-                  setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
+                  setProgress({
+                      percent: 100,
+                      status: 'Update complete',
+                      description: 'The plugin has been updated successfully.'
+                  });
                   notify.toast("Update complete", "The plugin has been updated successfully.");
               }
               else {
-                  setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
+                  setProgress({
+                      percent: 0,
+                      status: 'Update failed',
+                      description: 'There was an issue with the update.'
+                  });
                   notify.toast("Update failed", "There was an issue with the update.");
               }
           }
           catch (error) {
               console.error('Error calling install method on server-side plugin:', error);
-              setProgress({ percent: 0, status: 'Update failed', description: 'An error occurred during the update.' });
+              setProgress({
+                  percent: 0,
+                  status: 'Update failed',
+                  description: 'An error occurred during the update.'
+              });
               notify.toast("Update failed", "An error occurred during the update.");
           }
-          setIsUpdating(false); // Reset updating state
+          setIsUpdating(false);
       };
       const handleRestartSteam = () => {
-          // Restart Steam
           SteamClient.User.StartRestart(false);
       };
       React.useEffect(() => {
           if (isManualScanComplete) {
-              setIsManualScanComplete(false); // Reset the completion state
+              setIsManualScanComplete(false);
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
-          updateInfo && (updateInfo.status === "Update available" || showPatchNotes) ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+          updateInfo && updateInfo.status === "Update available" ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: {
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  marginBottom: "10px",
+                  textAlign: "center"
+              } },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "red",
                       color: "white",
@@ -2582,11 +2596,13 @@
                       overflow: "hidden",
                       wordWrap: "break-word",
                   } },
-                  window.SP_REACT.createElement("div", null, updateInfo.status === "Update available"
-                      ? "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"
-                      : "📝 NSL Patch Notes"),
-                  updateInfo.status === "Update available" && (window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update')),
-                  window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
+                  window.SP_REACT.createElement("div", null, "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"),
+                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
+                  window.SP_REACT.createElement("div", { style: {
+                          marginTop: "0.5em",
+                          fontSize: "14px",
+                          fontWeight: "normal"
+                      } },
                       window.SP_REACT.createElement("div", null,
                           "\uD83D\uDCCC ",
                           window.SP_REACT.createElement("strong", null, "Local version:"),
@@ -2596,22 +2612,13 @@
                           "\uD83D\uDE80 ",
                           window.SP_REACT.createElement("strong", null, "Latest version:"),
                           " ",
-                          updateInfo.github_version),
-                      window.SP_REACT.createElement("div", { style: { marginTop: "0.5em" } },
-                          window.SP_REACT.createElement("strong", null, "\uD83D\uDCDD Patch Notes:"),
-                          window.SP_REACT.createElement("ul", { style: {
-                                  textAlign: "left",
-                                  marginLeft: "1.5em",
-                                  fontSize: "13px",
-                                  listStyleType: "none",
-                                  padding: "0"
-                              } }, Object.entries(updateInfo.patch_notes).map(([category, notes]) => (window.SP_REACT.createElement("li", { key: category, style: { marginBottom: "1em" } },
-                              window.SP_REACT.createElement("strong", null, category),
-                              window.SP_REACT.createElement("ul", { style: { paddingLeft: "20px" } }, notes.map((note, idx) => (window.SP_REACT.createElement("li", { key: idx, style: {
-                                      wordWrap: "break-word",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis"
-                                  } }, note.formatted_note))))))))))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+                          updateInfo.github_version))))) : (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: {
+                  fontSize: "10px",
+                  fontStyle: "italic",
+                  fontWeight: "bold",
+                  marginBottom: "10px",
+                  textAlign: "center"
+              } },
               window.SP_REACT.createElement("div", { style: {
                       display: "inline-block",
                       padding: "1em",
@@ -2622,8 +2629,33 @@
                       maxWidth: "80%",
                       margin: "auto",
                   } }, randomGreeting))),
-          updateInfo && (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, null,
-              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => setShowPatchNotes(!showPatchNotes) }, showPatchNotes ? 'Hide Patch Notes' : '📝 Patch Notes'))),
+          window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Updates" },
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => setShowPatchNotes(prev => !prev) }, showPatchNotes ? "Hide Patch Notes" : "📝 Patch Notes"),
+              showPatchNotes && (window.SP_REACT.createElement(window.SP_REACT.Fragment, null,
+                  window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, null,
+                      window.SP_REACT.createElement("div", { style: {
+                              width: "100%",
+                              fontSize: "14px",
+                              fontWeight: "bold",
+                              textAlign: "center",
+                              padding: "10px",
+                          } }, "\uD83D\uDCDD NSL Current Patch Notes")),
+                  updateInfo && Object.entries(updateInfo.patch_notes || {}).map(([category, notes]) => (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { key: category },
+                      window.SP_REACT.createElement("div", { style: {
+                              width: "100%",
+                              fontSize: "13px",
+                              overflowWrap: "break-word",
+                          } },
+                          window.SP_REACT.createElement("strong", null, category),
+                          window.SP_REACT.createElement("ul", { style: {
+                                  paddingLeft: "20px",
+                                  marginTop: "8px",
+                              } }, notes.map((note, idx) => (window.SP_REACT.createElement("li", { key: idx, style: {
+                                  marginBottom: "8px",
+                                  wordWrap: "break-word",
+                              } }, note.formatted_note)))))))),
+                  (!updateInfo || !updateInfo.patch_notes ||
+                      Object.keys(updateInfo.patch_notes).length === 0) && (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, null, "No patch notes are currently available."))))),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateNotesModal, { serverAPI: serverAPI })) }, "Send Notes!\u2665"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),
@@ -2657,14 +2689,23 @@
                       width: "95%",
                       margin: 0,
                   } },
-                  window.SP_REACT.createElement("div", { style: { marginTop: '5px', textAlign: 'center', fontSize: "12px" } },
+                  window.SP_REACT.createElement("div", { style: {
+                          marginTop: '5px',
+                          textAlign: 'center',
+                          fontSize: "12px"
+                      } },
                       window.SP_REACT.createElement("p", null, "NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!"),
-                      window.SP_REACT.createElement("div", { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' } },
+                      window.SP_REACT.createElement("div", { style: {
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '10px'
+                          } },
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://www.patreon.com/moraroy', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://seeklogo.com/images/P/patreon-logo-C0B52F951B-seeklogo.com.png", alt: "Patreon", style: { width: '20px', height: '20px', marginRight: '10px' } }),
                               "Patreon"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://ko-fi.com/moraroy#checkoutModal', '_blank') },
-                              window.SP_REACT.createElement("img", { src: "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef_ko-fi_logo_02-p-500.png", alt: "Ko-fi", style: { width: '20px', height: '20px', marginRight: '10px' } }),
+                              window.SP_REACT.createElement("img", { src: "https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef/ko-fi_logo_02-p-500.png", alt: "Ko-fi", style: { width: '20px', height: '20px', marginRight: '10px' } }),
                               "Ko-fi"),
                           window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => window.open('https://github.com/sponsors/moraroy', '_blank') },
                               window.SP_REACT.createElement("img", { src: "https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png", alt: "GitHub", style: { width: '20px', height: '20px', marginRight: '10px' } }),
