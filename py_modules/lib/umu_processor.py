@@ -73,6 +73,30 @@ def list_all_entries():
     return csv_data
 
 
+def get_store_from_launch_options(launchoptions):
+    # EA
+    if "origin2://game/launch?offerIds=" in launchoptions:
+        return "ea"
+
+    # Amazon
+    elif "amazon-games://play/" in launchoptions:
+        return "amazon"
+
+    # Epic
+    elif "com.epicgames.launcher://" in launchoptions:
+        return "egs"
+
+    # Ubisoft
+    elif "uplay://launch/" in launchoptions:
+        return "ubisoft"
+
+    # GOG
+    elif "/command=runGame /gameId=" in launchoptions:
+        return "gog"
+
+    return None
+
+
 def extract_umu_id_from_launch_options(launchoptions):
     # Check if the launch options contain STEAM_COMPAT_DATA_PATH
     if 'STEAM_COMPAT_DATA_PATH=' not in launchoptions:
@@ -148,8 +172,15 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
 
     codename = extract_umu_id_from_launch_options(launchoptions)
 
+    # Detect launcher/store
+    store = get_store_from_launch_options(launchoptions)
+
     decky_plugin.logger.info(
         f"[UMU DEBUG] Extracted codename for {appname}: {codename}"
+    )
+
+    decky_plugin.logger.info(
+        f"[UMU DEBUG] Detected store for {appname}: {store}"
     )
 
     if not codename:
@@ -160,17 +191,21 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
         print(f"No entries found in UMU database. Skipping modification for {appname}.")
         return exe, startingdir, launchoptions
 
+    # Match title and store if no codename was extracted
     if not codename:
         for entry in entries:
-            if entry.get('TITLE') and entry['TITLE'].lower() == appname.lower():
+            if (
+                entry.get('TITLE', '').strip().lower() == appname.strip().lower()
+                and entry.get('STORE', '').strip().lower() == store
+            ):
                 codename = entry['CODENAME']
                 break
 
     if codename:
         for entry in entries:
             if (
-                entry.get('CODENAME', '').lower() == codename.lower()
-                and entry.get('STORE', '').lower() == 'egs'
+                entry.get('CODENAME', '').strip().lower() == codename.strip().lower()
+                and entry.get('STORE', '').strip().lower() == store
             ):
                 umu_id = entry['UMU_ID'].replace("umu-", "")
                 base_path = extract_base_path(launchoptions)
@@ -229,4 +264,4 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
 
     decky_plugin.logger.info(f"No matching codename found in UMU database for {appname}. Skipping modification.")
     return exe, startingdir, launchoptions
-
+    
