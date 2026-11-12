@@ -1,3 +1,4 @@
+
 import {
   ButtonItem,
   definePlugin,
@@ -25,27 +26,17 @@ import { autoscan, scan } from "./hooks/scan";
 import { UpdateNotesModal } from "./components/modals/updateNotesModal";
 import { initRealPlaytime, setPlaytimeEnabled } from "./hooks/playTime";
 import { initGameWatcher } from './hooks/gamewatcher';
- 
-
 
 const initialOptions = sitesList;
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
-
   console.log('Content rendered');
 
-  // Hide launchers that only ship x86_64 Linux builds when the backend runs on arm64
-  const [isArm64, setIsArm64] = useState(false);
-  useEffect(() => {
-    serverAPI.callPluginMethod('is_arm64', {}).then((res) => setIsArm64(res.success && res.result === true));
-  }, []);
-  const launcherOptions = initialOptions.filter(
-    (option) => option.streaming === false && !(isArm64 && 'x86Only' in option && option.x86Only)
-  );
+  const launcherOptions = initialOptions.filter((option) => option.streaming === false);
   const streamingOptions = initialOptions.filter((option) => option.streaming === true);
 
-  const { settings, setAutoScan, setPlaytimeEnabled, } = useSettings(serverAPI);
+  const { settings, setAutoScan, setPlaytimeEnabled } = useSettings(serverAPI);
 
   // Random Greetings
   const greetings = [
@@ -61,15 +52,17 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
   // End of Random Greetings
 
-  const { updateInfo } = useUpdateInfo(); // Hook to get update information
+  const { updateInfo } = useUpdateInfo();
+
+  // Patch Notes visibility
   const [showPatchNotes, setShowPatchNotes] = useState(false);
-  
 
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isManualScanComplete, setIsManualScanComplete] = useState(false);
   const [isAutoScanDisabled, setIsAutoScanDisabled] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false); // Track if an update is in progress
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const [progress, setProgress] = useState({
     percent: 0,
     status: '',
@@ -77,26 +70,28 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   });
 
   const handleScanClick = async () => {
-    setIsLoading(true); // Set loading state to true
-    setIsAutoScanDisabled(true); // Disable the auto-scan toggle
-    await scan(() => setIsManualScanComplete(true)); // Perform the scan action and set completion state
-    setIsLoading(false); // Set loading state to false
-    setIsAutoScanDisabled(false); // Re-enable the auto-scan toggle
+    setIsLoading(true);
+    setIsAutoScanDisabled(true);
+    await scan(() => setIsManualScanComplete(true));
+    setIsLoading(false);
+    setIsAutoScanDisabled(false);
   };
 
   // Handle update button click
   const handleUpdateClick = async () => {
-    setIsUpdating(true); // Set updating state
-    setProgress({ percent: 0, status: 'updating...', description: 'Please wait while the plugin updates...' });
+    setIsUpdating(true);
+    setProgress({
+      percent: 0,
+      status: 'updating...',
+      description: 'Please wait while the plugin updates...'
+    });
 
-    // Set a timeout for 3 seconds to restart Steam
     setTimeout(() => {
       console.log("3 seconds passed. Restarting Steam...");
-      handleRestartSteam(); // Restart Steam instead of reloading the page
+      handleRestartSteam();
     }, 5000);
 
     try {
-      // Notify the user that the update has started
       const result = await serverAPI.callPluginMethod("install", {
         selected_options: '',
         install_chrome: false,
@@ -109,158 +104,217 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       });
 
       if (result) {
-        setProgress({ percent: 100, status: 'Update complete', description: 'The plugin has been updated successfully.' });
+        setProgress({
+          percent: 100,
+          status: 'Update complete',
+          description: 'The plugin has been updated successfully.'
+        });
         notify.toast("Update complete", "The plugin has been updated successfully.");
       } else {
-        setProgress({ percent: 0, status: 'Update failed', description: 'There was an issue with the update.' });
+        setProgress({
+          percent: 0,
+          status: 'Update failed',
+          description: 'There was an issue with the update.'
+        });
         notify.toast("Update failed", "There was an issue with the update.");
       }
     } catch (error) {
       console.error('Error calling install method on server-side plugin:', error);
-      setProgress({ percent: 0, status: 'Update failed', description: 'An error occurred during the update.' });
+      setProgress({
+        percent: 0,
+        status: 'Update failed',
+        description: 'An error occurred during the update.'
+      });
       notify.toast("Update failed", "An error occurred during the update.");
     }
-    setIsUpdating(false); // Reset updating state
+
+    setIsUpdating(false);
   };
 
   const handleRestartSteam = () => {
-    // Restart Steam
     SteamClient.User.StartRestart(false);
   };
 
   useEffect(() => {
     if (isManualScanComplete) {
-      setIsManualScanComplete(false); // Reset the completion state
+      setIsManualScanComplete(false);
     }
   }, [isManualScanComplete]);
 
   return (
     <div className="decky-plugin">
-      {/* Conditionally render the red card for update info or manually requested patch notes */}
-      {updateInfo && (updateInfo.status === "Update available" || showPatchNotes) ? (
-        <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
-          <div
-            style={{
-              backgroundColor: "red",
-              color: "white",
-              padding: "1em",
-              borderRadius: "8px",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-              maxWidth: "80%",
-              margin: "auto",
-              lineHeight: 1.6,
-              overflow: "hidden",
-              wordWrap: "break-word",
-            }}
-          >
+
+      {/* Original Update Notification - Patch Notes Removed */}
+      {updateInfo && updateInfo.status === "Update available" ? (
+        <PanelSectionRow style={{
+          fontSize: "16px",
+          fontWeight: "bold",
+          marginBottom: "10px",
+          textAlign: "center"
+        }}>
+          <div style={{
+            backgroundColor: "red",
+            color: "white",
+            padding: "1em",
+            borderRadius: "8px",
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+            maxWidth: "80%",
+            margin: "auto",
+            lineHeight: 1.6,
+            overflow: "hidden",
+            wordWrap: "break-word",
+          }}>
             <div>
-              {updateInfo.status === "Update available"
-                ? "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"
-                : "📝 NSL Patch Notes"}
+              Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe
             </div>
 
-            {updateInfo.status === "Update available" && (
-              <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-                {isUpdating ? 'Updating...' : 'Update'}
-              </ButtonItem>
-            )}
+            <ButtonItem
+              layout="below"
+              onClick={handleUpdateClick}
+              disabled={isUpdating}
+            >
+              {isUpdating ? 'Updating...' : 'Update'}
+            </ButtonItem>
 
-            <div style={{ marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" }}>
-              <div>📌 <strong>Local version:</strong> {updateInfo.local_version}</div>
-              <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
-              <div style={{ marginTop: "0.5em" }}>
-                <strong>📝 Patch Notes:</strong>
-                <ul style={{
-                  textAlign: "left",
-                  marginLeft: "1.5em",
-                  fontSize: "13px",
-                  listStyleType: "none",
-                  padding: "0"
-                }}>
-                  {Object.entries(updateInfo.patch_notes).map(([category, notes]) => (
-                    <li key={category} style={{ marginBottom: "1em" }}>
-                      <strong>{category}</strong>
-                      <ul style={{ paddingLeft: "20px" }}>
-                        {notes.map((note, idx) => (
-                          <li key={idx} style={{
-                            wordWrap: "break-word",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis"
-                          }}>
-                            {note.formatted_note}
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
+            <div style={{
+              marginTop: "0.5em",
+              fontSize: "14px",
+              fontWeight: "normal"
+            }}>
+              <div>
+                📌 <strong>Local version:</strong> {updateInfo.local_version}
+              </div>
+
+              <div>
+                🚀 <strong>Latest version:</strong> {updateInfo.github_version}
               </div>
             </div>
           </div>
         </PanelSectionRow>
       ) : (
-        <PanelSectionRow style={{ fontSize: "10px", fontStyle: "italic", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
-          <div
-            style={{
-              display: "inline-block",
-              padding: "1em",
-              borderRadius: "8px",
-              border: "2px solid rgba(255, 255, 255, 0.3)",
-              backgroundColor: "white",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-              maxWidth: "80%",
-              margin: "auto",
-            }}
-          >
+        <PanelSectionRow style={{
+          fontSize: "10px",
+          fontStyle: "italic",
+          fontWeight: "bold",
+          marginBottom: "10px",
+          textAlign: "center"
+        }}>
+          <div style={{
+            display: "inline-block",
+            padding: "1em",
+            borderRadius: "8px",
+            border: "2px solid rgba(255, 255, 255, 0.3)",
+            backgroundColor: "white",
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+            maxWidth: "80%",
+            margin: "auto",
+          }}>
             {randomGreeting}
           </div>
         </PanelSectionRow>
       )}
 
-      {/* Patch Notes toggle button */}
-      {updateInfo && (
-        <PanelSectionRow>
-          <ButtonItem
-            layout="below"
-            onClick={() => setShowPatchNotes(!showPatchNotes)}
-          >
-            {showPatchNotes ? 'Hide Patch Notes' : '📝 Patch Notes'}
-          </ButtonItem>
-        </PanelSectionRow>
-      )}
+      {/* Standalone Patch Notes Section */}
+      <PanelSection title="Updates">
 
+        <ButtonItem
+          layout="below"
+          onClick={() => setShowPatchNotes(prev => !prev)}
+        >
+          {showPatchNotes ? "Hide Patch Notes" : "📝 Patch Notes"}
+        </ButtonItem>
 
+        {showPatchNotes && (
+          <>
+            <PanelSectionRow>
+              <div style={{
+                width: "100%",
+                fontSize: "14px",
+                fontWeight: "bold",
+                textAlign: "center",
+                padding: "10px",
+              }}>
+                📝 NSL Current Patch Notes
+              </div>
+            </PanelSectionRow>
+
+            {updateInfo && Object.entries(updateInfo.patch_notes || {}).map(
+              ([category, notes]) => (
+                <PanelSectionRow key={category}>
+                  <div style={{
+                    width: "100%",
+                    fontSize: "13px",
+                    overflowWrap: "break-word",
+                  }}>
+                    <strong>{category}</strong>
+
+                    <ul style={{
+                      paddingLeft: "20px",
+                      marginTop: "8px",
+                    }}>
+                      {notes.map((note, idx) => (
+                        <li key={idx} style={{
+                          marginBottom: "8px",
+                          wordWrap: "break-word",
+                        }}>
+                          {note.formatted_note}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </PanelSectionRow>
+              )
+            )}
+
+            {(!updateInfo || !updateInfo.patch_notes ||
+              Object.keys(updateInfo.patch_notes).length === 0) && (
+              <PanelSectionRow>
+                No patch notes are currently available.
+              </PanelSectionRow>
+            )}
+          </>
+        )}
+
+      </PanelSection>
 
       <PanelSection title="Install">
+
         <ButtonItem layout="below" onClick={() => showModal(<UpdateNotesModal serverAPI={serverAPI} />)}>
           Send Notes!♥
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<LauncherInstallModal serverAPI={serverAPI} launcherOptions={launcherOptions} />)}>
           Game Launchers
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<StreamingInstallModal serverAPI={serverAPI} streamingOptions={streamingOptions} />)}>
           Streaming Sites
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<CustomSiteModal serverAPI={serverAPI} />)}>
           Custom Website Shortcut
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<StartFreshModal serverAPI={serverAPI} />)}>
           Start Fresh
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<UpdateRestartModal serverAPI={serverAPI} />)}>
           Update UMU/Proton-GE
         </ButtonItem>
+
         <ButtonItem layout="below" onClick={() => showModal(<RestoreGameSavesModal serverAPI={serverAPI} />)}>
           Restore Game Saves
         </ButtonItem>
+
       </PanelSection>
 
       <PanelSection title="Game Scanner">
+
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           NSL can automatically detect, add or remove shortcuts for the games you install or uninstall in your non-steam launchers in real time, track playtime, auto download boot videos and play game theme music. Below, you can enable automatic scanning or trigger a manual scan. During a manual scan only, your game saves will be backed up here: /home/deck/NSLGameSaves.
         </PanelSectionRow>
-        
-        {/* Moved description of supported launchers */}
+
         <PanelSectionRow style={{ fontSize: "12px", marginBottom: "10px" }}>
           The NSLGameScanner currently supports Epic Games Launcher, Ubisoft Connect, Gog Galaxy, The EA App, Battle.net, Amazon Games, Itch.io, Legacy Games, VK Play, HoYoPlay, Game Jolt Client, Minecraft Launcher, IndieGala Client, STOVE Client, Glyphlink and Humble Bundle as well as Chrome Bookmarks for Xbox Game Pass, GeForce Now, Amazon Luna, Boosteroid & WebRcade games, The Native Linux NVIDIA GeForce NOW App by favoriting the game "♥", Waydroid Applications and Native Xbox App Games on Windows OS.
         </PanelSectionRow>
@@ -277,9 +331,15 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           }}
           disabled={isAutoScanDisabled}
         />
-        <ButtonItem layout="below" onClick={handleScanClick} disabled={isLoading || settings.autoscan}>
+
+        <ButtonItem
+          layout="below"
+          onClick={handleScanClick}
+          disabled={isLoading || settings.autoscan}
+        >
           {isLoading ? 'Scanning...' : 'Manual Scan'}
         </ButtonItem>
+
         <ToggleField
           label="Playtime"
           checked={settings.playtimeEnabled}
@@ -292,35 +352,49 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
       </PanelSection>
 
       <PanelSection title="For Support and Donations">
-        <div
-          style={{
-            backgroundColor: "transparent",
-            display: "flex",
-            flexDirection: "column",
-            padding: "0.5em",
-            width: "95%",
-            margin: 0,
-          }}
-        >
-          <div style={{ marginTop: '5px', textAlign: 'center', fontSize: "12px" }}>
-            <p>NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!</p>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        <div style={{
+          backgroundColor: "transparent",
+          display: "flex",
+          flexDirection: "column",
+          padding: "0.5em",
+          width: "95%",
+          margin: 0,
+        }}>
+          <div style={{
+            marginTop: '5px',
+            textAlign: 'center',
+            fontSize: "12px"
+          }}>
+            <p>
+              NSL will always be free and open source...but if you're so inclined, all sponsors & donations are humbly appreciated and accepted. Thank you so much!
+            </p>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
               <ButtonItem layout="below" onClick={() => window.open('https://www.patreon.com/moraroy', '_blank')}>
                 <img src="https://seeklogo.com/images/P/patreon-logo-C0B52F951B-seeklogo.com.png" alt="Patreon" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 Patreon
               </ButtonItem>
+
               <ButtonItem layout="below" onClick={() => window.open('https://ko-fi.com/moraroy#checkoutModal', '_blank')}>
-                <img src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef_ko-fi_logo_02-p-500.png" alt="Ko-fi" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
+                <img src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef/ko-fi_logo_02-p-500.png" alt="Ko-fi" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 Ko-fi
               </ButtonItem>
+
               <ButtonItem layout="below" onClick={() => window.open('https://github.com/sponsors/moraroy', '_blank')}>
                 <img src="https://cdn.pixabay.com/photo/2022/01/30/13/33/github-6980894_1280.png" alt="GitHub" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 GitHub
               </ButtonItem>
+
               <ButtonItem layout="below" onClick={() => window.open('https://buymeacoffee.com/moraroy', '_blank')}>
                 <img src="https://www.iconpacks.net/icons/free-icons-8/free-buymeacoffee-yellow-circle-round-logotype-icon-27358.png" alt="Buy Me A Coffee" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 Buy Me A Coffee
               </ButtonItem>
+
               <ButtonItem
                 layout="below"
                 onClick={() => window.open('https://github.com/moraroy/NonSteamLaunchers-On-Steam-Deck', '_blank')}
@@ -331,6 +405,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           </div>
         </div>
       </PanelSection>
+
     </div>
   );
 };
@@ -367,4 +442,3 @@ export default definePlugin((serverApi: ServerAPI) => {
     icon: <RxRocket />,
   };
 });
-
