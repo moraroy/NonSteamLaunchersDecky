@@ -62,6 +62,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
   // End of Random Greetings
 
   const { updateInfo } = useUpdateInfo(); // Hook to get update information
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
+  
 
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,8 +136,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
 
   return (
     <div className="decky-plugin">
-      {/* Conditionally render the red card for update info */}
-      {updateInfo && updateInfo.status === "Update available" ? (
+      {/* Conditionally render the red card for update info or manually requested patch notes */}
+      {updateInfo && (updateInfo.status === "Update available" || showPatchNotes) ? (
         <PanelSectionRow style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" }}>
           <div
             style={{
@@ -148,24 +150,31 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               margin: "auto",
               lineHeight: 1.6,
               overflow: "hidden",
-              wordWrap: "break-word",  // Word wrap
+              wordWrap: "break-word",
             }}
           >
-            <div>Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe</div>
+            <div>
+              {updateInfo.status === "Update available"
+                ? "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"
+                : "📝 NSL Patch Notes"}
+            </div>
 
-            <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
-              {isUpdating ? 'Updating...' : 'Update'}
-            </ButtonItem>
+            {updateInfo.status === "Update available" && (
+              <ButtonItem layout="below" onClick={handleUpdateClick} disabled={isUpdating}>
+                {isUpdating ? 'Updating...' : 'Update'}
+              </ButtonItem>
+            )}
+
             <div style={{ marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" }}>
               <div>📌 <strong>Local version:</strong> {updateInfo.local_version}</div>
               <div>🚀 <strong>Latest version:</strong> {updateInfo.github_version}</div>
               <div style={{ marginTop: "0.5em" }}>
                 <strong>📝 Patch Notes:</strong>
                 <ul style={{
-                  textAlign: "left", 
-                  marginLeft: "1.5em", 
-                  fontSize: "13px", 
-                  listStyleType: "none", 
+                  textAlign: "left",
+                  marginLeft: "1.5em",
+                  fontSize: "13px",
+                  listStyleType: "none",
                   padding: "0"
                 }}>
                   {Object.entries(updateInfo.patch_notes).map(([category, notes]) => (
@@ -174,8 +183,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
                       <ul style={{ paddingLeft: "20px" }}>
                         {notes.map((note, idx) => (
                           <li key={idx} style={{
-                            wordWrap: "break-word", 
-                            overflow: "hidden", 
+                            wordWrap: "break-word",
+                            overflow: "hidden",
                             textOverflow: "ellipsis"
                           }}>
                             {note.formatted_note}
@@ -207,6 +216,20 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
           </div>
         </PanelSectionRow>
       )}
+
+      {/* Patch Notes toggle button */}
+      {updateInfo && (
+        <PanelSectionRow>
+          <ButtonItem
+            layout="below"
+            onClick={() => setShowPatchNotes(!showPatchNotes)}
+          >
+            {showPatchNotes ? 'Hide Patch Notes' : '📝 Patch Notes'}
+          </ButtonItem>
+        </PanelSectionRow>
+      )}
+
+
 
       <PanelSection title="Install">
         <ButtonItem layout="below" onClick={() => showModal(<UpdateNotesModal serverAPI={serverAPI} />)}>

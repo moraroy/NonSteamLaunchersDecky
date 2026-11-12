@@ -484,6 +484,7 @@ def add_compat_tool(exe_path, launchoptions, startingdir):
         print("Exclusion: 'xodus' detected in target or start directory.")
         return None
 
+
     if 'chrome' in launchoptions or 'edge' in launchoptions or 'firefox' in launchoptions or 'brave' in launchoptions or 'vivaldi' in launchoptions or 'librewolf' in launchoptions or '--appid 0' in launchoptions:
         return False
     elif any(x in launchoptions for x in ['jp.', 'com.', 'online.']):
@@ -987,6 +988,7 @@ def get_local_tagged_artwork(appname, steamid3, logged_in_home):
 
 
 
+
 def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     global decky_shortcuts
 
@@ -1014,16 +1016,22 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
             decky_plugin.logger.info(f"Updating {appname} to NSL's current target and launch options.")
             return
 
-    if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
-        return
 
     umu = False
     if platform.system() != "Windows":
-        exe, startingdir, launchoptions = modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name)
-        if '/bin/umu-run' in exe:
+        exe, startingdir, launchoptions = modify_shortcut_for_umu(
+            appname, exe, launchoptions, startingdir,
+            logged_in_home, compat_tool_name
+        )
+        if 'umu-run' in exe.lower():
             umu = True
-            if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
-                return
+            decky_plugin.logger.info(f"[UMU] Detected UMU executable for {appname}")
+        else:
+            decky_plugin.logger.info(f"[UMU] No UMU executable detected for {appname}: {exe}")
+
+    if check_if_shortcut_exists(appname, exe, startingdir, launchoptions):
+        return
+
 
     formatted_exe = f'"{exe}"' if platform.system() == "Windows" else exe
     formatted_start_dir = f'"{startingdir}"' if platform.system() == "Windows" else startingdir
@@ -1111,7 +1119,21 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
                 else:
                     decky_plugin.logger.warning(f"Fallback icon artwork for {appname} failed.")
 
-    compatTool = None if platform.system() == "Windows" or umu else add_compat_tool(formatted_exe, formatted_launch_options, startingdir)
+    if platform.system() == "Windows":
+        compatTool = None
+    elif umu:
+        compatTool = 'Default'
+        decky_plugin.logger.info(f"[UMU] Assigning Default to {appname}")
+    else:
+        compatTool = add_compat_tool(
+            formatted_exe,
+            formatted_launch_options,
+            startingdir
+        )
+
+    decky_plugin.logger.info(
+        f"[DEBUG] Final CompatTool for {appname}: {compatTool}"
+    )
 
     decky_entry = {
         'appname': appname,
@@ -1133,7 +1155,6 @@ def create_new_entry(exe, appname, launchoptions, startingdir, launcher):
     decky_plugin.logger.info(f"Added new entry for {appname} to shortcuts.")
 
     get_movies(appname)
-
 
 
 
@@ -2075,3 +2096,4 @@ def is_match(
         )
 
     return False
+

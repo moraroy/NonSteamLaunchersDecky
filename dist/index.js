@@ -2504,6 +2504,7 @@
       const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
       // End of Random Greetings
       const { updateInfo } = useUpdateInfo(); // Hook to get update information
+      const [showPatchNotes, setShowPatchNotes] = React.useState(false);
       React.useState(false);
       const [isLoading, setIsLoading] = React.useState(false);
       const [isManualScanComplete, setIsManualScanComplete] = React.useState(false);
@@ -2568,7 +2569,7 @@
           }
       }, [isManualScanComplete]);
       return (window.SP_REACT.createElement("div", { className: "decky-plugin" },
-          updateInfo && updateInfo.status === "Update available" ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
+          updateInfo && (updateInfo.status === "Update available" || showPatchNotes) ? (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, { style: { fontSize: "16px", fontWeight: "bold", marginBottom: "10px", textAlign: "center" } },
               window.SP_REACT.createElement("div", { style: {
                       backgroundColor: "red",
                       color: "white",
@@ -2579,10 +2580,12 @@
                       margin: "auto",
                       lineHeight: 1.6,
                       overflow: "hidden",
-                      wordWrap: "break-word", // Word wrap
+                      wordWrap: "break-word",
                   } },
-                  window.SP_REACT.createElement("div", null, "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"),
-                  window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update'),
+                  window.SP_REACT.createElement("div", null, updateInfo.status === "Update available"
+                      ? "Update found! :) Press Update to restart Steam. If it fails, run NSLPlugin.desktop or NSLPluginWindows.exe"
+                      : "📝 NSL Patch Notes"),
+                  updateInfo.status === "Update available" && (window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: handleUpdateClick, disabled: isUpdating }, isUpdating ? 'Updating...' : 'Update')),
                   window.SP_REACT.createElement("div", { style: { marginTop: "0.5em", fontSize: "14px", fontWeight: "normal" } },
                       window.SP_REACT.createElement("div", null,
                           "\uD83D\uDCCC ",
@@ -2619,6 +2622,8 @@
                       maxWidth: "80%",
                       margin: "auto",
                   } }, randomGreeting))),
+          updateInfo && (window.SP_REACT.createElement(deckyFrontendLib.PanelSectionRow, null,
+              window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => setShowPatchNotes(!showPatchNotes) }, showPatchNotes ? 'Hide Patch Notes' : '📝 Patch Notes'))),
           window.SP_REACT.createElement(deckyFrontendLib.PanelSection, { title: "Install" },
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(UpdateNotesModal, { serverAPI: serverAPI })) }, "Send Notes!\u2665"),
               window.SP_REACT.createElement(deckyFrontendLib.ButtonItem, { layout: "below", onClick: () => deckyFrontendLib.showModal(window.SP_REACT.createElement(LauncherInstallModal, { serverAPI: serverAPI, launcherOptions: launcherOptions })) }, "Game Launchers"),

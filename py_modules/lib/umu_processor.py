@@ -72,6 +72,7 @@ def list_all_entries():
         csv_data = fetch_and_parse_csv()
     return csv_data
 
+
 def extract_umu_id_from_launch_options(launchoptions):
     # Check if the launch options contain STEAM_COMPAT_DATA_PATH
     if 'STEAM_COMPAT_DATA_PATH=' not in launchoptions:
@@ -81,25 +82,34 @@ def extract_umu_id_from_launch_options(launchoptions):
     match = re.search(r'offerIds=(\d+)', launchoptions)
     if match:
         return match.group(1)
+
     # Amazon
     match = re.search(r'(amzn1\.adg\.product\.\S+)', launchoptions)
     if match:
-        product_id = match.group(1).rstrip("'")  # Remove trailing single quote
+        product_id = match.group(1).rstrip("'")
         return product_id
+
     # Epic
-    match = re.search(r'com\.epicgames\.launcher://apps/(\w+)[?&]', launchoptions)
+    match = re.search(
+        r'com\.epicgames\.launcher://apps/([^?&/\s]+)',
+        launchoptions,
+        re.IGNORECASE
+    )
     if match:
-        epic_id = match.group(1).lower() if not match.group(1).isdigit() else match.group(1)
-        return epic_id
+        return match.group(1)
+
     # Ubisoft
     match = re.search(r'uplay://launch/(\d+)/\d+', launchoptions)
     if match:
         return match.group(1)
+
     # GOG
     match = re.search(r'/gameId=(\d+)', launchoptions)
     if match:
         return match.group(1)
+
     return None
+
 
 def extract_base_path(launchoptions):
     match = re.search(r'STEAM_COMPAT_DATA_PATH="([^"]+)"', launchoptions)
@@ -107,13 +117,14 @@ def extract_base_path(launchoptions):
         return match.group(1)
     raise ValueError("STEAM_COMPAT_DATA_PATH not found in launch options")
 
+
 def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_home, compat_tool_name):
     # Skip UMU modification for specific titles
     skip_titles = ["genshin impact", "zenless zone zero"]
     if appname.lower() in skip_titles:
         decky_plugin.logger.info(f"Skipping UMU modification for {appname}.")
         return exe, startingdir, launchoptions
-    
+
     dir_path = os.path.expanduser("~/.steam/root/compatibilitytools.d")
     pattern = re.compile(r"UMU-Proton-(\d+(?:\.\d+)*)(?:-(\d+(?:\.\d+)*))?")
 
@@ -130,13 +141,17 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
     if umu_folders:
         compat_tool_name = max(umu_folders)[1]
 
-
     # Skip processing if STEAM_COMPAT_DATA_PATH is not present
     if 'STEAM_COMPAT_DATA_PATH=' not in launchoptions:
         decky_plugin.logger.info(f"Launch options for {appname} do not contain STEAM_COMPAT_DATA_PATH. Skipping modification.")
         return exe, startingdir, launchoptions
 
     codename = extract_umu_id_from_launch_options(launchoptions)
+
+    decky_plugin.logger.info(
+        f"[UMU DEBUG] Extracted codename for {appname}: {codename}"
+    )
+
     if not codename:
         print(f"No codename found in launch options for {appname}. Trying to match appname.")
 
@@ -153,8 +168,11 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
 
     if codename:
         for entry in entries:
-            if entry['CODENAME'] == codename:
-                umu_id = entry['UMU_ID'].replace("umu-", "")  # Remove the "umu-" prefix
+            if (
+                entry.get('CODENAME', '').lower() == codename.lower()
+                and entry.get('STORE', '').lower() == 'egs'
+            ):
+                umu_id = entry['UMU_ID'].replace("umu-", "")
                 base_path = extract_base_path(launchoptions)
                 new_exe = f'"{logged_in_home}/bin/umu-run" {exe}'
                 new_start_dir = f'"{logged_in_home}/bin/"'
@@ -165,7 +183,7 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                 # Hoyoplay - Extract the game identifier
                #match = re.search(r'--game=(\w+)', launchoptions)
                 #if match:
-                    #codename = match.group(1)  # Capture the identifier
+                    #codename = match.group(1)
                     #updated_launch = f"'--game={codename}'"
 
                 if "origin2://game/launch?offerIds=" in launchoptions:
@@ -199,7 +217,16 @@ def modify_shortcut_for_umu(appname, exe, launchoptions, startingdir, logged_in_
                 # Final new launch options
                 new_launch_options += updated_launch
 
+                decky_plugin.logger.info(
+                    f"[UMU] Matched {appname}: "
+                    f"STORE={entry['STORE']}, "
+                    f"CODENAME={entry['CODENAME']}, "
+                    f"UMU_ID={entry['UMU_ID']}"
+                )
+
                 decky_plugin.logger.info(f"Modified shortcut for {appname}")
                 return new_exe, new_start_dir, new_launch_options
+
     decky_plugin.logger.info(f"No matching codename found in UMU database for {appname}. Skipping modification.")
     return exe, startingdir, launchoptions
+
