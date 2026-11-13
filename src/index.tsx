@@ -1,4 +1,3 @@
-
 import {
   ButtonItem,
   definePlugin,
@@ -375,13 +374,18 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ serverAPI }) => {
               alignItems: 'center',
               gap: '10px'
             }}>
+              <ButtonItem layout="below" onClick={() => window.open('https://moraroy.github.io/NonSteamLaunchers-On-Steam-Deck', '_blank')}>
+                <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/960px-Bitcoin.svg.png" alt="Patreon" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
+                Crypto
+              </ButtonItem>
+
               <ButtonItem layout="below" onClick={() => window.open('https://www.patreon.com/moraroy', '_blank')}>
                 <img src="https://seeklogo.com/images/P/patreon-logo-C0B52F951B-seeklogo.com.png" alt="Patreon" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 Patreon
               </ButtonItem>
 
               <ButtonItem layout="below" onClick={() => window.open('https://ko-fi.com/moraroy#checkoutModal', '_blank')}>
-                <img src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/64f1a9ddd0246590df69e9ef/ko-fi_logo_02-p-500.png" alt="Ko-fi" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
+                <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/ko-fi-icon.png" alt="Ko-fi" style={{ width: '20px', height: '20px', marginRight: '10px' }} />
                 Ko-fi
               </ButtonItem>
 

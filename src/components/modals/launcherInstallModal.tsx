@@ -202,18 +202,45 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
         <DialogBodyText>Selected options: {options.filter(option => option.enabled).map(option => option.label).join(', ')}</DialogBodyText>
         <DialogBody>
           <SteamSpinner />
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div ref={logContainerRef} style={{ flex: 1, marginRight: '10px', fontSize: 'small', whiteSpace: 'pre-wrap', overflowY: 'auto', maxHeight: '50px', height: '100px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+            gap: '10px'
+          }}>
+            <div
+              ref={logContainerRef}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                fontSize: 'small',
+                whiteSpace: 'pre-wrap',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                maxHeight: '50px',
+                height: '100px'
+              }}
+            >
               {showLog && log}
             </div>
-            <ProgressBarWithInfo
-              layout="inline"
-              bottomSeparator="none"
-              sOperationText={progress.status}
-              description={progress.description}
-              nProgress={progress.percent}
-              indeterminate={true}
-            />
+            <div style={{
+              width: '100%',
+              minWidth: 0,
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
+            }}>
+              <ProgressBarWithInfo
+                layout="inline"
+                bottomSeparator="none"
+                sOperationText={progress.status}
+                description={progress.description}
+                nProgress={progress.percent}
+                indeterminate={true}
+              />
+            </div>
           </div>
           {currentLauncher && (
             <img src={currentLauncher.urlimage} alt="Overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0.5 }} />
@@ -291,3 +318,4 @@ export const LauncherInstallModal: VFC<LauncherInstallModalProps> = ({ closeModa
     )
   );
 };
+
