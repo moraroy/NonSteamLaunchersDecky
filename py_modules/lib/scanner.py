@@ -320,7 +320,26 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
 
 
+
+
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
+
+    files_to_delete = [
+        f"{logged_in_home}/.config/systemd/user/NSLGameScanner.py",
+        f"{logged_in_home}/.config/systemd/user/default.target.wants/nslgamescanner.service"
+    ]
+
+    for file_path in files_to_delete:
+        if os.path.isfile(file_path):
+            try:
+                os.remove(file_path)
+                print(f"[+] Deleted: {file_path}")
+            except OSError as e:
+                decky_plugin.logger.error(
+                    f"Failed to delete {file_path}: {e}"
+                )
+        else:
+            print(f"[-] Not found: {file_path}")
 
     if platform.system() == "Windows":
         vdf_path = env_vars.get("steam_shortcuts_vdf")
@@ -333,25 +352,10 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
             with open(vdf_path, 'rb') as file:
                 shortcuts = vdf.binary_loads(file.read())
 
-            #
-            
-            if not isinstance(shortcuts, dict) or 'shortcuts' not in shortcuts:
-                decky_plugin.logger.error(
-                    f"Invalid shortcuts VDF structure at: {vdf_path}"
-                )
-                return False
-
-            if not isinstance(shortcuts['shortcuts'], dict):
-                decky_plugin.logger.error(
-                    f"Invalid shortcuts dictionary at: {vdf_path}"
-                )
-                return False
-
             stripped_exe_path = exe_path.strip('"') if exe_path else exe_path
             stripped_start_dir = start_dir.strip('"') if start_dir else start_dir
 
             for s in shortcuts['shortcuts'].values():
-
 
                 if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
                    ((s.get('exe') and s.get('exe').strip('"') == stripped_exe_path) or
@@ -380,7 +384,6 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
                     return True
 
                 # Same target already added by another tool under its own wrapper/name
-                # (e.g. ArmadaOS wraps Xodus games and Flatpaks with armada-game-launch)
                 if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
                     decky_plugin.logger.info(
                         f"Existing shortcut for the same target found for {display_name}. Skipping creation."
@@ -394,6 +397,7 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
         decky_plugin.logger.info(f"VDF file not found at: {vdf_path}")
 
     return False
+
 
 
 
