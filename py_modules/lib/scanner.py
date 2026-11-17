@@ -319,64 +319,82 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
 
 
+
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
 
-    # Determine the path based on the operating system
     if platform.system() == "Windows":
         vdf_path = env_vars.get("steam_shortcuts_vdf")
     else:
         vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
 
-    # Check if the shortcuts file exists
     if os.path.exists(vdf_path):
 
-        # If the file is not executable, write the shortcuts dictionary and make it executable
-        if not os.access(vdf_path, os.X_OK):
-            decky_plugin.logger.info(f"VDF file is not executable, initializing: {vdf_path}")
-            with open(vdf_path, 'wb') as file:
-                vdf.binary_dumps({'shortcuts': {}}, file)
-            os.chmod(vdf_path, 0o755)
-        else:
-            # If the file exists, try to load it
-            try:
-                with open(vdf_path, 'rb') as file:
-                    shortcuts = vdf.binary_loads(file.read())
+        try:
+            with open(vdf_path, 'rb') as file:
+                shortcuts = vdf.binary_loads(file.read())
 
-                for s in shortcuts['shortcuts'].values():
-                    stripped_exe_path = exe_path.strip('\"') if exe_path else exe_path
-                    stripped_start_dir = start_dir.strip('\"') if start_dir else start_dir
+            #
+            
+            if not isinstance(shortcuts, dict) or 'shortcuts' not in shortcuts:
+                decky_plugin.logger.error(
+                    f"Invalid shortcuts VDF structure at: {vdf_path}"
+                )
+                return False
+
+            if not isinstance(shortcuts['shortcuts'], dict):
+                decky_plugin.logger.error(
+                    f"Invalid shortcuts dictionary at: {vdf_path}"
+                )
+                return False
+
+            stripped_exe_path = exe_path.strip('"') if exe_path else exe_path
+            stripped_start_dir = start_dir.strip('"') if start_dir else start_dir
+
+            for s in shortcuts['shortcuts'].values():
 
 
-                    # Non-Chrome shortcut check: We remove the launch options comparison for non-Chrome shortcuts
-                    if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                       (s.get('exe') and s.get('exe').strip('\"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('\"') == stripped_exe_path) and \
-                       s.get('StartDir') and s.get('StartDir').strip('\"') == stripped_start_dir:
+                if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
+                   ((s.get('exe') and s.get('exe').strip('"') == stripped_exe_path) or
+                    (s.get('Exe') and s.get('Exe').strip('"') == stripped_exe_path)) and \
+                   s.get('StartDir') and s.get('StartDir').strip('"') == stripped_start_dir:
 
-                        # Check if the launch options are different (for non-Chrome, no comparison is done, so add a warning here)
-                        if s.get('LaunchOptions') != launch_options:
-                            decky_plugin.logger.warning(f"Launch options for {display_name} differ from the default. This could be due to the user manually modifying the launch options. Will skip creation")
+                    if s.get('LaunchOptions') != launch_options:
+                        decky_plugin.logger.warning(
+                            f"Launch options for {display_name} differ from the default. "
+                            "This could be due to the user manually modifying the launch options. "
+                            "Will skip creation"
+                        )
 
-                        decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
-                        return True
+                    decky_plugin.logger.info(
+                        f"Existing shortcut found for game {display_name}. Skipping creation."
+                    )
+                    return True
 
-                    if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                       (s.get('exe') and s.get('exe').strip('\"') == '/app/bin/chrome') and \
-                       s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
-                        decky_plugin.logger.info(f"Existing website shortcut found for {display_name}. Skipping creation.")
-                        return True
+                if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
+                   (s.get('exe') and s.get('exe').strip('"') == '/app/bin/chrome') and \
+                   s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
 
-                    # Same target already added by another tool under its own wrapper/name
-                    # (e.g. ArmadaOS wraps Xodus games and Flatpaks with armada-game-launch)
-                    if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
-                        decky_plugin.logger.info(f"Existing shortcut for the same target found for {display_name}. Skipping creation.")
-                        return True
+                    decky_plugin.logger.info(
+                        f"Existing website shortcut found for {display_name}. Skipping creation."
+                    )
+                    return True
 
-            except Exception as e:
-                decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
+                # Same target already added by another tool under its own wrapper/name
+                # (e.g. ArmadaOS wraps Xodus games and Flatpaks with armada-game-launch)
+                if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
+                    decky_plugin.logger.info(
+                        f"Existing shortcut for the same target found for {display_name}. Skipping creation."
+                    )
+                    return True
+
+        except Exception as e:
+            decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
+
     else:
         decky_plugin.logger.info(f"VDF file not found at: {vdf_path}")
 
     return False
+
 
 
 
