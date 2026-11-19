@@ -322,7 +322,12 @@ def addCustomSite(customSiteJSON, selectedBrowser):
 
 
 
+
+
+
 def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
+
+
 
     files_to_delete = [
         f"{logged_in_home}/.config/systemd/user/NSLGameScanner.py",
@@ -341,62 +346,61 @@ def check_if_shortcut_exists(display_name, exe_path, start_dir, launch_options):
         else:
             print(f"[-] Not found: {file_path}")
 
+
+    # Determine the path based on the operating system
     if platform.system() == "Windows":
         vdf_path = env_vars.get("steam_shortcuts_vdf")
     else:
         vdf_path = f"{logged_in_home}/.steam/root/userdata/{steamid3}/config/shortcuts.vdf"
 
     if os.path.exists(vdf_path):
-
         try:
             with open(vdf_path, 'rb') as file:
                 shortcuts = vdf.binary_loads(file.read())
-
-            stripped_exe_path = exe_path.strip('"') if exe_path else exe_path
-            stripped_start_dir = start_dir.strip('"') if start_dir else start_dir
-
-            for s in shortcuts['shortcuts'].values():
-
-                if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                   ((s.get('exe') and s.get('exe').strip('"') == stripped_exe_path) or
-                    (s.get('Exe') and s.get('Exe').strip('"') == stripped_exe_path)) and \
-                   s.get('StartDir') and s.get('StartDir').strip('"') == stripped_start_dir:
-
-                    if s.get('LaunchOptions') != launch_options:
-                        decky_plugin.logger.warning(
-                            f"Launch options for {display_name} differ from the default. "
-                            "This could be due to the user manually modifying the launch options. "
-                            "Will skip creation"
-                        )
-
-                    decky_plugin.logger.info(
-                        f"Existing shortcut found for game {display_name}. Skipping creation."
-                    )
-                    return True
-
-                if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
-                   (s.get('exe') and s.get('exe').strip('"') == '/app/bin/chrome') and \
-                   s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
-
-                    decky_plugin.logger.info(
-                        f"Existing website shortcut found for {display_name}. Skipping creation."
-                    )
-                    return True
-
-                # Same target already added by another tool under its own wrapper/name
-                if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
-                    decky_plugin.logger.info(
-                        f"Existing shortcut for the same target found for {display_name}. Skipping creation."
-                    )
-                    return True
-
         except Exception as e:
             decky_plugin.logger.error(f"Error reading shortcuts file: {e}")
+            return False
 
     else:
-        decky_plugin.logger.info(f"VDF file not found at: {vdf_path}")
+        decky_plugin.logger.info(
+            f"VDF file not found at: {vdf_path}. Using temporary shortcuts dictionary."
+        )
+
+        shortcuts = {'shortcuts': decky_shortcuts}
+
+
+
+    for s in shortcuts['shortcuts'].values():
+        stripped_exe_path = exe_path.strip('"') if exe_path else exe_path
+        stripped_start_dir = start_dir.strip('"') if start_dir else start_dir
+
+        # Non-Chrome shortcut check: We remove the launch options comparison for non-Chrome shortcuts
+        if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
+           (s.get('exe') and s.get('exe').strip('"') == stripped_exe_path or s.get('Exe') and s.get('Exe').strip('"') == stripped_exe_path) and \
+           s.get('StartDir') and s.get('StartDir').strip('"') == stripped_start_dir:
+
+            # Check if the launch options are different
+            if s.get('LaunchOptions') != launch_options:
+                decky_plugin.logger.warning(f"Launch options for {display_name} differ from the default. This could be due to the user manually modifying the launch options. Will skip creation")
+
+            decky_plugin.logger.info(f"Existing shortcut found for game {display_name}. Skipping creation.")
+            return True
+
+        if (s.get('appname') == display_name or s.get('AppName') == display_name) and \
+           (s.get('exe') and s.get('exe').strip('"') == '/app/bin/chrome') and \
+           s.get('LaunchOptions') and launch_options in s.get('LaunchOptions'):
+            decky_plugin.logger.info(f"Existing website shortcut found for {display_name}. Skipping creation.")
+            return True
+
+        # Same target already added by another tool under its own wrapper/name
+        # (e.g. ArmadaOS wraps Xodus games and Flatpaks with armada-game-launch)
+        if is_wrapped_duplicate(s, stripped_exe_path, launch_options):
+            decky_plugin.logger.info(f"Existing shortcut for the same target found for {display_name}. Skipping creation.")
+            return True
 
     return False
+
+
 
 
 

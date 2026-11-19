@@ -148,12 +148,6 @@ def refresh_env_vars():
 
                     # Handle shortcuts.vdf
                     shortcuts_path = os.path.join(USERS_DATA_DIR, current_user, "config", "shortcuts.vdf")
-                    if not os.path.exists(shortcuts_path):
-                        os.makedirs(os.path.dirname(shortcuts_path), exist_ok=True)
-                        with open(shortcuts_path, "wb") as file:
-                            file.write(vdf.binary_dumps({"shortcuts": {}}))
-                        os.chmod(shortcuts_path, 0o755)
-                        decky_plugin.logger.info(f"Created missing shortcuts.vdf at {shortcuts_path}")
 
                     # Normalize the path, capitalize drive letter, preserve folder names
                     if shortcuts_path and os.path.exists(shortcuts_path):
